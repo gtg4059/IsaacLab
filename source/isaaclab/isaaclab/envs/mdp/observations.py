@@ -33,12 +33,12 @@ Root state.
 def collision_risk_index(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     asset: Articulation = env.scene[asset_cfg.name]
     # print(
-    #     #   asset.data.joint_pos[:, asset_cfg.joint_ids][0][0].item(),
-    #     #   asset.data.joint_pos[:, asset_cfg.joint_ids][0][1].item(),
-    #     #   asset.data.joint_pos[:, asset_cfg.joint_ids][0][2].item(),
-    #     #   asset.data.joint_pos[:, asset_cfg.joint_ids][0][3].item(),
-    #     #   asset.data.joint_pos[:, asset_cfg.joint_ids][0][4].item(),
-    #     #   asset.data.joint_pos[:, asset_cfg.joint_ids][0][5].item(),
+    #       asset.data.joint_pos[:, asset_cfg.joint_ids][0][0].item(),
+    #       asset.data.joint_pos[:, asset_cfg.joint_ids][0][1].item(),
+    #       asset.data.joint_pos[:, asset_cfg.joint_ids][0][2].item(),
+    #       asset.data.joint_pos[:, asset_cfg.joint_ids][0][3].item(),
+    #       asset.data.joint_pos[:, asset_cfg.joint_ids][0][4].item(),
+    #       asset.data.joint_pos[:, asset_cfg.joint_ids][0][5].item(),
     #       asset.data.joint_vel[:, asset_cfg.joint_ids][0][0].item(),
     #       asset.data.joint_vel[:, asset_cfg.joint_ids][0][1].item(),
     #       asset.data.joint_vel[:, asset_cfg.joint_ids][0][2].item(),
@@ -60,6 +60,8 @@ def collision_risk_index(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = Scene
 def CRI_OVF(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     asset: Articulation = env.scene[asset_cfg.name]
     result,_ = torch.max(asset.data.CRI,dim=1)
+    # if result>1:
+    #     print("reset")
     # print("result: ",asset.data.CRI)
     #print("result: ",result)
     return result>1
