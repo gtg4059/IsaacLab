@@ -214,7 +214,7 @@ class UniformPoseTrigCommandCfg(CommandTermCfg):
         pos_z: tuple[float, float] = MISSING  # min max [m]
         roll: tuple[float, float] = MISSING  # min max [rad]
         pitch: tuple[float, float] = MISSING  # min max [rad]
-        yaw: tuple[float, float] = MISSING  # min max [rad]
+        #yaw: tuple[float, float] = MISSING  # min max [rad]
 
     ranges: PolarRanges = MISSING
 

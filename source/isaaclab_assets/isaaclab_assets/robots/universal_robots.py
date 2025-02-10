@@ -37,10 +37,10 @@ UR10_CFG = ArticulationCfg(
     init_state=ArticulationCfg.InitialStateCfg(
         joint_pos={
             "shoulder_pan_joint": 0.0,
-            "shoulder_lift_joint": -1.832595714594046055769875306913,
-            "elbow_joint": -2.0943951023931954923084289221863,
-            "wrist_1_joint": -0.78539816339744830961566084581988,
-            "wrist_2_joint": 0.0,
+            "shoulder_lift_joint": -1.7453292519943295769236907684886,
+            "elbow_joint": -0.78539816339744830961566084581988,
+            "wrist_1_joint": -2.1816615649929119711546134606108,
+            "wrist_2_joint": 1.5707963267948966192313216916398,
             "wrist_3_joint": 0.0,
         },
     ),

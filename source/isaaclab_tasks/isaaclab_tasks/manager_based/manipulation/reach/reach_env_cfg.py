@@ -81,15 +81,11 @@ class CommandsCfg:
             # pos_r=(0.4,0.6),
             # pos_th=(-3.14, 3.14),
             # pos_z=(0.5, 0.7),
-            # pos_r=(0.4,0.9),
-            # pos_th=MISSING,
-            # pos_z=(0.4, 0.9),
-            pos_r=(0.5657,0.5657),
-            pos_th=(-0.7854, -0.7854),
-            pos_z=(0.7, 0.7),
+            pos_r=(0.4,1.0),
+            pos_th=(-3.14, 3.14),
+            pos_z=(0.4, 0.9),
             roll=MISSING,
             pitch=MISSING,  # depends on end-effector axis
-            yaw=MISSING
         ),
     )
 
@@ -111,6 +107,7 @@ class ObservationsCfg:
 
         # observation terms (order preserved)
         CRI = ObsTerm(func=mdp.collision_risk_index)
+        joint_pos_abs = ObsTerm(func=mdp.joint_pos, noise=Unoise(n_min=-0.01, n_max=0.01))
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.001, n_max=0.001))
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.001, n_max=0.001))
         pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "ee_pose"})
@@ -129,10 +126,10 @@ class EventCfg:
     """Configuration for events."""
 
     reset_robot_joints = EventTerm(
-        func=mdp.reset_joints_by_offset,
+        func=mdp.reset_joints_by_scale,
         mode="reset",
         params={
-            "position_range": (0.0, 0.0),
+            "position_range": (-0.5, 0.5),
             "velocity_range": (0.0, 0.0),
         },
     )
@@ -145,19 +142,19 @@ class RewardsCfg:
     # task terms
     end_effector_position_tracking = RewTerm(
         func=mdp.position_command_error,
-        weight=-2,
+        weight=-0.2,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
-    # end_effector_position_tracking_fine_grained = RewTerm(
-    #     func=mdp.position_command_error_tanh,
-    #     weight=1,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "std": 0.1, "command_name": "ee_pose"},
-    # )
-    # end_effector_orientation_tracking = RewTerm(
-    #     func=mdp.orientation_command_error,
-    #     weight=-0.1,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
-    # )
+    end_effector_position_tracking_fine_grained = RewTerm(
+        func=mdp.position_command_error_tanh,
+        weight=1,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "std": 0.1, "command_name": "ee_pose"},
+    )
+    end_effector_orientation_tracking = RewTerm(
+        func=mdp.orientation_command_error,
+        weight=-0.1,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
+    )
 
     # end_effector_orientation_tracking_fine_grained = RewTerm(
     #     func=mdp.orientation_command_error_tanh,
@@ -166,7 +163,7 @@ class RewardsCfg:
     # )
     end_effector_tracking_fine_grained = RewTerm(
         func=mdp.command_error_tanh,
-        weight=20,
+        weight=1000,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "std": 0.1, "command_name": "ee_pose"},
     )
 
@@ -174,24 +171,6 @@ class RewardsCfg:
         func=mdp.CRI_OVF,
         weight=-50,
         params={"asset_cfg": SceneEntityCfg("robot")},
-    )
-
-    # reach = RewTerm(
-    #     func=mdp.reach,
-    #     weight=1,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose", "resample_trigger": MISSING},
-    # )
-
-    # action penalty
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-6)
-    joint_vel = RewTerm(
-        func=mdp.joint_acc_l2,
-        weight=-1e-6,
-        params={"asset_cfg": SceneEntityCfg("robot")},
-    )
-    alive = RewTerm(
-        func=mdp.is_alive,
-        weight=5,
     )
 
     # reach = RewTerm(
@@ -219,8 +198,8 @@ class TerminationsCfg:
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     OVF = DoneTerm(func=mdp.CRI_OVF)
-    reach = DoneTerm(func=mdp.CRI_reach,
-                     params={"asset_cfg": SceneEntityCfg("robot", body_names=["ee_link"]), "std": 0.1, "command_name": "ee_pose"})
+    # reach = DoneTerm(func=mdp.CRI_reach,
+    #                  params={"asset_cfg": SceneEntityCfg("robot", body_names=["ee_link"]), "std": 0.1, "command_name": "ee_pose"})
 
 
 @configclass
