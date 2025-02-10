@@ -81,7 +81,7 @@ class CommandsCfg:
             # pos_r=(0.4,0.6),
             # pos_th=(-3.14, 3.14),
             # pos_z=(0.5, 0.7),
-            pos_r=(0.4,1.0),
+            pos_r=(0.4,0.9),
             pos_th=(-3.14, 3.14),
             pos_z=(0.4, 0.9),
             roll=MISSING,
@@ -198,8 +198,8 @@ class TerminationsCfg:
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     OVF = DoneTerm(func=mdp.CRI_OVF)
-    # reach = DoneTerm(func=mdp.CRI_reach,
-    #                  params={"asset_cfg": SceneEntityCfg("robot", body_names=["ee_link"]), "std": 0.1, "command_name": "ee_pose"})
+    reach = DoneTerm(func=mdp.CRI_reach,
+                     params={"asset_cfg": SceneEntityCfg("robot", body_names=["ee_link"]), "std": 0.1, "command_name": "ee_pose"})
 
 
 @configclass

@@ -67,6 +67,7 @@ def CRI_OVF(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("
 def CRI_reach(env: ManagerBasedRLEnv, std: float,command_name: str, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     # extract the asset (to enable type hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
+    robot: Articulation = env.scene[asset_cfg.name]
     command = env.command_manager.get_command(command_name)
 
     des_pos_b = command[:, :3]
@@ -79,11 +80,26 @@ def CRI_reach(env: ManagerBasedRLEnv, std: float,command_name: str, asset_cfg: S
     des_quat_w = quat_mul(asset.data.root_state_w[:, 3:7], des_quat_b)
     curr_quat_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], 3:7]  # type: ignore
     result = (1 - torch.tanh(quat_error_magnitude(curr_quat_w, des_quat_w)*2))*(1 - torch.tanh(distance / std))
-    # if result>0.90:
-    #     print("done")
+    if result>0.87:
+        print("done")
+        #print(env.episode_length_buf.item())
+        
+        # robot(6), target(6)
+        # print(robot.data.joint_pos[:, :])
+        # print(command[:, :])
+        with open("/home/robotics/IsaacLab/source/isaaclab/isaaclab/envs/mdp/state.txt", 'a') as f:
+            for row in robot.data.joint_pos[0, :]:
+                f.write(str(row.item()))
+                f.write(',')
+            f.write(str(env.episode_length_buf.float().item()))
+            f.write('\n')
+        # s = str(robot.data.joint_pos[:, :].numpy()) + str(command[:, :].numpy())
+        # print(s)
+        # f.write(s)
+
     # print(result.item())
     # return (torch.where(torch.norm(curr_pos_w - des_pos_w, dim=1)<0.5,1 - torch.tanh(quat_error_magnitude(curr_quat_w, des_quat_w)*2),0))*(1 - torch.tanh(distance/std))#std:0.1
-    return result>0.90#std:0.1
+    return result>0.87#std:0.1
 
 def base_pos_z(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Root height in the simulation world frame."""
