@@ -243,21 +243,21 @@ class UniformPoseTrigCommand(CommandTrigTerm):
         self.pose_command_b[env_ids, 1] = y
         self.pose_command_b[env_ids, 2] = z
 
-        #z_n=z-0.6
+        z_n=z-0.6
         # Calculate the total distance from the origin to the point
-        #distance = torch.sqrt(x**2 + y**2 + z_n**2)
+        distance = torch.sqrt(x**2 + y**2 + z_n**2)
         
         # Yaw to rotate around the z-axis to align x-axis with the projection on the xy-plane
-        #yaw = torch.atan2(y, x)
+        yaw = torch.atan2(y, x)
         
         # Pitch to rotate around the y-axis to align the z-axis with the vector to the target
-        #pitch = -torch.asin(z_n / distance)+math.pi/2  # Arcsin provides the angle whose sine is the passed value
+        pitch = -torch.asin(z_n / distance)+math.pi/2  # Arcsin provides the angle whose sine is the passed value
         
         # -- orientation
         euler_angles = torch.zeros_like(self.pose_command_b[env_ids, :3])
         euler_angles[:, 0].uniform_(*self.cfg.ranges.roll)
         euler_angles[:, 1].uniform_(*self.cfg.ranges.pitch)
-        euler_angles[:, 2].uniform_(*self.cfg.ranges.yaw)
+        #euler_angles[:, 1].uniform_(*self.cfg.ranges.yaw)
         self.pose_command_b[env_ids, 3:] = quat_from_euler_xyz(
             euler_angles[:, 0], euler_angles[:, 1], euler_angles[:, 2]
         )
