@@ -45,7 +45,7 @@ class Indy7ReachEnvCfg(ReachEnvCfg):
         self.actions.arm_action = mdp.JointVelocityActionCfg(asset_name="robot", joint_names=[".*"],scale=0.21)
 
         self.commands.ee_pose.body_name = "ee_link"
-        self.commands.ee_pose.resampling_time_range=(80,80)
+        self.commands.ee_pose.resampling_time_range=(20,20)
         # self.commands.ee_pose.resampling_trigger=resample_trig
         self.commands.ee_pose.ranges.roll = (-math.pi, math.pi)
         self.commands.ee_pose.ranges.pitch = (-math.pi / 2-math.pi,-math.pi / 2+math.pi)#(-math.pi / 6, math.pi / 6)
