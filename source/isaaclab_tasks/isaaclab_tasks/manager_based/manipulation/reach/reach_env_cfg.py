@@ -132,11 +132,7 @@ class EventCfg:
         func=mdp.reset_joints_by_offset,
         mode="reset",
         params={
-<<<<<<< HEAD
-            "position_range": (-0.0, 0.0),
-=======
             "position_range": (0.0, 0.0),
->>>>>>> ddfee3ee1 (250210)
             "velocity_range": (0.0, 0.0),
         },
     )
@@ -152,11 +148,6 @@ class RewardsCfg:
         weight=-2,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
-<<<<<<< HEAD
-    end_effector_position_tracking_fine_grained = RewTerm(
-        func=mdp.position_command_error_tanh,
-        weight=1,
-=======
     # end_effector_position_tracking_fine_grained = RewTerm(
     #     func=mdp.position_command_error_tanh,
     #     weight=1,
@@ -176,7 +167,6 @@ class RewardsCfg:
     end_effector_tracking_fine_grained = RewTerm(
         func=mdp.command_error_tanh,
         weight=20,
->>>>>>> ddfee3ee1 (250210)
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "std": 0.1, "command_name": "ee_pose"},
     )
 
@@ -186,22 +176,6 @@ class RewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot")},
     )
 
-<<<<<<< HEAD
-    # end_effector_orientation_tracking_fine_grained = RewTerm(
-    #     func=mdp.orientation_command_error_tanh,
-    #     weight=0.05,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
-    # )
-    end_effector_tracking_fine_grained = RewTerm(
-        func=mdp.command_error_tanh,
-        weight=1000,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "std": 0.1, "command_name": "ee_pose"},
-    )
-
-    CRI_OVF = RewTerm(
-        func=mdp.CRI_OVF,
-        weight=-10,
-=======
     # reach = RewTerm(
     #     func=mdp.reach,
     #     weight=1,
@@ -213,7 +187,6 @@ class RewardsCfg:
     joint_vel = RewTerm(
         func=mdp.joint_acc_l2,
         weight=-1e-6,
->>>>>>> ddfee3ee1 (250210)
         params={"asset_cfg": SceneEntityCfg("robot")},
     )
     alive = RewTerm(
@@ -246,13 +219,8 @@ class TerminationsCfg:
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     OVF = DoneTerm(func=mdp.CRI_OVF)
-<<<<<<< HEAD
-    # reach = DoneTerm(func=mdp.CRI_reach,
-    #                  params={"asset_cfg": SceneEntityCfg("robot", body_names=["ee_link"]), "std": 0.1, "command_name": "ee_pose"})
-=======
     reach = DoneTerm(func=mdp.CRI_reach,
                      params={"asset_cfg": SceneEntityCfg("robot", body_names=["ee_link"]), "std": 0.1, "command_name": "ee_pose"})
->>>>>>> ddfee3ee1 (250210)
 
 
 @configclass
