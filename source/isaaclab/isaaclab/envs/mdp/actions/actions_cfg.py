@@ -8,6 +8,7 @@ from dataclasses import MISSING
 from isaaclab.controllers import DifferentialIKControllerCfg, OperationalSpaceControllerCfg
 from isaaclab.managers.action_manager import ActionTerm, ActionTermCfg
 from isaaclab.utils import configclass
+from isaaclab.managers import SceneEntityCfg
 
 from . import binary_joint_actions, joint_actions, joint_actions_to_limits, non_holonomic_actions, task_space_actions
 
@@ -83,6 +84,27 @@ class JointVelocityActionCfg(JointActionCfg):
     This overrides the settings from :attr:`offset` if set to True.
     """
 
+@configclass
+class JointVelocityActionScaleCfg(JointActionCfg):
+    """Configuration for the joint velocity action term.
+
+    See :class:`JointVelocityAction` for more details.
+    """
+
+    command_name: str = MISSING
+
+    asset_cfg: SceneEntityCfg = MISSING
+
+    body: str = MISSING
+
+    class_type: type[ActionTerm] = joint_actions.JointVelocityActionScale
+
+    use_default_offset: bool = True
+    """Whether to use default joint velocities configured in the articulation asset as offset.
+    Defaults to True.
+
+    This overrides the settings from :attr:`offset` if set to True.
+    """
 
 @configclass
 class JointEffortActionCfg(JointActionCfg):
@@ -97,6 +119,21 @@ class JointEffortActionCfg(JointActionCfg):
 ##
 # Joint actions rescaled to limits.
 ##
+
+@configclass
+class JointEffortActionScaleCfg(JointActionCfg):
+    """Configuration for the joint effort action term.
+
+    See :class:`JointEffortAction` for more details.
+    """
+
+    command_name: str = MISSING
+
+    asset_cfg: SceneEntityCfg = MISSING
+
+    body: str = MISSING
+
+    class_type: type[ActionTerm] = joint_actions.JointEffortActionScale
 
 
 @configclass

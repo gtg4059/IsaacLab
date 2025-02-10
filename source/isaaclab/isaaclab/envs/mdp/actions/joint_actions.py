@@ -12,11 +12,15 @@ from typing import TYPE_CHECKING
 import omni.log
 
 import isaaclab.utils.string as string_utils
+from isaaclab.assets import RigidObject
+from isaaclab.managers import SceneEntityCfg
+from isaaclab.utils.math import combine_frame_transforms, quat_error_magnitude, quat_mul, compute_pose_error
+from dataclasses import MISSING
 from isaaclab.assets.articulation import Articulation
 from isaaclab.managers.action_manager import ActionTerm
 
 if TYPE_CHECKING:
-    from isaaclab.envs import ManagerBasedEnv
+    from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
 
     from . import actions_cfg
 
@@ -223,3 +227,97 @@ class JointEffortAction(JointAction):
     def apply_actions(self):
         # set joint effort targets
         self._asset.set_joint_effort_target(self.processed_actions, joint_ids=self._joint_ids)
+
+class JointVelocityActionScale(JointAction):
+    """Joint action term that applies the processed actions to the articulation's joints as velocity commands."""
+
+    cfg: actions_cfg.JointVelocityActionCfg
+    """The configuration of the action term."""
+
+    def __init__(self, cfg: actions_cfg.JointVelocityActionScaleCfg, env: ManagerBasedRLEnv):
+        # initialize the action term
+        super().__init__(cfg, env)
+        self.asset: RigidObject = env.scene[cfg.asset_cfg.name]
+        self.command = env.command_manager.get_command(cfg.command_name)
+        #self.target = torch.zeros_like(self.processed_actions)
+        self.body_ids, self.body_names = self._asset.find_bodies(cfg.body)
+        # use default joint velocity as offset
+        if cfg.use_default_offset:
+            self._offset = self._asset.data.default_joint_vel[:, self._joint_ids].clone()
+
+    def apply_actions(self):
+        # des_quat_b = self.command[:, 3:7]
+        # des_quat_w = quat_mul(self.asset.data.root_state_w[:, 3:7], des_quat_b)
+        # curr_quat_w = self.asset.data.body_state_w[:, self.body_ids[0], 3:7]  # type: ignore
+        # angle = quat_error_magnitude(curr_quat_w, des_quat_w)
+        # # obtain the desired and current positions
+        # des_pos_b = self.command[:, :3]
+        # des_pos_w, _ = combine_frame_transforms(self.asset.data.root_state_w[:, :3], self.asset.data.root_state_w[:, 3:7], des_pos_b)
+        # curr_pos_w = self.asset.data.body_state_w[:, self.body_ids[0], :3]
+        # # print(curr_pos_w - des_pos_w)
+        # distance = torch.norm(curr_pos_w - des_pos_w, dim=1)
+        # x = distance+2*angle
+        des_pos_b = self.command[:, :3]
+        des_pos_w, _ = combine_frame_transforms(self.asset.data.root_state_w[:, :3], self.asset.data.root_state_w[:, 3:7], des_pos_b)
+        curr_pos_w = self.asset.data.body_state_w[:, self.body_ids[0], :3]  # type: ignore
+        distance = torch.norm(curr_pos_w - des_pos_w, dim=1)
+
+        # obtain the desired and current orientations
+        des_quat_b = self.command[:, 3:7]
+        des_quat_w = quat_mul(self.asset.data.root_state_w[:, 3:7], des_quat_b)
+        curr_quat_w = self.asset.data.body_state_w[:, self.body_ids[0], 3:7]  # type: ignore
+        result = (1 - torch.tanh(quat_error_magnitude(curr_quat_w, des_quat_w)*2))*(1 - torch.tanh(distance / 0.1))
+        # print(result)
+        # set joint velocity targets
+        self._asset.set_joint_velocity_target(self.processed_actions*torch.where(result<0.92,1,0).view(-1, 1), joint_ids=self._joint_ids)
+
+class JointEffortAction(JointAction):
+    """Joint action term that applies the processed actions to the articulation's joints as effort commands."""
+
+    cfg: actions_cfg.JointEffortActionCfg
+    """The configuration of the action term."""
+
+    def __init__(self, cfg: actions_cfg.JointEffortActionCfg, env: ManagerBasedEnv):
+        super().__init__(cfg, env)
+
+    def apply_actions(self):
+        # set joint effort targets
+        self._asset.set_joint_effort_target(self.processed_actions, joint_ids=self._joint_ids)
+
+class JointEffortActionScale(JointAction):
+    """Joint action term that applies the processed actions to the articulation's joints as effort commands."""
+
+    cfg: actions_cfg.JointEffortActionScaleCfg
+    """The configuration of the action term."""
+
+    def __init__(self, cfg: actions_cfg.JointEffortActionScaleCfg, env: ManagerBasedRLEnv):
+        super().__init__(cfg, env)
+        # extract the asset (to enable type hinting)
+        self.asset: RigidObject = env.scene[cfg.asset_cfg.name]
+        self.command = env.command_manager.get_command(cfg.command_name)
+        self.target = torch.zeros_like(self.processed_actions)
+        self.body_ids, self.body_names = self._asset.find_bodies(cfg.body)
+        # self.body_id = cfg.asset_cfg.body_ids[0]
+
+        
+    def apply_actions(self):
+
+        des_quat_b = self.command[:, 3:7]
+        des_quat_w = quat_mul(self.asset.data.root_state_w[:, 3:7], des_quat_b)
+        curr_quat_w = self.asset.data.body_state_w[:, self.body_ids[0], 3:7]  # type: ignore
+        angle = quat_error_magnitude(curr_quat_w, des_quat_w)
+        # obtain the desired and current positions
+        des_pos_b = self.command[:, :3]
+        des_pos_w, _ = combine_frame_transforms(self.asset.data.root_state_w[:, :3], self.asset.data.root_state_w[:, 3:7], des_pos_b)
+        curr_pos_w = self.asset.data.body_state_w[:, self.body_ids[0], :3]
+        # print(curr_pos_w - des_pos_w)
+        distance = torch.norm(curr_pos_w - des_pos_w, dim=1)
+
+        
+        # print("distance")
+        # print(torch.tanh(distance).shape)
+        # print("self.processed_actions")
+        # print(self.processed_actions.shape)
+        # set joint effort targets
+        # self._asset.set_joint_effort_target(self.processed_actions*(torch.tanh(3*distance)).view(-1, 1), joint_ids=self._joint_ids)
+        self._asset.set_joint_effort_target(self.processed_actions*(torch.tanh(2*distance+angle)).view(-1, 1), joint_ids=self._joint_ids)

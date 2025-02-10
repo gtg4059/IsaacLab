@@ -19,9 +19,31 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers.manager_base import ManagerTermBase
 from isaaclab.managers.manager_term_cfg import RewardTermCfg
 from isaaclab.sensors import ContactSensor, RayCaster
+from isaaclab.utils.math import combine_frame_transforms, quat_error_magnitude, quat_mul
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
+
+
+def command_error_tanh(env: ManagerBasedRLEnv, std: float,command_name: str, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    # extract the asset (to enable type hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+
+    des_pos_b = command[:, :3]
+    des_pos_w, _ = combine_frame_transforms(asset.data.root_state_w[:, :3], asset.data.root_state_w[:, 3:7], des_pos_b)
+    curr_pos_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]  # type: ignore
+    distance = torch.norm(curr_pos_w - des_pos_w, dim=1)
+
+    # obtain the desired and current orientations
+    des_quat_b = command[:, 3:7]
+    des_quat_w = quat_mul(asset.data.root_state_w[:, 3:7], des_quat_b)
+    curr_quat_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], 3:7]  # type: ignore
+    result = (1 - torch.tanh(quat_error_magnitude(curr_quat_w, des_quat_w)))*(1 - torch.tanh(distance / std))
+    # print(result.item())
+    # return (torch.where(torch.norm(curr_pos_w - des_pos_w, dim=1)<0.5,1 - torch.tanh(quat_error_magnitude(curr_quat_w, des_quat_w)*2),0))*(1 - torch.tanh(distance/std))#std:0.1
+    return result#std:0.1
+    
 
 """
 General.

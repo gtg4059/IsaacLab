@@ -13,7 +13,7 @@ from isaaclab.utils import configclass
 
 from .null_command import NullCommand
 from .pose_2d_command import TerrainBasedPose2dCommand, UniformPose2dCommand
-from .pose_command import UniformPoseCommand
+from .pose_command import UniformPoseCommand, UniformPoseTrigCommand
 from .velocity_command import NormalVelocityCommand, UniformVelocityCommand
 
 
@@ -180,6 +180,50 @@ class UniformPoseCommandCfg(CommandTermCfg):
     )
     """The configuration for the current pose visualization marker. Defaults to FRAME_MARKER_CFG."""
 
+    # Set the scale of the visualization markers to (0.1, 0.1, 0.1)
+    goal_pose_visualizer_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
+    current_pose_visualizer_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
+
+@configclass
+class UniformPoseTrigCommandCfg(CommandTermCfg):
+    """Configuration for uniform pose command generator."""
+
+    class_type: type = UniformPoseTrigCommand
+
+    asset_name: str = MISSING
+    """Name of the asset in the environment for which the commands are generated."""
+    body_name: str = MISSING
+    """Name of the body in the asset for which the commands are generated."""
+
+    # @configclass
+    # class Ranges:
+    #     """Uniform distribution ranges for the pose commands."""
+
+    #     pos_x: tuple[float, float] = MISSING  # min max [m]
+    #     pos_y: tuple[float, float] = MISSING  # min max [m]
+    #     pos_z: tuple[float, float] = MISSING  # min max [m]
+    #     roll: tuple[float, float] = MISSING  # min max [rad]
+    #     pitch: tuple[float, float] = MISSING  # min max [rad]
+    #     yaw: tuple[float, float] = MISSING  # min max [rad]
+    @configclass
+    class PolarRanges:
+        """Uniform distribution ranges for the pose commands."""
+
+        pos_r: tuple[float, float] = MISSING  # min max [m]
+        pos_th: tuple[float, float] = MISSING  # min max [m]
+        pos_z: tuple[float, float] = MISSING  # min max [m]
+        roll: tuple[float, float] = MISSING  # min max [rad]
+        pitch: tuple[float, float] = MISSING  # min max [rad]
+        yaw: tuple[float, float] = MISSING  # min max [rad]
+
+    ranges: PolarRanges = MISSING
+
+    goal_pose_visualizer_cfg: VisualizationMarkersCfg = FRAME_MARKER_CFG.replace(prim_path="/Visuals/Command/goal_pose")
+    """The configuration for the goal pose visualization marker. Defaults to FRAME_MARKER_CFG."""
+
+    current_pose_visualizer_cfg: VisualizationMarkersCfg = FRAME_MARKER_CFG.replace(
+        prim_path="/Visuals/Command/body_pose"
+    )
     # Set the scale of the visualization markers to (0.1, 0.1, 0.1)
     goal_pose_visualizer_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
     current_pose_visualizer_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
