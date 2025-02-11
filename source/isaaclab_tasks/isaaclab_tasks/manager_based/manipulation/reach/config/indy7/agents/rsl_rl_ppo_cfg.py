@@ -9,7 +9,7 @@ from isaaclab.utils import configclass
 
 @configclass
 class Indy7ReachPPORunnerCfg(RslRlOnPolicyRunnerCfg):
-    num_steps_per_env = 80
+    num_steps_per_env = 20
     max_iterations = 100000
     save_interval = 50
     experiment_name = "reach_Indy7"

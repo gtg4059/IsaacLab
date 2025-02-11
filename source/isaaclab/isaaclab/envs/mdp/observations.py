@@ -61,7 +61,10 @@ def CRI_OVF(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("
     asset: Articulation = env.scene[asset_cfg.name]
     result,_ = torch.max(asset.data.CRI,dim=1)
     # print("result: ",asset.data.CRI)
-    #print("result: ",result)
+    if result>1:
+        print("OVF!")
+        with open("/home/robotics/IsaacLab/source/isaaclab/isaaclab/envs/mdp/state.txt", 'a') as f:
+            f.write("OVF!\n")
     return result>1
 
 def CRI_reach(env: ManagerBasedRLEnv, std: float,command_name: str, asset_cfg: SceneEntityCfg) -> torch.Tensor:
