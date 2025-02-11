@@ -78,7 +78,7 @@ def CRI_reach(env: ManagerBasedRLEnv, std: float,command_name: str, asset_cfg: S
     des_quat_b = command[:, 3:7]
     des_quat_w = quat_mul(asset.data.root_state_w[:, 3:7], des_quat_b)
     curr_quat_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], 3:7]  # type: ignore
-    result = (1 - torch.tanh(quat_error_magnitude(curr_quat_w, des_quat_w)*2))*(1 - torch.tanh(distance / std))
+    result = (1 - torch.tanh(quat_error_magnitude(curr_quat_w, des_quat_w)))*(1 - torch.tanh(distance / std))
     # if result>0.90:
     #     print("done")
     # print(result.item())
