@@ -54,7 +54,12 @@ def collision_risk_index(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = Scene
     #       )
 
     #print("ee_pose ",asset.data.body_state_w[:, asset_cfg.body_ids, 0:7])
-
+    with open("/home/robotics/IsaacLab/source/isaaclab/isaaclab/envs/mdp/joint.txt", 'a') as f:
+        for i, row in enumerate(asset.data.CRI[0]):
+            f.write(str(row.item()))
+            if i < len(asset.data.joint_pos[0, :]) - 1:
+                f.write(',')
+        f.write('\n')
     return asset.data.CRI
 
 def CRI_OVF(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:

@@ -81,9 +81,9 @@ class CommandsCfg:
             # pos_r=(0.4,0.6),
             # pos_th=(-3.14, 3.14),
             # pos_z=(0.5, 0.7),
-            pos_r=(0.4,0.9),
+            pos_r=(0.4,0.85),
             pos_th=(-3.14, 3.14),
-            pos_z=(0.4, 0.9),
+            pos_z=(0.4, 0.85),
             roll=MISSING,
             pitch=MISSING,  # depends on end-effector axis
         ),
