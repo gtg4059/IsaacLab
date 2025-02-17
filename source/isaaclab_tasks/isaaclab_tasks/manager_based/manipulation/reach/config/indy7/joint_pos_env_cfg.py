@@ -33,7 +33,7 @@ class Indy7ReachEnvCfg(ReachEnvCfg):
         self.rewards.end_effector_tracking_fine_grained.params["asset_cfg"].body_names = ["ee_link"]
         self.commands.ee_pose.body_name = "ee_link"
         self.commands.ee_pose.resampling_time_range=(80,80)
-        self.actions.arm_action = mdp.JointVelocityActionCfg(asset_name="robot", joint_names=[".*"],scale=0.18)
+        self.actions.arm_action = mdp.JointVelocityActionCfg(asset_name="robot", joint_names=[".*"],scale=0.2)
 
         # self.events.reset_robot_joints.params["position_range"] = (0,0)
 

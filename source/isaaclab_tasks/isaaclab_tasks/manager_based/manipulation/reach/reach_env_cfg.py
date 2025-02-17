@@ -142,7 +142,7 @@ class RewardsCfg:
     )
     CRI_OVF = RewTerm(
         func=mdp.CRI_OVF,
-        weight=-5000,
+        weight=-1,
         params={"asset_cfg": SceneEntityCfg("robot")},
     )
     # action penalty
