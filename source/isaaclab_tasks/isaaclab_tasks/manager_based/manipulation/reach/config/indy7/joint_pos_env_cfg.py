@@ -30,7 +30,7 @@ class Indy7ReachEnvCfg(ReachEnvCfg):
         # switch robot to Indy7
         self.scene.robot = UR10_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.rewards.end_effector_position_tracking.params["asset_cfg"].body_names = ["ee_link"]
-        self.rewards.end_effector_tracking_fine_grained.params["asset_cfg"].body_names = ["ee_link"]
+        self.rewards.command_error_tanh.params["asset_cfg"].body_names = ["ee_link"]
         self.commands.ee_pose.body_name = "ee_link"
         self.commands.ee_pose.resampling_time_range=(80,80)
         self.actions.arm_action = mdp.JointVelocityActionCfg(asset_name="robot", joint_names=[".*"],scale=0.2)

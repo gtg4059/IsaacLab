@@ -135,14 +135,14 @@ class RewardsCfg:
         weight=2,#0.002,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
-    end_effector_tracking_fine_grained = RewTerm(
+    command_error_tanh = RewTerm(
         func=mdp.command_error_tanh,
-        weight=0.1,
+        weight=10000,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "std": 0.1, "command_name": "ee_pose"},
     )
     CRI_OVF = RewTerm(
         func=mdp.CRI_OVF,
-        weight=-0.1,
+        weight=-10000,
         params={"asset_cfg": SceneEntityCfg("robot")},
     )
     # action penalty
