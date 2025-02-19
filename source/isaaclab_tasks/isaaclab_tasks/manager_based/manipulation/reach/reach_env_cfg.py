@@ -137,7 +137,7 @@ class RewardsCfg:
     )
     command_error_tanh = RewTerm(
         func=mdp.command_error_tanh,
-        weight=10000,
+        weight=100,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "std": 0.1, "command_name": "ee_pose"},
     )
     CRI_OVF = RewTerm(
@@ -146,10 +146,10 @@ class RewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot")},
     )
     # action penalty
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-6)
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-12)
     joint_vel = RewTerm(
         func=mdp.joint_vel_limits,
-        weight=1e-6,
+        weight=1e-9,
         params={"soft_ratio":10,"asset_cfg": SceneEntityCfg("robot")},
     )
     # alive = RewTerm(
