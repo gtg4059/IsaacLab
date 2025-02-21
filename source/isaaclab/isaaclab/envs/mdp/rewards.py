@@ -39,7 +39,7 @@ def command_error_tanh(env: ManagerBasedRLEnv, std: float,command_name: str, ass
     des_quat_b = command[:, 3:7]
     des_quat_w = quat_mul(asset.data.root_state_w[:, 3:7], des_quat_b)
     curr_quat_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], 3:7]  # type: ignore
-    result = (1 - torch.tanh(quat_error_magnitude(curr_quat_w, des_quat_w)*2))*(1 - torch.tanh(distance / std))
+    result = (1 - torch.tanh(quat_error_magnitude(curr_quat_w, des_quat_w)))*(1 - torch.tanh(distance / std))
     # print(result.item())
     # return (torch.where(torch.norm(curr_pos_w - des_pos_w, dim=1)<0.5,1 - torch.tanh(quat_error_magnitude(curr_quat_w, des_quat_w)*2),0))*(1 - torch.tanh(distance/std))#std:0.1
     return result#std:0.1
