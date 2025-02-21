@@ -132,24 +132,24 @@ class RewardsCfg:
     # task terms
     end_effector_position_tracking = RewTerm(
         func=mdp.position_command_error,
-        weight=5,#0.002,
+        weight=0.2,#0.002,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
     command_error_tanh = RewTerm(
         func=mdp.command_error_tanh,
-        weight=100000,
+        weight=1000,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "std": 0.1, "command_name": "ee_pose"},
     )
     CRI_OVF = RewTerm(
         func=mdp.CRI_OVF,
-        weight=-1000,
+        weight=-50,
         params={"asset_cfg": SceneEntityCfg("robot")},
     )
     # action penalty
     action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-20)
     joint_vel = RewTerm(
         func=mdp.joint_vel_limits,
-        weight=1e-9,
+        weight=1e-20,
         params={"soft_ratio":10,"asset_cfg": SceneEntityCfg("robot")},
     )
     # alive = RewTerm(
