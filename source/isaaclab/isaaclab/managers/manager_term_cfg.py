@@ -20,7 +20,7 @@ from .scene_entity_cfg import SceneEntityCfg
 
 if TYPE_CHECKING:
     from .action_manager import ActionTerm
-    from .command_manager import CommandTerm, CommandTrigTerm
+    from .command_manager import CommandTerm
     from .manager_base import ManagerTermBase
     from .recorder_manager import RecorderTerm
 
@@ -67,27 +67,6 @@ class RecorderTermCfg:
     The class should inherit from :class:`isaaclab.managers.action_manager.RecorderTerm`.
     """
 
-##
-# Command Trig manager.
-##
-
-
-@configclass
-class CommandTrigTermCfg:
-    """Configuration for a command generator term."""
-
-    class_type: type[CommandTrigTerm] = MISSING
-    """The associated command term class to use.
-    
-    The class should inherit from :class:`omni.isaac.orbit.managers.command_manager.CommandTerm`.
-    """
-    resampling_time_range: tuple[float, float] = MISSING
-    
-    """Time before commands are changed [s]."""
-    resampling_trigger: float = MISSING
-    """Time before commands are changed [s]."""
-    debug_vis: bool = False
-    """Whether to visualize debug information. Defaults to False."""
 
 ##
 # Action manager.

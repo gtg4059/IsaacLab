@@ -32,27 +32,29 @@ import isaaclab_tasks.manager_based.manipulation.reach.mdp as mdp
 class ReachSceneCfg(InteractiveSceneCfg):
     """Configuration for the scene with a robotic arm."""
 
+    # world
     ground = AssetBaseCfg(
-        prim_path="/World/defaultGroundPlane",
+        prim_path="/World/ground",
         spawn=sim_utils.GroundPlaneCfg(),
         init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, -1.05)),
     )
 
-    # lights
-    dome_light = AssetBaseCfg(
-        prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=3000.0, color=(0.75, 0.75, 0.75))
-    )
-
-    # mount
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_instanceable.usd", scale=(2.0, 2.0, 2.0)
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd",
         ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.55, 0.0, 0.0), rot=(0.70711, 0.0, 0.0, 0.70711)),
     )
 
     # robots
     robot: ArticulationCfg = MISSING
+
+    # lights
+    light = AssetBaseCfg(
+        prim_path="/World/light",
+        spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=2500.0),
+    )
 
 
 ##
@@ -63,35 +65,22 @@ class ReachSceneCfg(InteractiveSceneCfg):
 @configclass
 class CommandsCfg:
     """Command terms for the MDP."""
-    ee_pose = mdp.UniformPoseTrigCommandCfg(
+
+    ee_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
         body_name=MISSING,
-        # resampling_time_range=MISSING,
-        # resampling_trigger=MISSING,
+        resampling_time_range=(4.0, 4.0),
         debug_vis=True,
-        # ranges=mdp.UniformPoseTrigCommandCfg.Ranges(
-        #     pos_x=(-0.25, 0.25),
-        #     pos_y=(-0.25, 0.25),
-        #     pos_z=(0.6, 0.8),
-        #     roll=(0.0, 0.0),
-        #     pitch=MISSING,  # depends on end-effector axis
-        #     yaw=(-3.14, 3.14),
-        # ),
-        ranges=mdp.UniformPoseTrigCommandCfg.PolarRanges(
-            # pos_r=(0.4,0.6),
-            # pos_th=(-3.14, 3.14),
-            # pos_z=(0.5, 0.7),
-            # pos_r=(0.4,0.9),
-            # pos_th=MISSING,
-            # pos_z=(0.4, 0.9),
-            pos_r=(0.5657,0.5657),
-            pos_th=(-0.7854, -0.7854),
-            pos_z=(0.7, 0.7),
-            roll=MISSING,
+        ranges=mdp.UniformPoseCommandCfg.Ranges(
+            pos_x=(0.35, 0.65),
+            pos_y=(-0.2, 0.2),
+            pos_z=(0.15, 0.5),
+            roll=(0.0, 0.0),
             pitch=MISSING,  # depends on end-effector axis
-            yaw=MISSING
+            yaw=(-3.14, 3.14),
         ),
     )
+
 
 @configclass
 class ActionsCfg:
@@ -110,9 +99,8 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
-        CRI = ObsTerm(func=mdp.collision_risk_index)
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.001, n_max=0.001))
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.001, n_max=0.001))
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
         pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "ee_pose"})
         actions = ObsTerm(func=mdp.last_action)
 
@@ -129,14 +117,10 @@ class EventCfg:
     """Configuration for events."""
 
     reset_robot_joints = EventTerm(
-        func=mdp.reset_joints_by_offset,
+        func=mdp.reset_joints_by_scale,
         mode="reset",
         params={
-<<<<<<< HEAD
-            "position_range": (-0.0, 0.0),
-=======
-            "position_range": (0.0, 0.0),
->>>>>>> ddfee3ee1 (250210)
+            "position_range": (0.5, 1.5),
             "velocity_range": (0.0, 0.0),
         },
     )
@@ -149,94 +133,26 @@ class RewardsCfg:
     # task terms
     end_effector_position_tracking = RewTerm(
         func=mdp.position_command_error,
-        weight=-2,
+        weight=-0.2,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
-<<<<<<< HEAD
     end_effector_position_tracking_fine_grained = RewTerm(
         func=mdp.position_command_error_tanh,
-        weight=1,
-=======
-    # end_effector_position_tracking_fine_grained = RewTerm(
-    #     func=mdp.position_command_error_tanh,
-    #     weight=1,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "std": 0.1, "command_name": "ee_pose"},
-    # )
-    # end_effector_orientation_tracking = RewTerm(
-    #     func=mdp.orientation_command_error,
-    #     weight=-0.1,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
-    # )
-
-    # end_effector_orientation_tracking_fine_grained = RewTerm(
-    #     func=mdp.orientation_command_error_tanh,
-    #     weight=0.05,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
-    # )
-    end_effector_tracking_fine_grained = RewTerm(
-        func=mdp.command_error_tanh,
-        weight=20,
->>>>>>> ddfee3ee1 (250210)
+        weight=0.1,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "std": 0.1, "command_name": "ee_pose"},
     )
-
-    CRI_OVF = RewTerm(
-        func=mdp.CRI_OVF,
-        weight=-50,
-        params={"asset_cfg": SceneEntityCfg("robot")},
+    end_effector_orientation_tracking = RewTerm(
+        func=mdp.orientation_command_error,
+        weight=-0.1,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
-
-<<<<<<< HEAD
-    # end_effector_orientation_tracking_fine_grained = RewTerm(
-    #     func=mdp.orientation_command_error_tanh,
-    #     weight=0.05,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
-    # )
-    end_effector_tracking_fine_grained = RewTerm(
-        func=mdp.command_error_tanh,
-        weight=1000,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "std": 0.1, "command_name": "ee_pose"},
-    )
-
-    CRI_OVF = RewTerm(
-        func=mdp.CRI_OVF,
-        weight=-10,
-=======
-    # reach = RewTerm(
-    #     func=mdp.reach,
-    #     weight=1,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose", "resample_trigger": MISSING},
-    # )
 
     # action penalty
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-6)
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.0001)
     joint_vel = RewTerm(
-        func=mdp.joint_acc_l2,
-        weight=-1e-6,
->>>>>>> ddfee3ee1 (250210)
+        func=mdp.joint_vel_l2,
+        weight=-0.0001,
         params={"asset_cfg": SceneEntityCfg("robot")},
-    )
-    alive = RewTerm(
-        func=mdp.is_alive,
-        weight=5,
-    )
-
-    # reach = RewTerm(
-    #     func=mdp.reach,
-    #     weight=1,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose", "resample_trigger": MISSING},
-    # )
-
-    # action penalty
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-6)
-    joint_vel = RewTerm(
-        func=mdp.joint_acc_l2,
-        weight=-1e-6,
-        params={"asset_cfg": SceneEntityCfg("robot")},
-    )
-    alive = RewTerm(
-        func=mdp.is_alive,
-        weight=0.5,
     )
 
 
@@ -245,14 +161,6 @@ class TerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    OVF = DoneTerm(func=mdp.CRI_OVF)
-<<<<<<< HEAD
-    # reach = DoneTerm(func=mdp.CRI_reach,
-    #                  params={"asset_cfg": SceneEntityCfg("robot", body_names=["ee_link"]), "std": 0.1, "command_name": "ee_pose"})
-=======
-    reach = DoneTerm(func=mdp.CRI_reach,
-                     params={"asset_cfg": SceneEntityCfg("robot", body_names=["ee_link"]), "std": 0.1, "command_name": "ee_pose"})
->>>>>>> ddfee3ee1 (250210)
 
 
 @configclass

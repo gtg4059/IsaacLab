@@ -29,17 +29,14 @@ UR10_CFG = ArticulationCfg(
             disable_gravity=False,
             max_depenetration_velocity=5.0,
         ),
-        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=False, solver_position_iteration_count=8, solver_velocity_iteration_count=0
-        ),
         activate_contact_sensors=False,
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         joint_pos={
             "shoulder_pan_joint": 0.0,
-            "shoulder_lift_joint": -1.832595714594046055769875306913,
-            "elbow_joint": -2.0943951023931954923084289221863,
-            "wrist_1_joint": -0.78539816339744830961566084581988,
+            "shoulder_lift_joint": -1.712,
+            "elbow_joint": 1.712,
+            "wrist_1_joint": 0.0,
             "wrist_2_joint": 0.0,
             "wrist_3_joint": 0.0,
         },
@@ -49,13 +46,9 @@ UR10_CFG = ArticulationCfg(
             joint_names_expr=[".*"],
             velocity_limit=100.0,
             effort_limit=87.0,
-            stiffness=0.0,
-            damping=1e25,
+            stiffness=800.0,
+            damping=40.0,
         ),
     },
 )
 """Configuration of UR-10 arm using implicit actuator models."""
-UR10_EFFORT_CFG = UR10_CFG.copy()
-UR10_EFFORT_CFG.init_state = UR10_CFG.init_state
-UR10_EFFORT_CFG.actuators["arm"].stiffness = 0
-UR10_EFFORT_CFG.actuators["arm"].damping = 0

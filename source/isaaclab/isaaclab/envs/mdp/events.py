@@ -792,39 +792,13 @@ def reset_root_state_from_terrain(
     ranges = torch.tensor(range_list, device=asset.device)
     rand_samples = math_utils.sample_uniform(ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=asset.device)
 
-    velocities = asset.data.default_root_state[:, 7:13] + rand_samples
+    velocities = asset.data.default_root_state[env_ids, 7:13] + rand_samples
 
     # set into the physics simulation
     asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
     asset.write_root_velocity_to_sim(velocities, env_ids=env_ids)
 
-def reset_joints_hold(
-    env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-):
-    """Reset the robot joints with offsets around the default position and velocity by the given ranges.
 
-    This function samples random values from the given ranges and biases the default joint positions and velocities
-    by these values. The biased values are then set into the physics simulation.
-    """
-    # extract the used quantities (to enable type-hinting)
-    asset: Articulation = env.scene[asset_cfg.name]
-
-    # get default joint state
-    joint_pos = asset.data.joint_pos[env_ids].clone()
-    joint_vel = asset.data.joint_vel[env_ids].clone()
-
-    # # clamp joint pos to limits
-    # joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids]
-    # joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
-    # # clamp joint vel to limits
-    # joint_vel_limits = asset.data.soft_joint_vel_limits[env_ids]
-    # joint_vel = joint_vel.clamp_(-joint_vel_limits, joint_vel_limits)
-    
-    # set into the physics simulation
-    asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
-    
 def reset_joints_by_scale(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor,
