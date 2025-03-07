@@ -63,7 +63,27 @@ def feet_air_time_positive_biped(env, command_name: str, threshold: float, senso
     reward = torch.clamp(reward, max=threshold)
     # no reward for zero command
     reward *= torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) > 0.1
-    # print("reward:",reward)
+    return reward
+
+def feet_air_time_positive_biped2(env, command_name: str, threshold: float, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Reward long steps taken by the feet for bipeds.
+
+    This function rewards the agent for taking steps up to a specified threshold and also keep one foot at
+    a time in the air.
+
+    If the commands are small (i.e. the agent is not supposed to take a step), then the reward is zero.
+    """
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    # compute the reward
+    air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]
+    contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
+    in_contact = contact_time > 0.0
+    in_mode_time = torch.where(in_contact, contact_time, air_time)
+    single_stance = torch.sum(in_contact.int(), dim=1) == 1
+    reward = torch.min(torch.where(single_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
+    reward = torch.clamp(reward, max=threshold)
+    # no reward for zero command
+    reward *= torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) > 0.1
     return reward
 
 
@@ -97,6 +117,19 @@ def track_lin_vel_xy_yaw_frame_exp(
     return torch.exp(-lin_vel_error / std**2)
 
 
+def track_lin_vel_xy_yaw_frame_exp2(
+    env, std: float, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Reward tracking of linear velocity commands (xy axes) in the gravity aligned robot frame using exponential kernel."""
+    # extract the used quantities (to enable type-hinting)
+    asset = env.scene[asset_cfg.name]
+    vel_yaw = quat_rotate_inverse(yaw_quat(asset.data.root_quat_w), asset.data.root_lin_vel_w[:, :3])
+    lin_vel_error = torch.sum(
+        torch.square(env.command_manager.get_command(command_name)[:, :2] - vel_yaw[:, :2]), dim=1
+    )
+    return torch.exp(-lin_vel_error / std**2)
+
+
 def track_ang_vel_z_world_exp(
     env, command_name: str, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
@@ -104,16 +137,53 @@ def track_ang_vel_z_world_exp(
     # extract the used quantities (to enable type-hinting)
     asset = env.scene[asset_cfg.name]
     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_w[:, 2])
-    # print("command_manager:",env.command_manager.get_command(command_name)[:, :3])
-    #print("command_manager:",env.command_manager.get_command(command_name)[:, 2])
     return torch.exp(-ang_vel_error / std**2)
 
-# def body_heading(
-#     env, command_name: str, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
-# ) -> torch.Tensor:
-#     asset = env.scene[asset_cfg.name]
-    
-#     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.heading_w)
-#     print("ang_vel_error:",ang_vel_error)
+def track_ang_vel_z_world_exp2(
+    env, command_name: str, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Reward tracking of angular velocity commands (yaw) in world frame using exponential kernel."""
+    # extract the used quantities (to enable type-hinting)
+    asset = env.scene[asset_cfg.name]
+    ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_w[:, 2])
+    return torch.exp(-ang_vel_error / std**2)
 
+
+
+# def track_lin_vel_xy_exp2(
+#     env: ManagerBasedRLEnv, std: float, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+# ) -> torch.Tensor:
+#     """Reward tracking of linear velocity commands (xy axes) using exponential kernel."""
+#     # extract the used quantities (to enable type-hinting)
+#     asset: RigidObject = env.scene[asset_cfg.name]
+#     command = env.command_manager.get_command(command_name)
+
+#     # obtain the desired and current positions
+#     des_pos_b = command[:, :3]
+#     des_pos_w, _ = combine_frame_transforms(asset.data.root_state_w[:, :3], asset.data.root_state_w[:, 3:7], des_pos_b)
+#     curr_pos_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]  # type: ignore
+#     distance = torch.norm(curr_pos_w - des_pos_w, dim=1)
+    
+#     # compute the error
+#     lin_vel_error = torch.sum(
+#         torch.square(distance[:, :2] - asset.data.root_lin_vel_b[:, :2]),
+#         dim=1,
+#     )
+#     return torch.exp(-lin_vel_error / std**2)
+
+# def track_ang_vel_z_exp2(
+#     env: ManagerBasedRLEnv, std: float, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+# ) -> torch.Tensor:
+#     """Reward tracking of angular velocity commands (yaw) using exponential kernel."""
+#     # extract the used quantities (to enable type-hinting)
+#     asset: RigidObject = env.scene[asset_cfg.name]
+#     command = env.command_manager.get_command(command_name)
+
+#     des_quat_b = command[:, 3]
+#     des_quat_w = quat_mul(asset.data.root_state_w[:, 3:7], des_quat_b)
+#     curr_quat_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], 3:7]  # type: ignore
+#     # return quat_error_magnitude(curr_quat_w, des_quat_w)
+
+#     # compute the error
+#     ang_vel_error = torch.square(wrap_to_pi(command[:, 3] - asset.data.root_ang_vel_b[:, 2]))
 #     return torch.exp(-ang_vel_error / std**2)

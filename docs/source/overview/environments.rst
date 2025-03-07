@@ -598,6 +598,8 @@ Comprehensive List of Environments
       - **rsl_rl** (PPO), **skrl** (PPO)
     * - Isaac-Velocity-Flat-G1-v0
       - Isaac-Velocity-Flat-G1-Play-v0
+      - Isaac-Velocity-Flat-G1-v1
+      - Isaac-Velocity-Flat-G1-Play-v1
       - Manager Based
       - **rsl_rl** (PPO), **skrl** (PPO)
     * - Isaac-Velocity-Flat-H1-v0

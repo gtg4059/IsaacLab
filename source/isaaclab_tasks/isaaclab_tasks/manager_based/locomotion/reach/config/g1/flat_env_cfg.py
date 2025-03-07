@@ -6,11 +6,11 @@
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 
-from .rough_env_cfg import G1RoughEnvCfg
+from .rough_env_cfg import G1RRoughEnvCfg
 
 
 @configclass
-class G1FlatEnvCfg(G1RoughEnvCfg):
+class G1RFlatEnvCfg(G1RRoughEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
@@ -25,7 +25,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.curriculum.terrain_levels = None
 
         # Rewards
-        self.rewards.track_ang_vel_z_exp.weight = 1.0
+        # self.rewards.track_ang_vel_z_exp.weight = 1.0
         self.rewards.lin_vel_z_l2.weight = -0.2
         self.rewards.action_rate_l2.weight = -0.005
         self.rewards.dof_acc_l2.weight = -1.0e-7
@@ -36,12 +36,12 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
         # Commands
-        self.commands.base_velocity.ranges.x = (-3.0, 3.0)
-        self.commands.base_velocity.ranges.y = (-3.0, 3.0)
-        #self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
+        # self.commands.base_velocity.ranges.lin_vel_y = (-0.5, 0.5)
+        # self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
 
 
-class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
+class G1RFlatEnvCfg_PLAY(G1RFlatEnvCfg):
     def __post_init__(self) -> None:
         # post init of parent
         super().__post_init__()

@@ -9,7 +9,7 @@ from isaaclab.utils import configclass
 
 
 @configclass
-class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
+class G1RRoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_iterations = 3000
     save_interval = 50
@@ -38,10 +38,10 @@ class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
 
 
 @configclass
-class G1FlatPPORunnerCfg(G1RoughPPORunnerCfg):
+class G1RFlatPPORunnerCfg(G1RRoughPPORunnerCfg):
     def __post_init__(self):
         super().__post_init__()
-
+        # self.resume = True
         self.max_iterations = 3000
         self.experiment_name = "g1_flat"
         self.policy.actor_hidden_dims = [256, 128, 128]

@@ -63,20 +63,25 @@ class UniformVelocityCommandCfg(CommandTermCfg):
     class Ranges:
         """Uniform distribution ranges for the velocity commands."""
 
-        lin_vel_x: tuple[float, float] = MISSING
-        """Range for the linear-x velocity command (in m/s)."""
+        x: tuple[float, float] = MISSING
+        y: tuple[float, float] = MISSING
+        # ang_z: tuple[float, float] = MISSING
+        # heading: bool = MISSING
 
-        lin_vel_y: tuple[float, float] = MISSING
-        """Range for the linear-y velocity command (in m/s)."""
+        # lin_vel_x: tuple[float, float] = MISSING
+        # """Range for the linear-x velocity command (in m/s)."""
 
-        ang_vel_z: tuple[float, float] = MISSING
-        """Range for the angular-z velocity command (in rad/s)."""
+        # lin_vel_y: tuple[float, float] = MISSING
+        # """Range for the linear-y velocity command (in m/s)."""
 
-        heading: tuple[float, float] | None = None
-        """Range for the heading command (in rad). Defaults to None.
+        # ang_vel_z: tuple[float, float] = MISSING
+        # """Range for the angular-z velocity command (in rad/s)."""
 
-        This parameter is only used if :attr:`~UniformVelocityCommandCfg.heading_command` is True.
-        """
+        # heading: tuple[float, float] | None = None
+        # """Range for the heading command (in rad). Defaults to None.
+
+        # This parameter is only used if :attr:`~UniformVelocityCommandCfg.heading_command` is True.
+        # """
 
     ranges: Ranges = MISSING
     """Distribution ranges for the velocity commands."""
@@ -92,8 +97,8 @@ class UniformVelocityCommandCfg(CommandTermCfg):
     """The configuration for the current velocity visualization marker. Defaults to BLUE_ARROW_X_MARKER_CFG."""
 
     # Set the scale of the visualization markers to (0.5, 0.5, 0.5)
-    goal_vel_visualizer_cfg.markers["arrow"].scale = (0.5, 0.5, 0.5)
-    current_vel_visualizer_cfg.markers["arrow"].scale = (0.5, 0.5, 0.5)
+    goal_vel_visualizer_cfg.markers["arrow"].scale = (0.0, 0.0, 0.0)
+    current_vel_visualizer_cfg.markers["arrow"].scale = (0.0, 0.0, 0.0)
 
 
 @configclass
