@@ -108,12 +108,17 @@ def track_ang_vel_z_world_exp(
     #print("command_manager:",env.command_manager.get_command(command_name)[:, 2])
     return torch.exp(-ang_vel_error / std**2)
 
-# def body_heading(
-#     env, command_name: str, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
-# ) -> torch.Tensor:
-#     asset = env.scene[asset_cfg.name]
-    
-#     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.heading_w)
-#     print("ang_vel_error:",ang_vel_error)
-
-#     return torch.exp(-ang_vel_error / std**2)
+def track_world_exp(
+    env, command_name: str, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Reward tracking of angular velocity commands (yaw) in world frame using exponential kernel."""
+    # extract the used quantities (to enable type-hinting)
+    asset = env.scene[asset_cfg.name]
+    vel_yaw = quat_rotate_inverse(yaw_quat(asset.data.root_quat_w), asset.data.root_lin_vel_w[:, :3])
+    lin_vel_error = torch.sum(
+        torch.square(env.command_manager.get_command(command_name)[:, :2] - vel_yaw[:, :2]), dim=1
+    )
+    ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_w[:, 2])
+    # print("command_manager:",env.command_manager.get_command(command_name)[:, :3])
+    #print("command_manager:",env.command_manager.get_command(command_name)[:, 2])
+    return 100*torch.exp(-ang_vel_error / std**2)/(1+2*torch.exp(lin_vel_error))

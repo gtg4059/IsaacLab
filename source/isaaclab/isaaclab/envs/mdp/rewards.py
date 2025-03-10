@@ -329,10 +329,29 @@ def track_lin_vel_xy_exp(
     asset: RigidObject = env.scene[asset_cfg.name]
     # compute the error
     lin_vel_error = torch.sum(
-        torch.square(torch.tanh(env.command_manager.get_command(command_name)[:, :2]) - asset.data.root_lin_vel_b[:, :2]),
+        torch.square(torch.tanh(env.command_manager.get_command(command_name)[:, :2]) - asset.data.root_state_w[:, :2]),
         dim=1,
     )
+    # print(torch.exp(-lin_vel_error / std**2))
     return torch.exp(-lin_vel_error / std**2)
+
+# def position_command_error2(env: ManagerBasedRLEnv, std: float,command_name: str, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+#     """Penalize tracking of the position error using L2-norm.
+
+#     The function computes the position error between the desired position (from the command) and the
+#     current position of the asset's body (in world frame). The position error is computed as the L2-norm
+#     of the difference between the desired and current positions.
+#     """
+#     # extract the asset (to enable type hinting)
+#     asset: RigidObject = env.scene[asset_cfg.name]
+#     command = env.command_manager.get_command(command_name)
+#     # obtain the desired and current positions
+
+#     pos_error = torch.sum(
+#         torch.square(command[:, :2] - asset.data.root_state_w[:, :2]),
+#         dim=1,
+#     )
+#     return torch.exp(-pos_error / std**2)
 
 
 def track_ang_vel_z_exp(
@@ -343,4 +362,5 @@ def track_ang_vel_z_exp(
     asset: RigidObject = env.scene[asset_cfg.name]
     # compute the error
     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_b[:, 2])
+    print(torch.exp(-ang_vel_error / std**2))
     return torch.exp(-ang_vel_error / std**2)
