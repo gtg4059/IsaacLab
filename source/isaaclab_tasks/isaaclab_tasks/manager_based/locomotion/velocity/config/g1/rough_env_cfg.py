@@ -146,8 +146,8 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         )
 
         # Commands
-        self.commands.base_velocity.ranges.x = (-5.0, 5.0)
-        self.commands.base_velocity.ranges.y = (-5.0, 5.0)
+        self.commands.base_velocity.ranges.x = (4.0, 6.0)
+        self.commands.base_velocity.ranges.y = (4.0, 6.0)
         #self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
 
         # terminations
