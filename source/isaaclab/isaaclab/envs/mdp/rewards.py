@@ -329,7 +329,7 @@ def track_lin_vel_xy_exp(
     asset: RigidObject = env.scene[asset_cfg.name]
     # compute the error
     lin_vel_error = torch.sum(
-        torch.square(env.command_manager.get_command(command_name)[:, :2] - asset.data.root_lin_vel_b[:, :2]),
+        torch.square(torch.tanh(env.command_manager.get_command(command_name)[:, :2]) - asset.data.root_lin_vel_b[:, :2]),
         dim=1,
     )
     return torch.exp(-lin_vel_error / std**2)

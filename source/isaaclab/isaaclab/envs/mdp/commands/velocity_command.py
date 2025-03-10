@@ -171,8 +171,8 @@ class UniformVelocityCommand(CommandTerm):
             # compute angular velocity
             #heading_error = math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
             self.vel_command_b[env_ids, 2] = math_utils.wrap_to_pi(self.robot.data.heading_w[env_ids]-torch.arctan2(self.vel_command_w[env_ids, 1]-base_pos_w[env_ids,1], self.vel_command_w[env_ids, 0]-base_pos_w[env_ids,0]))
-
-            print("self.vel_command_b_scale",self.vel_command_b[env_ids, 0],self.vel_command_b[env_ids, 1],self.vel_command_b[env_ids, 2])
+            # print(torch.tanh(self.vel_command_b[env_ids, :3]))
+            #print("self.vel_command_b_scale",self.vel_command_b[env_ids, 0],self.vel_command_b[env_ids, 1],self.vel_command_b[env_ids, 2])
             # print("self.vel_command_b",self.vel_command_w[env_ids, 0]-base_pos_w[env_ids,0],self.vel_command_w[env_ids, 1]-base_pos_w[env_ids,1],self.vel_command_b[env_ids, 2])
             #print("self.base_pos_w",base_pos_w[env_ids,0],base_pos_w[env_ids,1])
             # self.vel_command_b[env_ids, 2] = torch.clip(

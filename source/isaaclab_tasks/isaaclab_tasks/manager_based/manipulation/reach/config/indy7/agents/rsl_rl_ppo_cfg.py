@@ -14,7 +14,7 @@ class Indy7ReachPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     save_interval = 100
     experiment_name = "reach_Indy7"
     run_name = ""
-    resume = False
+    resume = True
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,

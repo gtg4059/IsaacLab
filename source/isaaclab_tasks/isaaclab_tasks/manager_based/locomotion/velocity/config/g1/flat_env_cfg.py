@@ -36,8 +36,8 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
         # Commands
-        self.commands.base_velocity.ranges.x = (-3.0, 3.0)
-        self.commands.base_velocity.ranges.y = (-3.0, 3.0)
+        self.commands.base_velocity.ranges.x = (-8.0, 8.0)
+        self.commands.base_velocity.ranges.y = (-8.0, 8.0)
         #self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
 
 
