@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor
-from isaaclab.utils.math import quat_rotate_inverse, yaw_quat
+from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, quat_error_magnitude
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -104,3 +104,22 @@ def track_ang_vel_z_world_exp(
     asset = env.scene[asset_cfg.name]
     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_w[:, 2])
     return torch.exp(-ang_vel_error / std**2)
+
+# def track_ang_pos_z_world_exp(
+#     env, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+# ) -> torch.Tensor:
+#     """Reward tracking of angular velocity commands (yaw) in world frame using exponential kernel."""
+#     # extract the used quantities (to enable type-hinting)
+#     asset = env.scene[asset_cfg.name]
+
+
+
+
+
+#     ang_pos_error = quat_error_magnitude(asset.data.root_quat_w, asset.data.root_vel_w[:, :3])
+#     print("ang_pos_error:",ang_pos_error)
+#     # vel_yaw = quat_rotate_inverse(yaw_quat(asset.data.root_quat_w), asset.data.root_lin_vel_w[:, :3])
+#     # des_quat_w = quat_mul(asset.data.root_state_w[:, 3:7], des_quat_b)
+#     # curr_quat_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], 3:7]  # type: ignore
+#     # return quat_error_magnitude(curr_quat_w, des_quat_w)
+#     return torch.exp(-ang_pos_error / std**2)
