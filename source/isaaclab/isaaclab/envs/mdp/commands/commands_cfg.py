@@ -74,10 +74,10 @@ class UniformVelocityCommandCfg(CommandTermCfg):
         # lin_vel_y: tuple[float, float] = MISSING
         # """Range for the linear-y velocity command (in m/s)."""
 
-        # ang_vel_z: tuple[float, float] = MISSING
+        ang_vel_z: tuple[float, float] = MISSING
         # """Range for the angular-z velocity command (in rad/s)."""
 
-        # heading: tuple[float, float] | None = None
+        heading: tuple[float, float] | None = None
         # """Range for the heading command (in rad). Defaults to None.
 
         # This parameter is only used if :attr:`~UniformVelocityCommandCfg.heading_command` is True.
@@ -97,8 +97,8 @@ class UniformVelocityCommandCfg(CommandTermCfg):
     """The configuration for the current velocity visualization marker. Defaults to BLUE_ARROW_X_MARKER_CFG."""
 
     # Set the scale of the visualization markers to (0.5, 0.5, 0.5)
-    goal_vel_visualizer_cfg.markers["arrow"].scale = (0.0, 0.0, 0.0)
-    current_vel_visualizer_cfg.markers["arrow"].scale = (0.0, 0.0, 0.0)
+    goal_vel_visualizer_cfg.markers["arrow"].scale = (0.5, 0.5, 0.5)
+    current_vel_visualizer_cfg.markers["arrow"].scale = (0.5, 0.5, 0.5)
 
 
 @configclass

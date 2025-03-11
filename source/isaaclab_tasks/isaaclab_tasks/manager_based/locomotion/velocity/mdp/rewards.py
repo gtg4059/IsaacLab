@@ -90,10 +90,16 @@ def track_lin_vel_xy_yaw_frame_exp(
     """Reward tracking of linear velocity commands (xy axes) in the gravity aligned robot frame using exponential kernel."""
     # extract the used quantities (to enable type-hinting)
     asset = env.scene[asset_cfg.name]
-    vel_yaw = quat_rotate_inverse(yaw_quat(asset.data.root_quat_w), asset.data.root_lin_vel_w[:, :3])
+    # vel_yaw = quat_rotate_inverse(yaw_quat(asset.data.root_quat_w), asset.data.root_pos_w[:, :3])
+    # print("vel_yaw:",vel_yaw)
+
     lin_vel_error = torch.sum(
-        torch.square(env.command_manager.get_command(command_name)[:, :2] - vel_yaw[:, :2]), dim=1
+        torch.square(env.command_manager.get_command(command_name)[:, :2] - asset.data.root_pos_w[:, :2]), dim=1
     )
+    # print("lin_vel_error:",torch.exp(-lin_vel_error / std**2))
+    print("lin_vel_error1:",env.command_manager.get_command(command_name)[:, :2])
+    print("lin_vel_error2:",asset.data.root_pos_w[:, :2])
+    print("torch.exp(-lin_vel_error / std**2):",env.command_manager.get_command(command_name)[:, :2],asset.data.root_pos_w[:, :2],torch.exp(-lin_vel_error / std**2))
     return torch.exp(-lin_vel_error / std**2)
 
 
@@ -104,8 +110,10 @@ def track_ang_vel_z_world_exp(
     # extract the used quantities (to enable type-hinting)
     asset = env.scene[asset_cfg.name]
     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_w[:, 2])
-    # print("command_manager:",env.command_manager.get_command(command_name)[:, :3])
-    #print("command_manager:",env.command_manager.get_command(command_name)[:, 2])
+    # print("ang_vel_error1:",env.command_manager.get_command(command_name)[:, :2])
+    # print("ang_vel_error2:",asset.data.root_pos_w[:, :2])
+    print("torch.exp(-ang_vel_error / std**2):",env.command_manager.get_command(command_name)[:, :2],asset.data.root_pos_w[:, :2],torch.exp(-ang_vel_error / std**2))
+    # print("env.command_manager.get_command(command_name)[:, 2]:",env.command_manager.get_command(command_name)[:, 2])
     return torch.exp(-ang_vel_error / std**2)
 
 def track_world_exp(
