@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor
-from isaaclab.utils.math import quat_rotate_inverse, yaw_quat
+from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, euler_xyz_from_quat
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -96,11 +96,12 @@ def track_lin_vel_xy_yaw_frame_exp(
     lin_vel_error = torch.sum(
         torch.square(env.command_manager.get_command(command_name)[:, :2] - asset.data.root_pos_w[:, :2]), dim=1
     )
+    # print("torch.exp(-lin_vel_error / std**2):",torch.exp(-lin_vel_error / std**2))
     # print("lin_vel_error:",torch.exp(-lin_vel_error / std**2))
-    print("lin_vel_error1:",env.command_manager.get_command(command_name)[:, :2])
-    print("lin_vel_error2:",asset.data.root_pos_w[:, :2])
-    print("torch.exp(-lin_vel_error / std**2):",env.command_manager.get_command(command_name)[:, :2],asset.data.root_pos_w[:, :2],torch.exp(-lin_vel_error / std**2))
-    return torch.exp(-lin_vel_error / std**2)
+    # print("lin_vel_error1:",env.command_manager.get_command(command_name)[:, :2])
+    # print("lin_vel_error2:",asset.data.root_pos_w[:, :2])
+    # print("torch.exp(-lin_vel_error / std**2):",env.command_manager.get_command(command_name)[:, :2],asset.data.root_pos_w[:, :2],torch.exp(-lin_vel_error / std**2))
+    return 1-lin_vel_error#torch.exp(-lin_vel_error / std**2)
 
 
 def track_ang_vel_z_world_exp(
@@ -109,12 +110,18 @@ def track_ang_vel_z_world_exp(
     """Reward tracking of angular velocity commands (yaw) in world frame using exponential kernel."""
     # extract the used quantities (to enable type-hinting)
     asset = env.scene[asset_cfg.name]
-    ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_w[:, 2])
-    # print("ang_vel_error1:",env.command_manager.get_command(command_name)[:, :2])
-    # print("ang_vel_error2:",asset.data.root_pos_w[:, :2])
-    print("torch.exp(-ang_vel_error / std**2):",env.command_manager.get_command(command_name)[:, :2],asset.data.root_pos_w[:, :2],torch.exp(-ang_vel_error / std**2))
+    euler_w = euler_xyz_from_quat(asset.data.root_quat_w)[2]
+    # print("euler_w:",euler_w)
+    ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2]-euler_w)
+
+    lin_vel_error = torch.sum(
+        torch.square(env.command_manager.get_command(command_name)[:, :2] - asset.data.root_pos_w[:, :2]), dim=1
+    )
+    # print("command_name:",env.command_manager.get_command(command_name)[:, :2])
+    # print("torch.exp(-ang_vel_error / std**2):",torch.exp(-ang_vel_error / std**2))
+    # print("torch.exp(-ang_vel_error / std**2):",torch.exp(-ang_vel_error / std**2))
     # print("env.command_manager.get_command(command_name)[:, 2]:",env.command_manager.get_command(command_name)[:, 2])
-    return torch.exp(-ang_vel_error / std**2)
+    return torch.where(lin_vel_error<0.1,torch.exp(-ang_vel_error / std**2),0)#torch.exp(-ang_vel_error / std**2)
 
 def track_world_exp(
     env, command_name: str, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")

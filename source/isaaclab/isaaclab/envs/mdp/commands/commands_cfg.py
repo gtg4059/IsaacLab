@@ -46,7 +46,7 @@ class UniformVelocityCommandCfg(CommandTermCfg):
     command is sampled uniformly from provided range.
     """
 
-    heading_control_stiffness: float = 1.0
+    heading_control_stiffness: float = 100.0
     """Scale factor to convert the heading error to angular velocity command. Defaults to 1.0."""
 
     rel_standing_envs: float = 0.0
