@@ -198,8 +198,8 @@ class TerminationsCfg:
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     OVF = DoneTerm(func=mdp.CRI_OVF)
-    reach = DoneTerm(func=mdp.CRI_reach,
-                     params={"asset_cfg": SceneEntityCfg("robot", body_names=["ee_link"]), "std": 0.1, "command_name": "ee_pose"})
+    # reach = DoneTerm(func=mdp.CRI_reach,
+    #                  params={"asset_cfg": SceneEntityCfg("robot", body_names=["ee_link"]), "std": 0.1, "command_name": "ee_pose"})
 
 
 @configclass
