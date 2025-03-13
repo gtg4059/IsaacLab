@@ -27,11 +27,20 @@ class G1Rewards(RewardsCfg):
         params={"command_name": "base_velocity", "std": 1.0},
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "base_velocity", "std": 1.0}
+        func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "base_velocity", "std": 0.5}
     )
+    # feet_air_time = RewTerm(
+    #     func=mdp.feet_standing,
+    #     weight=0.0,
+    #     params={
+    #         "command_name": "base_velocity",
+    #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
+    #         "threshold": 0.4,
+    #     },
+    # )
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
-        weight=0.0,
+        weight=0.25,
         params={
             "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
@@ -143,8 +152,8 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         )
 
         # Commands
-        self.commands.base_velocity.ranges.x = (-5.0, 5.0)
-        self.commands.base_velocity.ranges.y = (-5.0, 5.0)
+        # self.commands.base_velocity.ranges.x = (-5.0, 5.0)
+        # self.commands.base_velocity.ranges.y = (-5.0, 5.0)
         #self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
 
         # terminations

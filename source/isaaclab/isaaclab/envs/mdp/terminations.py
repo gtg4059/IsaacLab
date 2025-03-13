@@ -156,3 +156,23 @@ def illegal_contact(env: ManagerBasedRLEnv, threshold: float, sensor_cfg: SceneE
     return torch.any(
         torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] > threshold, dim=1
     )
+
+def feet_standing(env: ManagerBasedRLEnv, threshold: float, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Terminate when the contact force on the sensor exceeds the force threshold."""
+    # extract the used quantities (to enable type-hinting)
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    # compute the reward
+    air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]
+    contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
+    in_air = air_time > 0.0
+    in_mode_time = torch.where(in_air, air_time, contact_time)
+    single_stance = torch.sum(in_air.int(), dim=1) == 1
+    reward = torch.min(torch.where(single_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
+    reward = torch.clamp(reward, max=threshold)
+    # no reward for zero command
+    #reward *= torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) > 0.1
+    # print("reward:",reward)
+    # print(env.episode_length_buf)
+    # check if any contact force exceeds the threshold
+    return reward
+

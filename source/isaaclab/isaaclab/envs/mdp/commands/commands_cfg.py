@@ -46,7 +46,7 @@ class UniformVelocityCommandCfg(CommandTermCfg):
     command is sampled uniformly from provided range.
     """
 
-    heading_control_stiffness: float = 100.0
+    heading_control_stiffness: float = 1.0
     """Scale factor to convert the heading error to angular velocity command. Defaults to 1.0."""
 
     rel_standing_envs: float = 0.0
@@ -77,7 +77,7 @@ class UniformVelocityCommandCfg(CommandTermCfg):
         ang_vel_z: tuple[float, float] = MISSING
         # """Range for the angular-z velocity command (in rad/s)."""
 
-        heading: tuple[float, float] | None = None
+        heading: tuple[float, float] = MISSING
         # """Range for the heading command (in rad). Defaults to None.
 
         # This parameter is only used if :attr:`~UniformVelocityCommandCfg.heading_command` is True.

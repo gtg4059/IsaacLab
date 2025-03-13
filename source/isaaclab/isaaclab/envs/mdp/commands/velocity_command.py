@@ -79,8 +79,9 @@ class UniformVelocityCommand(CommandTerm):
         # crete buffers to store the command
         # -- command: x vel, y vel, yaw vel, heading
         self.vel_command_b = torch.zeros(self.num_envs, 3, device=self.device)
-        self.vel_command_w = torch.zeros(self.num_envs, 3, device=self.device)
+        self.vel_command_w = torch.zeros(self.num_envs, 4, device=self.device)
         self.heading_target = torch.zeros(self.num_envs, device=self.device)
+        self.heading_target_clone = torch.zeros(self.num_envs, device=self.device)
         self.is_heading_env = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
         self.is_standing_env = torch.zeros_like(self.is_heading_env)
         # -- metrics
@@ -126,6 +127,14 @@ class UniformVelocityCommand(CommandTerm):
     def _resample_command(self, env_ids: Sequence[int]):
         # sample velocity commands
         r = torch.empty(len(env_ids), device=self.device)
+        # self.vel_command_w[env_ids, 0] = r.uniform_(*self.cfg.ranges.x)
+        # self.vel_command_w[env_ids, 1] = r.uniform_(*self.cfg.ranges.y)
+        # #base_pos_w = euler_xyz_from_quat(self.robot.data.root_quat_w)[2]
+        # robot_angle = euler_xyz_from_quat(self.robot.data.root_quat_w)[2]#torch.arctan2(base_pos_w[env_ids, 1],base_pos_w[env_ids, 0])
+        # angle = torch.arctan2(self.vel_command_w[env_ids, 1],self.vel_command_w[env_ids, 0])
+        # dist = torch.sum(torch.square(self.vel_command_w[env_ids, :2]))
+        # self.vel_command_b[env_ids, 0] = dist*torch.cos(angle+robot_angle)
+        # self.vel_command_b[env_ids, 1] = dist*torch.sin(angle+robot_angle)
         # -- linear velocity - x direction
         self.vel_command_w[env_ids, 0] = r.uniform_(*self.cfg.ranges.x)
         self.vel_command_b[env_ids, 0] = self.vel_command_w[env_ids, 0] #4
@@ -136,6 +145,7 @@ class UniformVelocityCommand(CommandTerm):
         self.vel_command_w[env_ids, 2] = r.uniform_(*self.cfg.ranges.ang_vel_z)#torch.tanh(math_utils.wrap_to_pi(self.robot.data.heading_w[env_ids]-torch.arctan2(self.vel_command_w[env_ids, 1], self.vel_command_w[env_ids, 0])))#r.uniform_(*self.cfg.ranges.ang_vel_z)
         self.vel_command_b[env_ids, 2] = self.vel_command_w[env_ids, 2]
 
+        self.vel_command_w[env_ids, 3] = r.uniform_(*self.cfg.ranges.heading)
         # self.vel_command_w[env_ids, 0] = r.uniform_(*self.cfg.ranges.x)
         # self.vel_command_w[env_ids, 1] = r.uniform_(*self.cfg.ranges.y)
         # # -- linear velocity - x direction
@@ -149,6 +159,7 @@ class UniformVelocityCommand(CommandTerm):
         # heading target
         if self.cfg.heading_command:
             self.heading_target[env_ids] = torch.arctan2(self.vel_command_w[env_ids, 1]-self.robot.data.root_pos_w[env_ids,1],self.vel_command_w[env_ids, 0]-self.robot.data.root_pos_w[env_ids,0])#torch.arctan2(self.cfg.ranges.lin_vel_y,self.cfg.ranges.lin_vel_x)
+            self.heading_target_clone[env_ids]=self.heading_target[env_ids]
             #self.heading_target[env_ids] = r.uniform_(*self.cfg.ranges.heading)
             # update heading envs
             self.is_heading_env[env_ids] = r.uniform_(0.0, 1.0) <= self.cfg.rel_heading_envs
@@ -162,40 +173,48 @@ class UniformVelocityCommand(CommandTerm):
         velocity from heading direction if the heading_command flag is set.
         """
         # Compute angular velocity from heading direction
-        # if self.cfg.heading_command:
-        #     # resolve indices of heading envs
-        #     env_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
+        if self.cfg.heading_command:
+            # resolve indices of heading envs
+            env_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
 
-        #     base_pos_w = self.robot.data.root_pos_w.clone()
-        #     # self.vel_command_b[env_ids, 0] = self.vel_command_w[env_ids, 0]-base_pos_w[env_ids,0]
-        #     # self.vel_command_b[env_ids, 1] = self.vel_command_w[env_ids, 1]-base_pos_w[env_ids,1]
-        #     # compute angular velocity (self.robot.data.root_pos_w[:,:2]-self.vel_command_b[:, :2])
-        #     #heading_error = math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
-        #     self.heading_target[env_ids] = torch.atan2(self.vel_command_b[env_ids, 1]-self.robot.data.root_pos_w[env_ids,1],self.vel_command_b[env_ids, 0]-self.robot.data.root_pos_w[env_ids,0])
-        #     #print("self.heading_target[env_ids]:",self.heading_target[env_ids])
-        #     #heading_error=torch.where(L.norm(a,dim=1)<0.05,0,math_utils.wrap_to_pi(a - self.robot.data.heading_w[env_ids]))
+            base_pos_w = self.robot.data.root_pos_w.clone()
+            self.vel_command_b[env_ids, 0] = 0.5*torch.tanh(self.vel_command_w[env_ids, 0]-base_pos_w[env_ids,0])
+            self.vel_command_b[env_ids, 1] = 0.5*torch.tanh(self.vel_command_w[env_ids, 1]-base_pos_w[env_ids,1])
+            # compute angular velocity (self.robot.data.root_pos_w[:,:2]-self.vel_command_b[:, :2])
+            #heading_error = math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
+            #self.heading_target[env_ids] = torch.atan2(self.vel_command_b[env_ids, 1]-self.robot.data.root_pos_w[env_ids,1],self.vel_command_b[env_ids, 0]-self.robot.data.root_pos_w[env_ids,0])
+            self.heading_target[env_ids] = torch.atan2(self.vel_command_b[env_ids, 1],self.vel_command_b[env_ids, 0])
+            #print("self.heading_target[env_ids]:",self.heading_target[env_ids])
+            #heading_error=torch.where(L.norm(a,dim=1)<0.05,0,math_utils.wrap_to_pi(a - self.robot.data.heading_w[env_ids]))
 
-        #     # if L.norm(target_vector)<0.1:
-        #     #     heading_error = math_utils.wrap_to_pi(self.robot.data.heading_w[env_ids])*0
-        #     # else:
-        #     #     heading_error = math_utils.wrap_to_pi(self.robot.data.heading_w[env_ids])
-        #     heading_error=math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
-        #     #print("heading_error:",heading_error)
-        #     # heading_error = math_utils.wrap_to_pi(a - self.robot.data.heading_w[env_ids])
-        #     # heading_error = math_utils.wrap_to_pi(a - self.robot.data.heading_w[env_ids])
-        #     # self.vel_command_b[env_ids, 2] = torch.tanh(math_utils.wrap_to_pi(self.robot.data.heading_w[env_ids]-torch.arctan2(self.vel_command_w[env_ids, 1]-base_pos_w[env_ids,1], self.vel_command_w[env_ids, 0]-base_pos_w[env_ids,0])))
-        #     # print("heading_error:",heading_error)
+            if L.norm(self.vel_command_b[env_ids, :2])<0.4:
+                #heading_error = math_utils.wrap_to_pi(self.vel_command_w[env_ids, 3] - self.robot.data.heading_w[env_ids])
+                heading_error = math_utils.wrap_to_pi(self.heading_target_clone - self.robot.data.heading_w[env_ids])
+                #print("heading_error:",heading_error)
+            else:
+                heading_error = math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
+
+            # heading_error=math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
+            #print("heading_error:",heading_error)
+            # heading_error = math_utils.wrap_to_pi(a - self.robot.data.heading_w[env_ids])
+            # heading_error = math_utils.wrap_to_pi(a - self.robot.data.heading_w[env_ids])
+            # self.vel_command_b[env_ids, 2] = torch.tanh(math_utils.wrap_to_pi(self.robot.data.heading_w[env_ids]-torch.arctan2(self.vel_command_w[env_ids, 1]-base_pos_w[env_ids,1], self.vel_command_w[env_ids, 0]-base_pos_w[env_ids,0])))
+            # print("heading_error:",heading_error)
             
-        #     # print("arrow:",self.command[:, :2]-self.robot.data.root_pos_w[:,:2])
-        #     # print("self.vel_command_b",self.vel_command_b[env_ids, 0],self.vel_command_b[env_ids, 1])
-        #     # print("self.robot.data.root_pos_w:",self.robot.data.root_pos_w[:,0],self.robot.data.root_pos_w[:,1])
-        #     #print("self.vel_command_b-base_pos_w",self.vel_command_b[env_ids, 0]-base_pos_w[env_ids,0],self.vel_command_b[env_ids, 1]-base_pos_w[env_ids,1],self.vel_command_b[env_ids, 2])
-        #     # print("self.base_pos_w",base_pos_w[env_ids,0],base_pos_w[env_ids,1])
-        #     self.vel_command_b[env_ids, 2] = torch.clip(
-        #         self.cfg.heading_control_stiffness * heading_error,
-        #         min=self.cfg.ranges.ang_vel_z[0],
-        #         max=self.cfg.ranges.ang_vel_z[1],
-        #     )
+            # print("arrow:",self.command[:, :2]-self.robot.data.root_pos_w[:,:2])
+            # print("self.vel_command_b",self.vel_command_b[env_ids, 0],self.vel_command_b[env_ids, 1])
+            # print("self.robot.data.root_pos_w:",self.robot.data.root_pos_w[:,0],self.robot.data.root_pos_w[:,1])
+            #print("self.vel_command_b-base_pos_w",self.vel_command_b[env_ids, 0]-base_pos_w[env_ids,0],self.vel_command_b[env_ids, 1]-base_pos_w[env_ids,1],self.vel_command_b[env_ids, 2])
+            # print("self.base_pos_w",base_pos_w[env_ids,0],base_pos_w[env_ids,1])
+            self.vel_command_b[env_ids, 2] = torch.clip(
+                self.cfg.heading_control_stiffness * heading_error,
+                min=self.cfg.ranges.ang_vel_z[0],
+                max=self.cfg.ranges.ang_vel_z[1],
+            )
+            # if L.norm(self.vel_command_b[env_ids, :2])<0.1:
+            #     self.vel_command_b[env_ids, 2] = math_utils.wrap_to_pi(self.robot.data.heading_w[env_ids])*0
+            # else:
+            #     heading_error = math_utils.wrap_to_pi(self.robot.data.heading_w[env_ids])
         # Enforce standing (i.e., zero velocity command) for standing envs
         # TODO: check if conversion is needed
         standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()
@@ -231,7 +250,7 @@ class UniformVelocityCommand(CommandTerm):
         # -- resolve the scales and quaternions
         # quat = self.robot.data.root_quat_w
         # euler_angles = euler_xyz_from_quat(quat) # vel_command_b self.robot.data.root_pos_w
-        vel_des_arrow_scale, vel_des_arrow_quat = self._resolve_xy_vec_to_arrow(self.command[:, :2]-self.robot.data.root_pos_w[:,:2])#green
+        vel_des_arrow_scale, vel_des_arrow_quat = self._resolve_xy_vec_to_arrow(self.command[:, :2])#green
         vel_arrow_scale, vel_arrow_quat = self._resolve_xy_velocity_to_arrow(self.robot.data.root_lin_vel_b[:, :2])#heading_w
         #math_utils.quat_apply(self.root_link_quat_w, self.FORWARD_VEC_B)[:, 1]
         # display markers
