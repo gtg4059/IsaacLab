@@ -81,7 +81,7 @@ class UniformVelocityCommand(CommandTerm):
         self.vel_command_b = torch.zeros(self.num_envs, 3, device=self.device)
         self.vel_command_w = torch.zeros(self.num_envs, 4, device=self.device)
         self.heading_target = torch.zeros(self.num_envs, device=self.device)
-        self.heading_target_clone = torch.zeros(self.num_envs, device=self.device)
+        self.heading_target_end = torch.zeros(self.num_envs, device=self.device)
         self.is_heading_env = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
         self.is_standing_env = torch.zeros_like(self.is_heading_env)
         # -- metrics
@@ -159,7 +159,7 @@ class UniformVelocityCommand(CommandTerm):
         # heading target
         if self.cfg.heading_command:
             self.heading_target[env_ids] = torch.arctan2(self.vel_command_w[env_ids, 1]-self.robot.data.root_pos_w[env_ids,1],self.vel_command_w[env_ids, 0]-self.robot.data.root_pos_w[env_ids,0])#torch.arctan2(self.cfg.ranges.lin_vel_y,self.cfg.ranges.lin_vel_x)
-            self.heading_target_clone[env_ids]=self.heading_target[env_ids]
+            self.heading_target_end[env_ids]=self.vel_command_w[env_ids, 3]
             #self.heading_target[env_ids] = r.uniform_(*self.cfg.ranges.heading)
             # update heading envs
             self.is_heading_env[env_ids] = r.uniform_(0.0, 1.0) <= self.cfg.rel_heading_envs
@@ -186,13 +186,16 @@ class UniformVelocityCommand(CommandTerm):
             self.heading_target[env_ids] = torch.atan2(self.vel_command_b[env_ids, 1],self.vel_command_b[env_ids, 0])
             #print("self.heading_target[env_ids]:",self.heading_target[env_ids])
             #heading_error=torch.where(L.norm(a,dim=1)<0.05,0,math_utils.wrap_to_pi(a - self.robot.data.heading_w[env_ids]))
-
-            if L.norm(self.vel_command_b[env_ids, :2])<0.4:
-                #heading_error = math_utils.wrap_to_pi(self.vel_command_w[env_ids, 3] - self.robot.data.heading_w[env_ids])
-                heading_error = math_utils.wrap_to_pi(self.heading_target_clone - self.robot.data.heading_w[env_ids])
-                #print("heading_error:",heading_error)
-            else:
-                heading_error = math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
+            x = L.norm(self.vel_command_b[env_ids, :2])
+            heading_error_run = math_utils.wrap_to_pi(self.heading_target_end - self.robot.data.heading_w[env_ids])
+            heading_error_stop = math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
+            heading_error = heading_error_run/(1+12*torch.exp(x-0.6))+heading_error_stop/(1+12*torch.exp(x-0.6))*12*torch.exp(x-0.6)
+            # if L.norm(self.vel_command_b[env_ids, :2])<0.4:
+            #     #heading_error = math_utils.wrap_to_pi(self.vel_command_w[env_ids, 3] - self.robot.data.heading_w[env_ids])
+            #     heading_error = math_utils.wrap_to_pi(self.heading_target_end - self.robot.data.heading_w[env_ids])
+            #     #print("heading_error:",heading_error)
+            # else:
+            #     heading_error = math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
 
             # heading_error=math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
             #print("heading_error:",heading_error)
