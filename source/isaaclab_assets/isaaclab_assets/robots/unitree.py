@@ -382,14 +382,14 @@ G1_CFG = ArticulationCfg(
 
 G1_MINIMAL_CFG = G1_CFG.copy()
 G1_MINIMAL_CFG.spawn.usd_path = f"{ISAACLAB_NUCLEUS_DIR}/Robots/Unitree/G1/g1_minimal.usd"
-
 G1_FRONT_CFG = G1_CFG.copy()
 G1_FRONT_CFG.init_state.joint_pos={
             ".*_shoulder_pitch_joint":0.0,
             ".*_shoulder_roll_joint":0.0,
             ".*_shoulder_yaw_joint":0.0,
             ".*_elbow_pitch_joint":0.0,
-            ".*_elbow_roll_joint":0.0,
+            "right_elbow_roll_joint":1.5708,
+            "left_elbow_roll_joint":-1.5708,
             ".*_five_joint":0.0,
             ".*_three_joint":0.0,
             ".*_six_joint":0.0,
@@ -398,7 +398,6 @@ G1_FRONT_CFG.init_state.joint_pos={
             ".*_one_joint":0.0,
             ".*_two_joint":0.0,
         }
-
 """Configuration for the Unitree G1 Humanoid robot with fewer collision meshes.
 
 This configuration removes most collision meshes to speed up simulation.
