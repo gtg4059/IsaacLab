@@ -13,7 +13,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import G1_MINIMAL_CFG  # isort: skip
+from isaaclab_assets import G1_MINIMAL_CFG, G1_FRONT_CFG # isort: skip
 
 
 @configclass
@@ -117,7 +117,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # post init of parent
         super().__post_init__()
         # Scene
-        self.scene.robot = G1_MINIMAL_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot = G1_FRONT_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
 
         # Randomization
@@ -136,6 +136,10 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
                 "yaw": (0.0, 0.0),
             },
         }
+        
+        # New Rewards
+        self.rewards.joint_deviation_arms.weight = -1.0
+        self.rewards.joint_deviation_fingers.weight = -0.5
 
         # Rewards
         self.rewards.lin_vel_z_l2.weight = 0.0
