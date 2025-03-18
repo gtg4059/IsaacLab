@@ -63,8 +63,6 @@ class ArticulationData:
         # Initialize history for finite differencing
         self._previous_joint_vel = self._root_physx_view.get_dof_velocities().clone()
 
-        self.s = torch.classes.my_ops.CoreService(os.getcwd()+
-        "/source/isaaclab/isaaclab/assets/articulation",self._root_physx_view.count)
 
         # Initialize the lazy buffers.
         self._root_state_w = TimestampedBuffer()
@@ -77,7 +75,6 @@ class ArticulationData:
         self._joint_pos = TimestampedBuffer()
         self._joint_acc = TimestampedBuffer()
         self._joint_vel = TimestampedBuffer()
-        self._CRI = TimestampedBuffer() 
 
     def update(self, dt: float):
         # update the simulation timestamp
@@ -459,24 +456,6 @@ class ArticulationData:
             self._previous_joint_vel[:] = self.joint_vel
         return self._joint_acc.data
     
-    @property
-    def CRI(self):
-        """Joint acceleration of all joints. Shape is (num_instances, num_joints)."""
-
-        # if self._joint_acc.timestamp < self._sim_timestamp:
-        #     # note: we use finite differencing to compute acceleration
-        #     time_elapsed = self._sim_timestamp - self._joint_acc.timestamp
-        #     self._joint_acc.data = (self.joint_vel - self._previous_joint_vel) / time_elapsed
-        #     self._joint_acc.timestamp = self._sim_timestamp
-        #     # update the previous joint velocity
-        #     self._previous_joint_vel[:] = self.joint_vel
-        if self._CRI.timestamp < self._sim_timestamp:
-            self._CRI.data = self.s.calcresult(self._root_physx_view.get_dof_positions(),self._root_physx_view.get_dof_velocities(),0)
-            # print(self._root_physx_view.get_dof_positions()[0])
-            # print(self._root_physx_view.get_dof_velocities()[0])
-            # print(self._CRI.data[0])
-            self._CRI.timestamp = self._sim_timestamp
-        return self._CRI.data
 
     ##
     # Derived properties.
