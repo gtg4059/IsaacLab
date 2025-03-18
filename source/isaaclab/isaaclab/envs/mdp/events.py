@@ -854,12 +854,6 @@ def reset_joints_by_scale(
     joint_vel_limits = asset.data.soft_joint_vel_limits[env_ids]
     joint_vel = joint_vel.clamp_(-joint_vel_limits, joint_vel_limits)
 
-    # with open("/home/robotics/IsaacLab/source/isaaclab/isaaclab/envs/mdp/state.txt", 'a') as f:
-    #         for row in joint_pos[0, :]:
-    #             f.write(str(row.item()))
-    #             f.write(',')
-
-    # set into the physics simulation
     asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
 
 

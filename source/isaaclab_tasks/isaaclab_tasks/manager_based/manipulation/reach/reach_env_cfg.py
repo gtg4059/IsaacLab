@@ -106,7 +106,6 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
-        CRI = ObsTerm(func=mdp.collision_risk_index)
         joint_pos_abs = ObsTerm(func=mdp.joint_pos, noise=Unoise(n_min=-0.01, n_max=0.01))
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.001, n_max=0.001))
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.001, n_max=0.001))
@@ -167,12 +166,6 @@ class RewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "std": 0.1, "command_name": "ee_pose"},
     )
 
-    CRI_OVF = RewTerm(
-        func=mdp.CRI_OVF,
-        weight=-50,
-        params={"asset_cfg": SceneEntityCfg("robot")},
-    )
-
     # reach = RewTerm(
     #     func=mdp.reach,
     #     weight=1,
@@ -197,9 +190,6 @@ class TerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    OVF = DoneTerm(func=mdp.CRI_OVF)
-    reach = DoneTerm(func=mdp.CRI_reach,
-                     params={"asset_cfg": SceneEntityCfg("robot", body_names=["ee_link"]), "std": 0.1, "command_name": "ee_pose"})
 
 
 @configclass
