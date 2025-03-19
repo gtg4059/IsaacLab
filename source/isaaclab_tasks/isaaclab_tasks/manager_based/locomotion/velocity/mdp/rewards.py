@@ -15,8 +15,9 @@ import torch
 from typing import TYPE_CHECKING
 
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.sensors import ContactSensor
-from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, euler_xyz_from_quat
+from isaaclab.sensors import ContactSensor, FrameTransformer
+from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, combine_frame_transforms
+from isaaclab.assets import RigidObject
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -58,32 +59,14 @@ def feet_air_time_positive_biped(env, command_name: str, threshold: float, senso
     contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
     in_contact = contact_time > 0.0
     in_mode_time = torch.where(in_contact, contact_time, air_time)
-    single_stance = torch.sum(in_contact.int(), dim=1) == 1
-    reward = torch.min(torch.where(single_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
+    double_stance = torch.sum(in_contact.int(), dim=1) == 2
+    reward = torch.min(torch.where(double_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
     reward = torch.clamp(reward, max=threshold)
     # reward for zero command
     reward *= torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) < 0.1
     #print("reward:",reward)
     return reward
 
-# def feet_standing(env, command_name: str, threshold: float, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
-#     """Reward long steps taken by the feet for bipeds.
-
-#     This function rewards the agent for taking steps up to a specified threshold and also keep one foot at
-#     a time in the air.
-
-#     If the commands are small (i.e. the agent is not supposed to take a step), then the reward is zero.
-#     """
-#     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
-#     # compute the reward
-#     air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]
-#     contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
-#     in_air = contact_time > 0.0
-#     in_mode_time = torch.where(in_air,air_time, contact_time)
-#     single_stance = torch.sum(in_air.int(), dim=1) == 1
-#     reward = torch.min(torch.where(single_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
-#     reward = torch.clamp(reward, max=threshold)
-#     return reward
 
 
 def feet_slide(env, sensor_cfg: SceneEntityCfg, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
@@ -142,7 +125,6 @@ def track_ang_vel_z_world_exp(
     # print("ang_vel_error:",ang_vel_error)
     # print("torch.exp(-ang_vel_error / std**2):",torch.exp(-ang_vel_error / std**2))
     # print("torch.exp(-ang_vel_error / std**2):",torch.exp(-ang_vel_error / std**2))
-    # print("env.command_manager.get_command(command_name)[:, 2]:",env.command_manager.get_command(command_name)[:, 2])
     return torch.exp(-ang_vel_error / std**2)# torch.where(lin_vel_error<0.1,torch.exp(-ang_vel_error / std**2),0)
 
 def track_world_exp(
@@ -159,3 +141,56 @@ def track_world_exp(
     # print("command_manager:",env.command_manager.get_command(command_name)[:, :3])
     #print("command_manager:",env.command_manager.get_command(command_name)[:, 2])
     return 100*torch.exp(-ang_vel_error / std**2)/(1+2*torch.exp(lin_vel_error))
+
+
+"""
+lift
+"""
+def object_is_lifted(
+    env: ManagerBasedRLEnv, minimal_height: float, object_cfg: SceneEntityCfg = SceneEntityCfg("object")
+) -> torch.Tensor:
+    """Reward the agent for lifting the object above the minimal height."""
+    object: RigidObject = env.scene[object_cfg.name]
+    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
+
+
+def object_ee_distance(
+    env: ManagerBasedRLEnv,
+    std: float,
+    object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+    ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
+) -> torch.Tensor:
+    """Reward the agent for reaching the object using tanh-kernel."""
+    # extract the used quantities (to enable type-hinting)
+    object: RigidObject = env.scene[object_cfg.name]
+    ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
+    # Target object position: (num_envs, 3)
+    cube_pos_w = object.data.root_pos_w
+    # End-effector position: (num_envs, 3)
+    ee_w = ee_frame.data.target_pos_w[..., 0, :]
+    # Distance of the end-effector to the object: (num_envs,)
+    object_ee_distance = torch.norm(cube_pos_w - ee_w, dim=1)
+
+    return 1 - torch.tanh(object_ee_distance / std)
+
+
+def object_goal_distance(
+    env: ManagerBasedRLEnv,
+    std: float,
+    minimal_height: float,
+    command_name: str,
+    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+) -> torch.Tensor:
+    """Reward the agent for tracking the goal pose using tanh-kernel."""
+    # extract the used quantities (to enable type-hinting)
+    robot: RigidObject = env.scene[robot_cfg.name]
+    object: RigidObject = env.scene[object_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    # compute the desired position in the world frame
+    des_pos_b = command[:, :3]
+    des_pos_w, _ = combine_frame_transforms(robot.data.root_state_w[:, :3], robot.data.root_state_w[:, 3:7], des_pos_b)
+    # distance of the end-effector to the object: (num_envs,)
+    distance = torch.norm(des_pos_w - object.data.root_pos_w[:, :3], dim=1)
+    # rewarded if the object is lifted above the threshold
+    return (object.data.root_pos_w[:, 2] > minimal_height) * (1 - torch.tanh(distance / std))

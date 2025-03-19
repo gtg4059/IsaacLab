@@ -127,14 +127,6 @@ class UniformVelocityCommand(CommandTerm):
     def _resample_command(self, env_ids: Sequence[int]):
         # sample velocity commands
         r = torch.empty(len(env_ids), device=self.device)
-        # self.vel_command_w[env_ids, 0] = r.uniform_(*self.cfg.ranges.x)
-        # self.vel_command_w[env_ids, 1] = r.uniform_(*self.cfg.ranges.y)
-        # #base_pos_w = euler_xyz_from_quat(self.robot.data.root_quat_w)[2]
-        # robot_angle = euler_xyz_from_quat(self.robot.data.root_quat_w)[2]#torch.arctan2(base_pos_w[env_ids, 1],base_pos_w[env_ids, 0])
-        # angle = torch.arctan2(self.vel_command_w[env_ids, 1],self.vel_command_w[env_ids, 0])
-        # dist = torch.sum(torch.square(self.vel_command_w[env_ids, :2]))
-        # self.vel_command_b[env_ids, 0] = dist*torch.cos(angle+robot_angle)
-        # self.vel_command_b[env_ids, 1] = dist*torch.sin(angle+robot_angle)
         # -- linear velocity - x direction
         self.vel_command_w[env_ids, 0] = r.uniform_(*self.cfg.ranges.x)
         self.vel_command_b[env_ids, 0] = self.vel_command_w[env_ids, 0] #4
@@ -146,15 +138,6 @@ class UniformVelocityCommand(CommandTerm):
         self.vel_command_b[env_ids, 2] = self.vel_command_w[env_ids, 2]
 
         self.vel_command_w[env_ids, 3] = r.uniform_(*self.cfg.ranges.heading)
-        # self.vel_command_w[env_ids, 0] = r.uniform_(*self.cfg.ranges.x)
-        # self.vel_command_w[env_ids, 1] = r.uniform_(*self.cfg.ranges.y)
-        # # -- linear velocity - x direction
-        # self.vel_command_b[env_ids, 0] = self.vel_command_w[env_ids, 0]/L.norm(self.vel_command_w[env_ids, :2],1) #norm vec
-        # # -- linear velocity - y direction
-        # self.vel_command_b[env_ids, 1] = self.vel_command_w[env_ids, 1]/L.norm(self.vel_command_w[env_ids, :2],1) #norm vec
-        # # -- ang vel yaw - rotation around z
-        # self.vel_command_w[env_ids, 2] = math_utils.wrap_to_pi(self.robot.data.heading_w[env_ids]-torch.arctan2(self.vel_command_w[env_ids, 1], self.vel_command_w[env_ids, 0]))#r.uniform_(*self.cfg.ranges.ang_vel_z)
-        # self.vel_command_b[env_ids, 2] = self.vel_command_w[env_ids, 2]
 
         # heading target
         if self.cfg.heading_command:

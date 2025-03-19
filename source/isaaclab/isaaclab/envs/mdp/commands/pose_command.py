@@ -59,7 +59,7 @@ class UniformPoseCommand(CommandTerm):
         # extract the robot and body index for which the command is generated
         self.robot: Articulation = env.scene[cfg.asset_name]
         self.body_idx = self.robot.find_bodies(cfg.body_name)[0][0]
-
+        print("self.body_idx",self.body_idx)
         # create buffers
         # -- commands: (x, y, z, qw, qx, qy, qz) in root frame
         self.pose_command_b = torch.zeros(self.num_envs, 7, device=self.device)
