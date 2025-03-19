@@ -82,7 +82,7 @@ def main():
             return
     elif args_cli.checkpoint:
         resume_path = retrieve_file_path(args_cli.checkpoint)
-    elif args_cli.checkpoint_run & args_cli.checkpoint_stop:
+    elif args_cli.checkpoint_run and args_cli.checkpoint_stop:
         resume_path = retrieve_file_path(args_cli.checkpoint_run)
         resume_path_next = retrieve_file_path(args_cli.checkpoint_stop)
     else:
@@ -149,12 +149,13 @@ def main():
         # run everything in inference mode
         with torch.inference_mode():
             # agent stepping
-            # print("obs[:]:",obs[:,10:12])
-            # print("torch.norm:",torch.linalg.vector_norm(obs[:,10:12]))
+            print("torch.norm:",torch.linalg.vector_norm(obs[:,9:11])) #command x,y
             actions = policy(obs)
-            if torch.linalg.vector_norm(obs[:,10:12])>0.8:
-                actions = policy(obs)
+            if torch.linalg.vector_norm(obs[:,9:11])>0.2: # target distance>0.2
+                # print("run")
+                actions = policy(obs) #target: velocity
             else:
+                # print("stop")
                 actions = policy2(obs)
             # env stepping
             obs, _, _, _ = env.step(actions)
