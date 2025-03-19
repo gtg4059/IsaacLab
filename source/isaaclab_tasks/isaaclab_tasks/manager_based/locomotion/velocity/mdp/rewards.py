@@ -115,7 +115,6 @@ def track_lin_vel_xy_yaw_frame_exp(
     lin_vel_error = torch.sum(
         torch.square(env.command_manager.get_command(command_name)[:, :2] - vel_yaw[:, :2]), dim=1
     )
-    angle = torch.where(lin_vel_error<0.1,)
     # print("torch.exp(-lin_vel_error / std**2):",torch.exp(-lin_vel_error / std**2))
     # print("lin_vel_error:",torch.exp(-lin_vel_error / std**2))
     # print("command:",env.command_manager.get_command(command_name)[:, :2])
