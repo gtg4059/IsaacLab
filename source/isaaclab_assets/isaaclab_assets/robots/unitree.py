@@ -385,8 +385,10 @@ G1_MINIMAL_CFG.spawn.usd_path = f"{ISAACLAB_NUCLEUS_DIR}/Robots/Unitree/G1/g1_mi
 G1_FRONT_CFG = G1_CFG.copy()
 G1_FRONT_CFG.init_state.joint_pos={
             ".*_shoulder_pitch_joint":0.0,
-            ".*_shoulder_roll_joint":0.0,
-            ".*_shoulder_yaw_joint":0.0,
+            "left_shoulder_roll_joint":0.5,
+            "right_shoulder_roll_joint":-0.5,
+            "left_shoulder_yaw_joint":0.1,
+            "right_shoulder_yaw_joint":-0.1,
             ".*_elbow_pitch_joint":0.0,
             "right_elbow_roll_joint":1.5708,
             "left_elbow_roll_joint":-1.5708,

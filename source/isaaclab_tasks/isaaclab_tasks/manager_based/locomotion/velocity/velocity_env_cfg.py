@@ -65,29 +65,37 @@ class MySceneCfg(InteractiveSceneCfg):
     # robots
     robot: ArticulationCfg = MISSING
 
-
-    marker_cfg = FRAME_MARKER_CFG.copy()
-    marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
-    marker_cfg.prim_path = "/Visuals/FrameTransformer"
-    ee_frame: FrameTransformerCfg = FrameTransformerCfg(
-            prim_path="{ENV_REGEX_NS}/Robot/panda_link0",
-            debug_vis=False,
-            visualizer_cfg=marker_cfg,
-            target_frames=[
-                FrameTransformerCfg.FrameCfg(
-                    prim_path="{ENV_REGEX_NS}/Robot/panda_hand",
-                    name="end_effector",
-                    offset=OffsetCfg(
-                        pos=[0.0, 0.0, 0.1034],
-                    ),
-                ),
-            ],
-        )
+    # ee_frame_L: FrameTransformerCfg = FrameTransformerCfg(
+    #         prim_path="{ENV_REGEX_NS}/Robot",
+    #         debug_vis=False,
+    #         target_frames=[
+    #             FrameTransformerCfg.FrameCfg(
+    #                 prim_path="{ENV_REGEX_NS}/Robot/left_palm_link",
+    #                 name="end_effector",
+    #                 offset=OffsetCfg(
+    #                     pos=[0.0, 0.0, 0.1034],
+    #                 ),
+    #             ),
+    #         ],
+    #     )
+    # ee_frame_R: FrameTransformerCfg = FrameTransformerCfg(
+    #         prim_path="{ENV_REGEX_NS}/Robot",
+    #         debug_vis=False,
+    #         target_frames=[
+    #             FrameTransformerCfg.FrameCfg(
+    #                 prim_path="{ENV_REGEX_NS}/Robot/right_palm_link",
+    #                 name="end_effector",
+    #                 offset=OffsetCfg(
+    #                     pos=[0.0, 0.0, 0.1034],
+    #                 ),
+    #             ),
+    #         ],
+    #     )
 
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[1.0, 0, 0.8], rot=[1, 0, 0, 0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.35, 0, 0.80], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=(4.1, 3.1, 2.8),
@@ -115,7 +123,9 @@ class MySceneCfg(InteractiveSceneCfg):
         mesh_prim_paths=["/World/ground"],
     )
     
+    contact_forces_arm = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*_palm_link", history_length=3, track_air_time=True)
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
+
     # lights
     sky_light = AssetBaseCfg(
         prim_path="/World/skyLight",
@@ -131,9 +141,9 @@ class MySceneCfg(InteractiveSceneCfg):
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_instanceable.usd", scale=(1.0, 1.0, 1.4),
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_instanceable.usd", scale=(2.5, 2.5, 2.2),
         ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(1.0, 0.0, 0.7)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.35, 0.0, 0.80)),
     )
 
 
@@ -164,11 +174,11 @@ class CommandsCfg:
     # )
     base_velocity = mdp.UniformPoseCommandCfg(
         asset_name="robot",
-        body_name=MISSING,  # will be set by agent env cfg
-        resampling_time_range=(5.0, 5.0),
+        body_name=".*_palm_link",  # will be set by agent env cfg
+        resampling_time_range=(4.0, 4.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.4, 0.6), pos_y=(-0.25, 0.25), pos_z=(0.25, 0.5), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            pos_x=(0.0, 0.0), pos_y=(-0.0, 0.0), pos_z=(0.0, 0.0), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
         ),
     )
 
@@ -306,8 +316,8 @@ class RewardsCfg:
     # )
     
     # -- penalties
-    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
-    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
+    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.0)
+    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.0)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
@@ -337,7 +347,7 @@ class TerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     base_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 100.0},
     )
 
 
