@@ -94,11 +94,12 @@ class MySceneCfg(InteractiveSceneCfg):
 
     # Set Cube as object
     object = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.35, 0, 0.80], rot=[1, 0, 0, 0]),
+        prim_path="/World/envs/env_.*/Object",
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.32, 0, 0.80], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            scale=(4.1, 3.1, 2.8),
+            scale=(3.1,2.8, 4.1),
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.1),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 solver_position_iteration_count=16,
                 solver_velocity_iteration_count=1,
@@ -141,9 +142,9 @@ class MySceneCfg(InteractiveSceneCfg):
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_instanceable.usd", scale=(2.5, 2.5, 2.2),
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_instanceable.usd", scale=(1.2, 1.2, 2.0),
         ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.35, 0.0, 0.80)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.32, 0.0, 0.75)),
     )
 
 
@@ -175,10 +176,11 @@ class CommandsCfg:
     base_velocity = mdp.UniformPoseCommandCfg(
         asset_name="robot",
         body_name=".*_palm_link",  # will be set by agent env cfg
-        resampling_time_range=(4.0, 4.0),
+        resampling_time_range=(24.0, 24.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.0, 0.0), pos_y=(-0.0, 0.0), pos_z=(0.0, 0.0), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            # pos_x=(0.3, 0.3), pos_y=(-0.0, 0.0), pos_z=(0.93, 0.93), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
         ),
     )
 
@@ -295,6 +297,23 @@ class EventCfg:
         params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
     )
 
+    reset_box_position = EventTerm(
+        func=mdp.reset_root_state_uniform,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "pose_range": {"x": (0.0, 0.0), "y": (0.0, 0.0), "yaw": (-0.0, 0.0)},
+            "velocity_range": {
+                "x": (-0.0, 0.0),
+                "y": (-0.0, 0.0),
+                "z": (-0.0, 0.0),
+                "roll": (-0.0, 0.0),
+                "pitch": (-0.0, 0.0),
+                "yaw": (-0.0, 0.0),
+            },
+        },
+    )
+
 
 @configclass
 class RewardsCfg:
@@ -316,8 +335,8 @@ class RewardsCfg:
     # )
     
     # -- penalties
-    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.0)
-    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.0)
+    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
+    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-20.0)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
@@ -338,6 +357,7 @@ class RewardsCfg:
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
+    is_alive = RewTerm(func=mdp.is_alive,weight=10.0)
 
 
 @configclass
@@ -347,7 +367,13 @@ class TerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     base_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 100.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 10.0},
+    )
+    object_dropping = DoneTerm(
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.7, "asset_cfg": SceneEntityCfg("object")}
+    )
+    robot_dropping = DoneTerm(
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("robot")}
     )
 
 
@@ -356,6 +382,7 @@ class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
+    # convert_lift = CurrTerm(func=mdp.modify_reward_weight)
 
 
 ##

@@ -19,7 +19,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers.manager_base import ManagerTermBase
 from isaaclab.managers.manager_term_cfg import RewardTermCfg
 from isaaclab.sensors import ContactSensor, RayCaster
-from isaaclab.utils.math import combine_frame_transforms, quat_error_magnitude, quat_mul, wrap_to_pi
+from isaaclab.utils.math import combine_frame_transforms, quat_error_magnitude, quat_mul, wrap_to_pi, euler_xyz_from_quat
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
