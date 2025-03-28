@@ -24,9 +24,9 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # no terrain curriculum
         self.curriculum.terrain_levels = None
         # New Rewards
-        self.rewards.joint_deviation_arms.weight = -1.0
-        self.rewards.joint_deviation_fingers.weight = -0.5
-        self.rewards.joint_deviation_torso.weight = -1.0
+        self.rewards.joint_deviation_arms.weight = -0.2
+        self.rewards.joint_deviation_fingers.weight = -0.1
+        self.rewards.joint_deviation_torso.weight = -0.2
         # Rewards
         self.rewards.track_ang_vel_z_exp.weight = 1.0
         self.rewards.lin_vel_z_l2.weight = -0.2
@@ -40,7 +40,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         )
         # Commands
         self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.5)
-        self.commands.base_velocity.ranges.lin_vel_y = (-0.7, 0.7)
+        self.commands.base_velocity.ranges.lin_vel_y = (-0.5, 0.5)
         self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
 
 

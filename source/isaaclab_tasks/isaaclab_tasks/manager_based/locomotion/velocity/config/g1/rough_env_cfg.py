@@ -13,7 +13,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import G1_MINIMAL_CFG, G1_FRONT_CFG  # isort: skip
+from isaaclab_assets import G1_MINIMAL_CFG, G1_DEX  # isort: skip
 
 
 @configclass
@@ -73,8 +73,10 @@ class G1Rewards(RewardsCfg):
                     ".*_shoulder_pitch_joint",
                     ".*_shoulder_roll_joint",
                     ".*_shoulder_yaw_joint",
-                    ".*_elbow_pitch_joint",
-                    ".*_elbow_roll_joint",
+                    ".*_elbow_joint",
+                    ".*_wrist_pitch_joint",
+                    ".*_wrist_roll_joint",
+                    ".*_wrist_yaw_joint",
                 ],
             )
         },
@@ -86,13 +88,8 @@ class G1Rewards(RewardsCfg):
             "asset_cfg": SceneEntityCfg(
                 "robot",
                 joint_names=[
-                    ".*_five_joint",
-                    ".*_three_joint",
-                    ".*_six_joint",
-                    ".*_four_joint",
-                    ".*_zero_joint",
-                    ".*_one_joint",
-                    ".*_two_joint",
+                    "R_.*",
+                    "L_.*",
                 ],
             )
         },
@@ -100,7 +97,11 @@ class G1Rewards(RewardsCfg):
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-0.1,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names="torso_joint")},
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
+            "waist_pitch_joint",
+            "waist_roll_joint",
+            "waist_yaw_joint",
+        ])},
     )
 
 
@@ -112,7 +113,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # post init of parent
         super().__post_init__()
         # Scene
-        self.scene.robot = G1_FRONT_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot = G1_DEX.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
 
         # Randomization
