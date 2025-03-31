@@ -276,7 +276,7 @@ class TerminationsCfg:
     )
     # shoulder_roll_limit = DoneTerm(
     #     func=mdp.joint_pos_out_of_manual_limit, 
-    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_elbow_joint"]), "bounds": (0.16, 1.57)}
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_roll_joint"]), "bounds": (0.1, 1.047)}
     # )
 
 
