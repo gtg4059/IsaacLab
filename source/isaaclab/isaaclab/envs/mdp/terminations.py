@@ -104,6 +104,8 @@ def joint_pos_out_of_manual_limit(
     # compute any violations
     out_of_upper_limits = torch.any(asset.data.joint_pos[:, asset_cfg.joint_ids] > bounds[1], dim=1)
     out_of_lower_limits = torch.any(asset.data.joint_pos[:, asset_cfg.joint_ids] < bounds[0], dim=1)
+    # print("0:",asset.data.joint_pos[:, asset_cfg.joint_ids[0]])
+    # print("1:",asset.data.joint_pos[:, asset_cfg.joint_ids[1]])
     return torch.logical_or(out_of_upper_limits, out_of_lower_limits)
 
 

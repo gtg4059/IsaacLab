@@ -246,7 +246,7 @@ class RewardsCfg:
     )
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=-10.0,
+        weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
     )
     # -- optional penalties
@@ -263,6 +263,21 @@ class TerminationsCfg:
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
     )
+    robot_dropping = DoneTerm(
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.6, "asset_cfg": SceneEntityCfg("robot")}
+    )
+    shoulder_pitch_limit = DoneTerm(
+        func=mdp.joint_pos_out_of_manual_limit, 
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_pitch_joint"]), "bounds": (-1.047, 1.047)}
+    )
+    elbow_limit = DoneTerm(
+        func=mdp.joint_pos_out_of_manual_limit, 
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_elbow_joint"]), "bounds": (-1.4, 1.57)}
+    )
+    # shoulder_roll_limit = DoneTerm(
+    #     func=mdp.joint_pos_out_of_manual_limit, 
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_elbow_joint"]), "bounds": (0.16, 1.57)}
+    # )
 
 
 @configclass
