@@ -50,11 +50,6 @@ class G1Rewards(RewardsCfg):
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
         },
     )
-    # undesired_contacts = RewTerm(
-    #     func=mdp.undesired_contacts,
-    #     weight=-1.0,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_hip_roll_link"), "threshold": 1.0},
-    # )
 
     # Penalize ankle joint limits
     dof_pos_limits = RewTerm(
@@ -78,7 +73,7 @@ class G1Rewards(RewardsCfg):
                     #".*_shoulder_pitch_joint",
                     ".*_shoulder_roll_joint",
                     ".*_shoulder_yaw_joint",
-                    # ".*_elbow_joint",
+                    ".*_elbow_joint",
                     ".*_wrist_pitch_joint",
                     ".*_wrist_roll_joint",
                     ".*_wrist_yaw_joint",

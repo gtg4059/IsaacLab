@@ -264,19 +264,23 @@ class TerminationsCfg:
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
     )
     robot_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.6, "asset_cfg": SceneEntityCfg("robot")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("robot")}
     )
     shoulder_pitch_limit = DoneTerm(
         func=mdp.joint_pos_out_of_manual_limit, 
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_pitch_joint"]), "bounds": (-1.047, 1.047)}
     )
-    elbow_limit = DoneTerm(
-        func=mdp.joint_pos_out_of_manual_limit, 
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_elbow_joint"]), "bounds": (-1.4, 1.57)}
-    )
-    # shoulder_roll_limit = DoneTerm(
+    # elbow_limit = DoneTerm(
     #     func=mdp.joint_pos_out_of_manual_limit, 
-    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_roll_joint"]), "bounds": (0.1, 1.047)}
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_elbow_joint"]), "bounds": (-1.047, 1.57)}
+    # )
+    # left_shoulder_roll_limit = DoneTerm(
+    #     func=mdp.joint_pos_out_of_manual_limit, 
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=["left_shoulder_roll_joint"]), "bounds": (0.1, 1.047)}
+    # )
+    # right_shoulder_roll_limit = DoneTerm(
+    #     func=mdp.joint_pos_out_of_manual_limit, 
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=["right_shoulder_roll_joint"]), "bounds": (-1.047, -0.1)}
     # )
 
 
