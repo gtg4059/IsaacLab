@@ -117,7 +117,9 @@ class ActionsCfg:
         clip={".*_shoulder_pitch_joint": (-1.047, 1.047), 
               "left_shoulder_roll_joint": (0.2, 1.047), 
               "right_shoulder_roll_joint": (-1.047, -0.2), 
-              ".*_elbow_joint": (-1.047, 1.57)
+              ".*_elbow_joint": (-1.047, 1.57),
+              "left_hip_roll_joint": (0.0, 0.35), 
+              "right_hip_roll_joint": (-0.35, -0.0), 
             }
     )
 
