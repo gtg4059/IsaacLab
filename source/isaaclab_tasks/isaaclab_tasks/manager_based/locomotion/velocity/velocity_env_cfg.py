@@ -109,7 +109,17 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True)
+    joint_pos = mdp.JointPositionActionCfg(
+        asset_name="robot", 
+        joint_names=[".*"], 
+        scale=0.5, 
+        use_default_offset=True,
+        clip={".*_shoulder_pitch_joint": (-1.047, 1.047), 
+              "left_shoulder_roll_joint": (0.2, 1.047), 
+              "right_shoulder_roll_joint": (-1.047, -0.2), 
+              ".*_elbow_joint": (-1.047, 1.57)
+            }
+    )
 
 
 @configclass
@@ -266,10 +276,10 @@ class TerminationsCfg:
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("robot")}
     )
-    shoulder_pitch_limit = DoneTerm(
-        func=mdp.joint_pos_out_of_manual_limit, 
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_pitch_joint"]), "bounds": (-1.047, 1.047)}
-    )
+    # shoulder_pitch_limit = DoneTerm(
+    #     func=mdp.joint_pos_out_of_manual_limit, 
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_pitch_joint"]), "bounds": (-1.047, 1.047)}
+    # )
     # elbow_limit = DoneTerm(
     #     func=mdp.joint_pos_out_of_manual_limit, 
     #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_elbow_joint"]), "bounds": (-1.047, 1.57)}
