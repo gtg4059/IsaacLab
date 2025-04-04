@@ -76,7 +76,7 @@ class G1Rewards(RewardsCfg):
                 "robot",
                 joint_names=[
                     #".*_shoulder_pitch_joint",
-                    #".*_shoulder_roll_joint",
+                    ".*_shoulder_roll_joint",
                     ".*_shoulder_yaw_joint",
                     #".*_elbow_joint",
                     ".*_wrist_pitch_joint",

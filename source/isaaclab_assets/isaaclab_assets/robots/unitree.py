@@ -421,7 +421,7 @@ G1_DEX = ArticulationCfg(
             ".*_hip_pitch_joint": -0.20,
             ".*_knee_joint": 0.42,
             ".*_ankle_pitch_joint": -0.23,
-            ".*_elbow_joint": 1.57,
+            ".*_elbow_joint": 0.0,
             "left_shoulder_roll_joint": 0.3,
             "left_shoulder_pitch_joint": 0.1,#1.047-0.3,
             "right_shoulder_roll_joint": -0.3,
