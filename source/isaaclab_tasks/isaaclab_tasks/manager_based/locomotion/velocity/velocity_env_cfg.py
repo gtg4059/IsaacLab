@@ -124,7 +124,7 @@ class MySceneCfg(InteractiveSceneCfg):
         mesh_prim_paths=["/World/ground"],
     )
     
-    contact_forces_arm = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*_palm_link", history_length=3, track_air_time=True)
+    contact_forces_arm = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*_hand_base_link", history_length=3, track_air_time=True)
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
 
     # lights
