@@ -43,7 +43,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         )
         # Commands
         self.commands.base_velocity.ranges.x = (0.5, 1.0)
-        self.commands.base_velocity.ranges.y = (-0.0, 0.0)
+        self.commands.base_velocity.ranges.y = (-0.01, 0.01)
         self.commands.base_velocity.resampling_time_range=(8.0, 8.0)
         self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
         self.commands.base_velocity.ranges.heading = (-3.14, 3.14)
@@ -70,7 +70,7 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
     def __post_init__(self) -> None:
         # post init of parent
         super().__post_init__()
-
+    
         # make a smaller scene for play
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
