@@ -178,8 +178,8 @@ class UniformVelocityCommand(CommandTerm):
             env_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
 
             base_pos_w = self.robot.data.root_pos_w.clone()
-            self.vel_command_b[env_ids, 0] = torch.tanh(self.vel_command_w[env_ids, 0]-base_pos_w[env_ids,0])
-            self.vel_command_b[env_ids, 1] = torch.tanh(self.vel_command_w[env_ids, 1]-base_pos_w[env_ids,1])
+            self.vel_command_b[env_ids, 0] = 0.5*torch.tanh(self.vel_command_w[env_ids, 0]-base_pos_w[env_ids,0])
+            self.vel_command_b[env_ids, 1] = 0.5*torch.tanh(self.vel_command_w[env_ids, 1]-base_pos_w[env_ids,1])
             # compute angular velocity (self.robot.data.root_pos_w[:,:2]-self.vel_command_b[:, :2])
             #heading_error = math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
             #self.heading_target[env_ids] = torch.atan2(self.vel_command_b[env_ids, 1]-self.robot.data.root_pos_w[env_ids,1],self.vel_command_b[env_ids, 0]-self.robot.data.root_pos_w[env_ids,0])
@@ -198,7 +198,7 @@ class UniformVelocityCommand(CommandTerm):
             #     heading_error = math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
 
             # heading_error=math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
-            #print("heading_error:",heading_error)
+            ###### print("heading_error:",heading_error)
             # heading_error = math_utils.wrap_to_pi(a - self.robot.data.heading_w[env_ids])
             # heading_error = math_utils.wrap_to_pi(a - self.robot.data.heading_w[env_ids])
             # self.vel_command_b[env_ids, 2] = torch.tanh(math_utils.wrap_to_pi(self.robot.data.heading_w[env_ids]-torch.arctan2(self.vel_command_w[env_ids, 1]-base_pos_w[env_ids,1], self.vel_command_w[env_ids, 0]-base_pos_w[env_ids,0])))
