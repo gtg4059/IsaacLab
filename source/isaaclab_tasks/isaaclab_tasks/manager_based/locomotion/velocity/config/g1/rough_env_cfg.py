@@ -26,7 +26,7 @@ class G1Rewards(RewardsCfg):
         func=mdp.object_ee_distance, 
         params={
             "std": 0.1,
-            "asset_cfg":SceneEntityCfg("robot", body_names=".*_palm_link"),
+            "asset_cfg":SceneEntityCfg("robot", body_names=".*_hand_base_link"),
         }, 
         weight=1.0
     )
@@ -34,7 +34,7 @@ class G1Rewards(RewardsCfg):
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
         weight=1.0,
-        params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_palm_link")}, 
+        params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_hand_base_link")}, 
     )
 
     lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.905}, weight=15.0)
@@ -92,11 +92,13 @@ class G1Rewards(RewardsCfg):
             "asset_cfg": SceneEntityCfg(
                 "robot",
                 joint_names=[
-                    ".*_shoulder_pitch_joint",
-                    ".*_shoulder_roll_joint",
+                    #".*_shoulder_pitch_joint",
+                    #".*_shoulder_roll_joint",
                     ".*_shoulder_yaw_joint",
-                    ".*_elbow_pitch_joint",
-                    ".*_elbow_roll_joint",
+                    #".*_elbow_joint",
+                    ".*_wrist_pitch_joint",
+                    ".*_wrist_roll_joint",
+                    ".*_wrist_yaw_joint",
                 ],
             )
         },
@@ -108,13 +110,8 @@ class G1Rewards(RewardsCfg):
             "asset_cfg": SceneEntityCfg(
                 "robot",
                 joint_names=[
-                    ".*_five_joint",
-                    ".*_three_joint",
-                    ".*_six_joint",
-                    ".*_four_joint",
-                    ".*_zero_joint",
-                    ".*_one_joint",
-                    ".*_two_joint",
+                    "R_.*",
+                    "L_.*",
                 ],
             )
         },
@@ -122,7 +119,11 @@ class G1Rewards(RewardsCfg):
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-0.1,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names="torso_joint")},
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
+            "waist_pitch_joint",
+            "waist_roll_joint",
+            "waist_yaw_joint",
+        ])},
     )
 
     # Penalize deviation from default of the joints that are not essential for Pickup

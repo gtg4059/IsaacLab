@@ -49,7 +49,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
 
-        # self.rewards.reaching_object.params["asset_cfg"].body_names = "left_palm_link"
+        # self.rewards.reaching_object.params["asset_cfg"].body_names = "".*_hand_base_link""
 
         
         # self.commands.base_velocity.ranges.x = (0.0, 1.5)
