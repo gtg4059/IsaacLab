@@ -45,7 +45,8 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.commands.base_velocity.ranges.x = (0.0, 1.0)
         self.commands.base_velocity.ranges.y = (-0.0, 0.0)
         self.commands.base_velocity.resampling_time_range=(8.0, 8.0)
-        self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
+        self.commands.base_velocity.ranges.heading = (0,0)#(-3.14, 3.14)
         self.commands.base_velocity.heading_control_stiffness = 1
 
         # self.commands.base_velocity.ranges.x = (1.5, 1.5)

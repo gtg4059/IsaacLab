@@ -145,13 +145,14 @@ class ActionsCfg:
         joint_names=[".*"], 
         scale=0.5, 
         use_default_offset=True,
-        # clip={".*_shoulder_pitch_joint": (-1.047, 1.047), 
-        #       "left_shoulder_roll_joint": (0.2, 1.047), 
-        #       "right_shoulder_roll_joint": (-1.047, -0.2), 
-        #       ".*_elbow_joint": (-1.047, 1.57),
-        #       "left_hip_roll_joint": (0.0, 0.35), 
-        #       "right_hip_roll_joint": (-0.35, -0.0), 
-        #     }
+        clip={
+              ".*_shoulder_pitch_joint": (-1.0, 0.2), 
+            #   "left_shoulder_roll_joint": (0.1, 0.3), 
+            #   "right_shoulder_roll_joint": (-0.3, -0.1), 
+            #   ".*_elbow_joint": (-1.047, 1.57),
+            #   "left_hip_roll_joint": (0.0, 0.16), 
+            #   "right_hip_roll_joint": (-0.16, -0.0), 
+            }
     )
 
 
