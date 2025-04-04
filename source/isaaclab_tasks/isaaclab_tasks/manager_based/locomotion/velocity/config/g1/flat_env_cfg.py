@@ -25,9 +25,9 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.curriculum.terrain_levels = None
 
         # New Rewards
-        self.rewards.joint_deviation_arms.weight = -1.0
-        self.rewards.joint_deviation_fingers.weight = -0.5
-        self.rewards.joint_deviation_torso.weight = -1.0
+        self.rewards.joint_deviation_arms.weight = -0.2
+        self.rewards.joint_deviation_fingers.weight = -0.1
+        self.rewards.joint_deviation_torso.weight = -0.2
         # Main Rewards
         self.rewards.track_lin_vel_xy_exp.weight = 1.0
         self.rewards.track_ang_vel_z_exp.weight = 1.0
@@ -42,7 +42,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
         # Commands
-        self.commands.base_velocity.ranges.x = (0.0, 1.0)
+        self.commands.base_velocity.ranges.x = (0.5, 1.0)
         self.commands.base_velocity.ranges.y = (-0.0, 0.0)
         self.commands.base_velocity.resampling_time_range=(8.0, 8.0)
         self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
