@@ -13,31 +13,26 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import G1_MINIMAL_CFG, G1_DEX # isort: skip
+from isaaclab_assets import G1_MINIMAL_CFG, G1_DEX  # isort: skip
 
 
 @configclass
 class G1Rewards(RewardsCfg):
     """Reward terms for the MDP."""
-
+    # direction = RewTerm(
+    #     func=mdp.track_ang_pos_z_world_exp,
+    #     weight=1.0,
+    #     params={"std": 0.5},
+    # )
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=2.0,
-        params={"command_name": "base_velocity", "std": 1.0},
+        weight=1.0,
+        params={"command_name": "base_velocity", "std": 0.5},
     )
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "base_velocity", "std": 0.5}
     )
-    # feet_air_time = RewTerm(
-    #     func=mdp.feet_standing,
-    #     weight=0.0,
-    #     params={
-    #         "command_name": "base_velocity",
-    #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
-    #         "threshold": 0.4,
-    #     },
-    # )
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
         weight=0.25,
@@ -78,7 +73,7 @@ class G1Rewards(RewardsCfg):
                     #".*_shoulder_pitch_joint",
                     ".*_shoulder_roll_joint",
                     ".*_shoulder_yaw_joint",
-                    #".*_elbow_joint",
+                    ".*_elbow_joint",
                     ".*_wrist_pitch_joint",
                     ".*_wrist_roll_joint",
                     ".*_wrist_yaw_joint",
@@ -137,10 +132,6 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
                 "yaw": (0.0, 0.0),
             },
         }
-        
-        # New Rewards
-        self.rewards.joint_deviation_arms.weight = -1.0
-        self.rewards.joint_deviation_fingers.weight = -0.5
 
         # Rewards
         self.rewards.lin_vel_z_l2.weight = 0.0
@@ -157,9 +148,9 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         )
 
         # Commands
-        # self.commands.base_velocity.ranges.x = (-5.0, 5.0)
-        # self.commands.base_velocity.ranges.y = (-5.0, 5.0)
-        # self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_y = (-0.0, 0.0)
+        self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
 
         # terminations
         self.terminations.base_contact.params["sensor_cfg"].body_names = "torso_link"
@@ -183,10 +174,10 @@ class G1RoughEnvCfg_PLAY(G1RoughEnvCfg):
             self.scene.terrain.terrain_generator.num_cols = 5
             self.scene.terrain.terrain_generator.curriculum = False
 
-        self.commands.base_velocity.ranges.x = (-5.0, 5.0)
-        self.commands.base_velocity.ranges.y = (-5.0, 5.0)
-        # self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
-        # self.commands.base_velocity.ranges.heading = (0.0, 0.0)
+        self.commands.base_velocity.ranges.lin_vel_x = (1.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
+        self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.heading = (0.0, 0.0)
         # disable randomization for play
         self.observations.policy.enable_corruption = False
         # remove random pushing
