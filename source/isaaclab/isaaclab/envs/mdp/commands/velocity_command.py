@@ -190,7 +190,7 @@ class UniformVelocityCommand(CommandTerm):
             self.heading_target[env_ids] = torch.atan2(self.vel_command_b[env_ids, 1],self.vel_command_b[env_ids, 0])
             #print("self.heading_target[env_ids]:",self.heading_target[env_ids])
             #heading_error=torch.where(L.norm(a,dim=1)<0.05,0,math_utils.wrap_to_pi(a - self.robot.data.heading_w[env_ids]))
-            x = L.norm(self.vel_command_b[env_ids, :2])
+            x = torch.norm(self.vel_command_b[env_ids, :2], dim=1)
             heading_error_run = self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]
             heading_error_stop = -self.robot.data.heading_w[env_ids]+self.heading_target_end[env_ids]
             heading_error = heading_error_stop/(1+torch.exp(12*(x-0.6)))+heading_error_run/(1+torch.exp(12*(x-0.6)))*torch.exp(12*(x-0.6))
@@ -200,7 +200,6 @@ class UniformVelocityCommand(CommandTerm):
             #     #print("heading_error:",heading_error)
             # else:
             #     heading_error = math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
-
             # heading_error=math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
             
             # heading_error = math_utils.wrap_to_pi(a - self.robot.data.heading_w[env_ids])
