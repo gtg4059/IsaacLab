@@ -107,6 +107,7 @@ class UniformVelocityCommand(CommandTerm):
     @property
     def command(self) -> torch.Tensor:
         """The desired base velocity command in the base frame. Shape is (num_envs, 3)."""
+        print(self.vel_command_b)
         return self.vel_command_b
 
     """
