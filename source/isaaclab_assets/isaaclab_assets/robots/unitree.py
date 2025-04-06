@@ -398,6 +398,7 @@ G1_FRONT_CFG.init_state.joint_pos={
             ".*_one_joint":0.0,
             ".*_two_joint":0.0,
         }
+
 G1_DEX = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_DFQ/g1_29dof_rev_1_0_with_inspire_hand_DFQ.usd",
@@ -421,11 +422,18 @@ G1_DEX = ArticulationCfg(
             ".*_hip_pitch_joint": -0.20,
             ".*_knee_joint": 0.42,
             ".*_ankle_pitch_joint": -0.23,
-            ".*_elbow_joint": 0.00,#1.57,
+            ".*_elbow_joint": 1.57,
             "left_shoulder_roll_joint": 0.2,
-            "left_shoulder_pitch_joint": 0.1,#1.047-0.3,
             "right_shoulder_roll_joint": -0.2,
-            "right_shoulder_pitch_joint": 0.1,#1.047+0.3,
+
+            # ".*_hip_pitch_joint": -0.20,
+            # ".*_knee_joint": 0.42,
+            # ".*_ankle_pitch_joint": -0.23,
+            # ".*_elbow_joint": 0.00,#1.57,
+            # "left_shoulder_roll_joint": 0.2,
+            # "left_shoulder_pitch_joint": 0.1,#1.047-0.3,
+            # "right_shoulder_roll_joint": -0.2,
+            # "right_shoulder_pitch_joint": 0.1,#1.047+0.3,
         },
         joint_vel={".*": 0.0},
     ),
