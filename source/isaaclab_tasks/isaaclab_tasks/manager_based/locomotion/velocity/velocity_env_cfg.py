@@ -195,12 +195,12 @@ class ActionsCfg:
         scale=0.5, 
         use_default_offset=True,
         clip={
-              ".*_shoulder_pitch_joint": (-1.0, 0.2), 
-            #   "left_shoulder_roll_joint": (0.1, 0.3), 
-            #   "right_shoulder_roll_joint": (-0.3, -0.1), 
-            #   ".*_elbow_joint": (-1.047, 1.57),
-            #   "left_hip_roll_joint": (0.0, 0.16), 
-            #   "right_hip_roll_joint": (-0.16, -0.0), 
+            ".*_shoulder_pitch_joint": (-0.2, 0.5), 
+               "left_shoulder_roll_joint": (0.0, 0.3), 
+               "right_shoulder_roll_joint": (-0.3, -0.0), 
+               ".*_elbow_joint": (-1.047, 1.57),
+               "left_hip_roll_joint": (0.0, 0.2), 
+               "right_hip_roll_joint": (-0.2, -0.0), 
             }
     )
 
