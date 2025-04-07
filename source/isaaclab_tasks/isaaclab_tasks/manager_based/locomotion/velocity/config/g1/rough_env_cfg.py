@@ -157,6 +157,12 @@ class G1Rewards(RewardsCfg):
         },
     )
 
+    # undesired_contacts = RewTerm(
+    #     func=mdp.undesired_contacts,
+    #     weight=-1.0,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="pelvis"), "threshold": 1.0},
+    # )
+
 
 @configclass
 class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
