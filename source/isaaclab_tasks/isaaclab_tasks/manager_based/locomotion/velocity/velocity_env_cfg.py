@@ -146,7 +146,7 @@ class ActionsCfg:
         scale=0.5, 
         use_default_offset=True,
         clip={
-              ".*_shoulder_pitch_joint": (-1.0, 0.2), 
+              ".*_shoulder_pitch_joint": (-0.2, 0.2), 
                "left_shoulder_roll_joint": (0.0, 0.3), 
                "right_shoulder_roll_joint": (-0.3, -0.0), 
             #   ".*_elbow_joint": (-1.047, 1.57),
