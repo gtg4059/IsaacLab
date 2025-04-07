@@ -150,8 +150,8 @@ class ActionsCfg:
             #   "left_shoulder_roll_joint": (0.1, 0.3), 
             #   "right_shoulder_roll_joint": (-0.3, -0.1), 
             #   ".*_elbow_joint": (-1.047, 1.57),
-            #   "left_hip_roll_joint": (0.0, 0.16), 
-            #   "right_hip_roll_joint": (-0.16, -0.0), 
+               "left_hip_roll_joint": (0.0, 0.2), 
+               "right_hip_roll_joint": (-0.2, -0.0), 
             }
     )
 
