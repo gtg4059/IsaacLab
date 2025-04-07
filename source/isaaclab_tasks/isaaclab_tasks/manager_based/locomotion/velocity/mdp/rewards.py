@@ -212,5 +212,18 @@ def object_goal_distance(
     # rewarded if the object is lifted above the threshold
     object: RigidObject = env.scene[object_cfg.name]
     distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*9.2)
-    print(object.data.root_pos_w[:, 2])
+    # print(object.data.root_pos_w[:, 2])
+    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std)*(1-torch.tanh((torch.abs(roll)+torch.abs(pitch))/std)))
+
+def motion_equality(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Reward the agent for tracking the goal pose using tanh-kernel."""
+    # extract the used quantities (to enable type-hinting)
+    robot = env.scene[asset_cfg.name]
+
+    curr_pos_w1 = robot.data.body_state_w[:, asset_cfg.body_ids[0], :3]
+    curr_pos_w2 = robot.data.body_state_w[:, asset_cfg.body_ids[1], :3]
+    
     return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std)*(1-torch.tanh((torch.abs(roll)+torch.abs(pitch))/std)))

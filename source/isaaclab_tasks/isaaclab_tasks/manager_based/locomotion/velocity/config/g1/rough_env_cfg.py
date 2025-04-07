@@ -20,35 +20,45 @@ from isaaclab_assets import G1_MINIMAL_CFG, G1_FRONT_CFG # isort: skip
 class G1Rewards(RewardsCfg):
     """Reward terms for the MDP."""
 
-    ## pickup reward
+    # ## pickup reward
 
-    reaching_object= RewTerm(
-        func=mdp.object_ee_distance, 
+    # reaching_object= RewTerm(
+    #     func=mdp.object_ee_distance, 
+    #     params={
+    #         "std": 0.1,
+    #         "asset_cfg":SceneEntityCfg("robot", body_names=".*_hand_base_link"),
+    #     }, 
+    #     weight=1.0
+    # )
+
+    # object_contact = RewTerm(
+    #     func=mdp.object_is_contacted, 
+    #     weight=1.0,
+    #     params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_hand_base_link")}, 
+    # )
+
+    # lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.905}, weight=15.0)
+
+    # object_goal_tracking = RewTerm(
+    #     func=mdp.object_goal_distance,
+    #     params={"std": 0.3, "minimal_height": 0.895, "command_name": "base_velocity"},
+    #     weight=0.0,#16.0,
+    # )
+
+    # object_goal_tracking_fine_grained = RewTerm(
+    #     func=mdp.object_goal_distance,
+    #     params={"std": 0.05, "minimal_height": 0.895, "command_name": "base_velocity"},
+    #     weight=0.0,#5.0,
+    # )
+
+    ## same motion
+
+    motion_equality = RewTerm(
+        func=mdp.motion_equality,
+        weight=0.0,
         params={
-            "std": 0.1,
-            "asset_cfg":SceneEntityCfg("robot", body_names=".*_hand_base_link"),
-        }, 
-        weight=1.0
-    )
-
-    object_contact = RewTerm(
-        func=mdp.object_is_contacted, 
-        weight=1.0,
-        params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_hand_base_link")}, 
-    )
-
-    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.905}, weight=15.0)
-
-    object_goal_tracking = RewTerm(
-        func=mdp.object_goal_distance,
-        params={"std": 0.3, "minimal_height": 0.895, "command_name": "base_velocity"},
-        weight=0.0,#16.0,
-    )
-
-    object_goal_tracking_fine_grained = RewTerm(
-        func=mdp.object_goal_distance,
-        params={"std": 0.05, "minimal_height": 0.895, "command_name": "base_velocity"},
-        weight=0.0,#5.0,
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
+        },
     )
 
     ## normal reward
