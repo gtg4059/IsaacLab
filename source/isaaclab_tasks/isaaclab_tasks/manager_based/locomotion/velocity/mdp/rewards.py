@@ -150,6 +150,7 @@ def object_is_lifted(
 ) -> torch.Tensor:
     """Reward the agent for lifting the object above the minimal height."""
     object: RigidObject = env.scene[object_cfg.name]
+    print(object.data.root_pos_w[:, 2])
     return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
 
 def object_is_contacted(
@@ -199,31 +200,28 @@ def object_goal_distance(
     env: ManagerBasedRLEnv,
     std: float,
     minimal_height: float,
-    command_name: str,
-    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
 ) -> torch.Tensor:
     """Reward the agent for tracking the goal pose using tanh-kernel."""
     # extract the used quantities (to enable type-hinting)
-    robot = env.scene[robot_cfg.name]
     object: RigidObject = env.scene[object_cfg.name]
     roll = euler_xyz_from_quat(object.data.root_quat_w)[0]
     pitch = euler_xyz_from_quat(object.data.root_quat_w)[1]
     # rewarded if the object is lifted above the threshold
     object: RigidObject = env.scene[object_cfg.name]
-    distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*9.2)
+    distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*(minimal_height+0.2))
     # print(object.data.root_pos_w[:, 2])
     return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std)*(1-torch.tanh((torch.abs(roll)+torch.abs(pitch))/std)))
 
-def motion_equality(
-    env: ManagerBasedRLEnv,
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-) -> torch.Tensor:
-    """Reward the agent for tracking the goal pose using tanh-kernel."""
-    # extract the used quantities (to enable type-hinting)
-    robot = env.scene[asset_cfg.name]
+# def motion_equality(
+#     env: ManagerBasedRLEnv,
+#     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+# ) -> torch.Tensor:
+#     """Reward the agent for tracking the goal pose using tanh-kernel."""
+#     # extract the used quantities (to enable type-hinting)
+#     robot = env.scene[asset_cfg.name]
 
-    curr_pos_w1 = robot.data.body_state_w[:, asset_cfg.body_ids[0], :3]
-    curr_pos_w2 = robot.data.body_state_w[:, asset_cfg.body_ids[1], :3]
+#     curr_pos_w1 = robot.data.body_state_w[:, asset_cfg.body_ids[0], :3]
+#     curr_pos_w2 = robot.data.body_state_w[:, asset_cfg.body_ids[1], :3]
     
-    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std)*(1-torch.tanh((torch.abs(roll)+torch.abs(pitch))/std)))
+#     return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std)*(1-torch.tanh((torch.abs(roll)+torch.abs(pitch))/std)))

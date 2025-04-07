@@ -95,7 +95,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="/World/envs/env_.*/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.32, 0, 0.80], rot=[1, 0, 0, 0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.24, 0, 0.71], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=(3.1,2.8, 4.1),
@@ -124,7 +124,7 @@ class MySceneCfg(InteractiveSceneCfg):
         mesh_prim_paths=["/World/ground"],
     )
     
-    contact_forces_arm = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*_hand_base_link", history_length=3, track_air_time=True)
+    contact_forces_arm = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*_wrist_yaw_link", history_length=3, track_air_time=True)
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
 
     # lights
@@ -144,7 +144,7 @@ class MySceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_instanceable.usd", scale=(1.2, 1.2, 2.0),
         ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.32, 0.0, 0.75)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.24, 0.0, 0.66)),
     )
 
 
@@ -175,7 +175,7 @@ class CommandsCfg:
     # )
     base_velocity = mdp.UniformPoseCommandCfg(
         asset_name="robot",
-        body_name=".*_hand_base_link",  # will be set by agent env cfg
+        body_name=".*_wrist_yaw_link",  # will be set by agent env cfg
         resampling_time_range=(24.0, 24.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
@@ -195,7 +195,7 @@ class ActionsCfg:
         scale=0.5, 
         use_default_offset=True,
         clip={
-            ".*_shoulder_pitch_joint": (-0.2, 0.5), 
+            ".*_shoulder_pitch_joint": (-0.2, 0.6), 
                "left_shoulder_roll_joint": (0.0, 0.3), 
                "right_shoulder_roll_joint": (-0.3, -0.0), 
                ".*_elbow_joint": (-1.047, 1.57),
