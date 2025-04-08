@@ -150,7 +150,7 @@ def object_is_lifted(
 ) -> torch.Tensor:
     """Reward the agent for lifting the object above the minimal height."""
     object: RigidObject = env.scene[object_cfg.name]
-    # print(object.data.root_pos_w[:, 2])
+    print(object.data.root_pos_w[:, 2])
     return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
 
 def object_is_contacted(
@@ -200,6 +200,7 @@ def object_goal_distance(
     env: ManagerBasedRLEnv,
     std: float,
     minimal_height: float,
+    height: float,
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
 ) -> torch.Tensor:
     """Reward the agent for tracking the goal pose using tanh-kernel."""
@@ -209,9 +210,18 @@ def object_goal_distance(
     pitch = euler_xyz_from_quat(object.data.root_quat_w)[1]
     # rewarded if the object is lifted above the threshold
     object: RigidObject = env.scene[object_cfg.name]
-    distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*(minimal_height+0.2))
+    distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*(height))
     # print(object.data.root_pos_w[:, 2])
     return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std)*(1-torch.tanh((torch.abs(roll)+torch.abs(pitch))/std)))
+
+def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
+    """Penalize non-flat base orientation using L2 squared kernel.
+
+    This is computed by penalizing the xy-components of the projected gravity vector.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject = env.scene[object_cfg.name]
+    return torch.sum(torch.square(asset.data.projected_gravity_b[:, :2]), dim=1)
 
 # def motion_equality(
 #     env: ManagerBasedRLEnv,
