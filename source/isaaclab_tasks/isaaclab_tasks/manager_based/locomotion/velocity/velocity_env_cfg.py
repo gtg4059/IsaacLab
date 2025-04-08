@@ -203,6 +203,8 @@ class ActionsCfg:
                ".*_elbow_joint": (-1.047, 1.57),
                "left_hip_roll_joint": (0.0, 0.2), 
                "right_hip_roll_joint": (-0.2, -0.0), 
+               ".*_wrist_roll_joint": (-0.3,0.3),
+               ".*_wrist_yaw_joint": (-0.3,0.3),
             }
     )
 

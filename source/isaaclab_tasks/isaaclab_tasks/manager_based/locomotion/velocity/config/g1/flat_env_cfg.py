@@ -32,10 +32,10 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.reaching_object.weight = 10.0
         self.rewards.object_contact.weight = 1000000.0
         self.rewards.joint_deviation_torso.weight = -2.0
-        self.rewards.joint_deviation_hip.weight = -2.0
+        # self.rewards.joint_deviation_hip.weight = -2.0
         self.rewards.joint_deviation_arms.weight = 2.0
         self.rewards.joint_deviation_fingers.weight = 0.0
-        self.rewards.joint_deviation_leg.weight = -2.0
+        # self.rewards.joint_deviation_leg.weight = -2.0
         self.scene.contact_forces_arm.filter_prim_paths_expr = ["Object"]
         # Main Rewards
         # self.rewards.track_lin_vel_xy_exp.weight = 1.0
