@@ -34,7 +34,9 @@ class G1Rewards(RewardsCfg):
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
         weight=1.0,
-        params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_wrist_yaw_link")}, 
+        params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_thumb_proximal"
+            )
+        }, 
     )
 
     # lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.83}, weight=15.0)
