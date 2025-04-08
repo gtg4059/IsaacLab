@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor, FrameTransformer
 from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, combine_frame_transforms, euler_xyz_from_quat
-from isaaclab.assets import RigidObject
+from isaaclab.assets import RigidObject, Articulation
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -150,7 +150,7 @@ def object_is_lifted(
 ) -> torch.Tensor:
     """Reward the agent for lifting the object above the minimal height."""
     object: RigidObject = env.scene[object_cfg.name]
-    print(object.data.root_pos_w[:, 2])
+    # print(object.data.root_pos_w[:, 2])
     return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
 
 def object_is_contacted(
@@ -211,7 +211,7 @@ def object_goal_distance(
     # rewarded if the object is lifted above the threshold
     object: RigidObject = env.scene[object_cfg.name]
     distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*(height))
-    # print(object.data.root_pos_w[:, 2])
+    # print(object.data.root_pos_w[:, :3])
     return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std)*(1-torch.tanh((torch.abs(roll)+torch.abs(pitch))/std)))
 
 def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
@@ -220,18 +220,29 @@ def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = Sc
     This is computed by penalizing the xy-components of the projected gravity vector.
     """
     # extract the used quantities (to enable type-hinting)
-    asset: RigidObject = env.scene[object_cfg.name]
-    return torch.sum(torch.square(asset.data.projected_gravity_b[:, :2]), dim=1)
+    object: RigidObject = env.scene[object_cfg.name]
+    return torch.sum(torch.square(object.data.projected_gravity_b[:, :2]), dim=1)*torch.where(object.data.root_pos_w[:, 2] > 0.83, 1.0, 0.0)
 
-# def motion_equality(
-#     env: ManagerBasedRLEnv,
-#     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-# ) -> torch.Tensor:
-#     """Reward the agent for tracking the goal pose using tanh-kernel."""
-#     # extract the used quantities (to enable type-hinting)
-#     robot = env.scene[asset_cfg.name]
+def motion_equality_pros(
+    env: ManagerBasedRLEnv,
+    std: float,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Reward the agent for tracking the goal pose using tanh-kernel."""
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    curr_pos_w1 = asset.data.joint_pos[:, asset_cfg.joint_ids[0]]
+    curr_pos_w2 = asset.data.joint_pos[:, asset_cfg.joint_ids[1]]
+    return 1 - torch.tanh(torch.abs(curr_pos_w1-curr_pos_w2) / std)
 
-#     curr_pos_w1 = robot.data.body_state_w[:, asset_cfg.body_ids[0], :3]
-#     curr_pos_w2 = robot.data.body_state_w[:, asset_cfg.body_ids[1], :3]
-    
-#     return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std)*(1-torch.tanh((torch.abs(roll)+torch.abs(pitch))/std)))
+def motion_equality_cons(
+    env: ManagerBasedRLEnv,
+    std: float,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Reward the agent for tracking the goal pose using tanh-kernel."""
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    curr_pos_w1 = asset.data.joint_pos[:, asset_cfg.joint_ids[0]]
+    curr_pos_w2 = asset.data.joint_pos[:, asset_cfg.joint_ids[1]]
+    return 1 - torch.tanh(torch.abs(curr_pos_w1+curr_pos_w2) / std)

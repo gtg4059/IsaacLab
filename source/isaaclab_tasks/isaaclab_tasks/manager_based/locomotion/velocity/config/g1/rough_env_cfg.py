@@ -37,40 +37,51 @@ class G1Rewards(RewardsCfg):
         params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_wrist_yaw_link")}, 
     )
 
-    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.81}, weight=15.0)
+    # lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.83}, weight=15.0)
 
-    # std: float,
-    # minimal_height: float,
-    # robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-    # object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+    # object_goal_tracking = RewTerm(
+    #     func=mdp.object_goal_distance,
+    #     params={"std": 0.3, "minimal_height": 0.83,"height": 0.9, "object_cfg": SceneEntityCfg("object")},
+    #     weight=16.0,
+    # )
 
-    object_goal_tracking = RewTerm(
-        func=mdp.object_goal_distance,
-        params={"std": 0.3, "minimal_height": 0.81,"height": 0.9, "object_cfg": SceneEntityCfg("object")},
-        weight=16.0,
-    )
-
-    object_goal_tracking_fine_grained = RewTerm(
-        func=mdp.object_goal_distance,
-        params={"std": 0.05, "minimal_height": 0.81,"height": 0.9, "object_cfg": SceneEntityCfg("object")},
-        weight=5.0,
-    )
+    # object_goal_tracking_fine_grained = RewTerm(
+    #     func=mdp.object_goal_distance,
+    #     params={"std": 0.05, "minimal_height": 0.83,"height": 0.9, "object_cfg": SceneEntityCfg("object")},
+    #     weight=5.0,
+    # )
 
     flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=0.2)
 
     ## same motion
+    motion_equality_shoulder = RewTerm(
+        func=mdp.motion_equality_cons,
+        weight=0.5,
+        params={
+            "std": 0.1,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_yaw_joint"),
+        },
+    )
 
-    # motion_equality = RewTerm(
-    #     func=mdp.motion_equality,
-    #     weight=0.0,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
-    #     },
-    # )
+    motion_equality_elbow = RewTerm(
+        func=mdp.motion_equality_pros,
+        weight=0.5,
+        params={
+            "std": 0.1,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_elbow_joint"),
+        },
+    )
 
     ## normal reward
 
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
+
+    track_lin_vel_xy_exp = RewTerm(
+        func=mdp.track_lin_vel_xy_yaw_frame_exp,
+        weight=2.0,
+        params={"command_name": "base_velocity", "std": 1.0},
+    )
+    track_ang_vel_z_exp = RewTerm(
+        func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "base_velocity", "std": 0.5}
+    )
 
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
