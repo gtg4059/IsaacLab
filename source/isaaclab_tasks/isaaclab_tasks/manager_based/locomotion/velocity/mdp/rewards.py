@@ -206,13 +206,13 @@ def object_goal_distance(
     """Reward the agent for tracking the goal pose using tanh-kernel."""
     # extract the used quantities (to enable type-hinting)
     object: RigidObject = env.scene[object_cfg.name]
-    roll = euler_xyz_from_quat(object.data.root_quat_w)[0]
-    pitch = euler_xyz_from_quat(object.data.root_quat_w)[1]
-    # rewarded if the object is lifted above the threshold
-    object: RigidObject = env.scene[object_cfg.name]
-    distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*(height))
-    # print(object.data.root_pos_w[:, :3])
-    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std)*(1-torch.tanh((torch.abs(roll)+torch.abs(pitch))/std)))
+    # distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*(height))
+    distance = torch.norm(object.data.root_pos_w[:,:3]-object.data.default_root_state[:,:3])
+    angle = torch.norm(object.data.root_quat_w[:,:4]-object.data.default_root_state[:,3:7])
+    print("root_pos_w:",object.data.root_pos_w[:,:3])
+    print("default_root_state:",object.data.default_root_state[:,:3])
+    # print("diff:",(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle / std)))
+    return (1 - torch.tanh(distance / std))*(1 - torch.tanh(angle / std))
 
 def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
     """Penalize non-flat base orientation using L2 squared kernel.

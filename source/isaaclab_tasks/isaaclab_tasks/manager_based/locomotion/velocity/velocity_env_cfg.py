@@ -95,7 +95,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="/World/envs/env_.*/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.24, 0, 0.71], rot=[1, 0, 0, 0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.24, 0, 0.80], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=(3.1,2.8, 4.1),
@@ -142,9 +142,9 @@ class MySceneCfg(InteractiveSceneCfg):
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_instanceable.usd", scale=(1.2, 1.2, 0.1),
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_instanceable.usd", scale=(0.6, 0.6, 0.1),
         ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.24, 0.0, 0.66)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.24, 0.0, 0.74)),
     )
 
 
