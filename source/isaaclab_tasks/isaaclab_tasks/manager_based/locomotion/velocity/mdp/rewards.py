@@ -207,10 +207,12 @@ def object_goal_distance(
     # extract the used quantities (to enable type-hinting)
     object: RigidObject = env.scene[object_cfg.name]
     # distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*(height))
-    distance = torch.norm(object.data.root_pos_w[:,:3]-object.data.default_root_state[:,:3])
-    angle = torch.norm(object.data.root_quat_w[:,:4]-object.data.default_root_state[:,3:7])
-    print("root_pos_w:",object.data.root_pos_w[:,:3])
-    print("default_root_state:",object.data.default_root_state[:,:3])
+    distance = torch.norm((object.data.root_pos_w[:,:3]-env.scene.env_origins)-object.data.default_root_state[:,:3], dim=1)
+    angle = torch.norm(object.data.root_quat_w-object.data.default_root_state[:,3:7], dim=1)
+    # print("distance:",(1 - torch.tanh(distance / std)))
+    # print("angle:",(1 - torch.tanh(angle / std)))
+    # print("distance:",distance)
+    # print("angle:",angle)
     # print("diff:",(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle / std)))
     return (1 - torch.tanh(distance / std))*(1 - torch.tanh(angle / std))
 
