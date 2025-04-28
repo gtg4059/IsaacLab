@@ -86,7 +86,7 @@ class G1Rewards(RewardsCfg):
     # )
 
     track_COM_exp = RewTerm(
-        func=mdp.track_COM_exp, weight=2.0, params={"command_name": "object_pose", "std": 0.5}
+        func=mdp.track_COM_exp, weight=2.0, params={"std": 0.5}
     )
 
     feet_air_time = RewTerm(
