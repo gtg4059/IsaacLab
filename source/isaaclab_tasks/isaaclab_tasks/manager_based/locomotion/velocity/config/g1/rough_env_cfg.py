@@ -13,7 +13,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import G1_DEX, G1_FRONT_CFG # isort: skip
+from isaaclab_assets import G1_LWFH # isort: skip
 
 
 @configclass
@@ -22,38 +22,38 @@ class G1Rewards(RewardsCfg):
 
     # ## pickup reward
 
-    reaching_object= RewTerm(
-        func=mdp.object_ee_distance, 
-        params={
-            "std": 0.1,
-            "asset_cfg":SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
-        }, 
-        weight=1.0
-    )
-
-    object_contact = RewTerm(
-        func=mdp.object_is_contacted, 
-        weight=1.0,
-        params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_thumb_proximal"
-            )
-        }, 
-    )
-
-    # lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.83}, weight=15.0)
-
-    object_goal_tracking = RewTerm(
-        func=mdp.object_goal_distance,
-        params={"std": 0.3, "minimal_height": 0.83,"height": 0.9, "object_cfg": SceneEntityCfg("object")},
-        weight=1.0,
-    )
-
-    # object_goal_tracking_fine_grained = RewTerm(
-    #     func=mdp.object_goal_distance,
-    #     params={"std": 0.05, "minimal_height": 0.83,"height": 0.9, "object_cfg": SceneEntityCfg("object")},
-    #     weight=5.0,
+    # reaching_object= RewTerm(
+    #     func=mdp.object_ee_distance, 
+    #     params={
+    #         "std": 0.1,
+    #         "asset_cfg":SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
+    #     }, 
+    #     weight=1.0
     # )
 
-    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=0.2)
+    # object_contact = RewTerm(
+    #     func=mdp.object_is_contacted, 
+    #     weight=1.0,
+    #     params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_wrist_yaw_link"
+    #         )
+    #     }, 
+    # )
+
+    # # lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.83}, weight=15.0)
+
+    # # object_goal_tracking = RewTerm(
+    # #     func=mdp.object_goal_distance,
+    # #     params={"std": 0.3, "minimal_height": 0.83,"height": 0.9, "object_cfg": SceneEntityCfg("object")},
+    # #     weight=1.0,
+    # # )
+
+    # # object_goal_tracking_fine_grained = RewTerm(
+    # #     func=mdp.object_goal_distance,
+    # #     params={"std": 0.05, "minimal_height": 0.83,"height": 0.9, "object_cfg": SceneEntityCfg("object")},
+    # #     weight=5.0,
+    # # )
+
+    # flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=0.2)
 
     ## same motion
     motion_equality_shoulder = RewTerm(
@@ -79,17 +79,17 @@ class G1Rewards(RewardsCfg):
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
         weight=2.0,
-        params={"command_name": "base_velocity", "std": 1.0},
+        params={"command_name": "object_pose", "std": 1.0},
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "base_velocity", "std": 0.5}
+        func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "object_pose", "std": 0.5}
     )
 
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
-        weight=0.0,
+        weight=0.75,
         params={
-            "command_name": "base_velocity",
+            "command_name": "object_pose",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
             "threshold": 0.4,
         },
@@ -126,32 +126,27 @@ class G1Rewards(RewardsCfg):
                     ".*_shoulder_roll_joint",
                     #".*_shoulder_yaw_joint",
                     ".*_elbow_joint",
-                    ".*_wrist_pitch_joint",
-                    #".*_wrist_roll_joint",
-                    #".*_wrist_yaw_joint",
                 ],
             )
         },
     )
-    joint_deviation_fingers = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-0.05,
-        params={
-            "asset_cfg": SceneEntityCfg(
-                "robot",
-                joint_names=[
-                    "R_.*",
-                    "L_.*",
-                ],
-            )
-        },
-    )
+    # joint_deviation_fingers = RewTerm(
+    #     func=mdp.joint_deviation_l1,
+    #     weight=-0.05,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg(
+    #             "robot",
+    #             joint_names=[
+    #                 "R_.*",
+    #                 "L_.*",
+    #             ],
+    #         )
+    #     },
+    # )
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
-            "waist_pitch_joint",
-            "waist_roll_joint",
             "waist_yaw_joint",
         ])},
     )
@@ -189,14 +184,14 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # post init of parent
         super().__post_init__()
         # Scene
-        self.scene.robot = G1_DEX.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot = G1_LWFH.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
 
         # Randomization
         self.events.push_robot = None
         self.events.add_base_mass = None
         self.events.reset_robot_joints.params["position_range"] = (1.0, 1.0)
-        self.events.base_external_force_torque.params["asset_cfg"].body_names = ["torso_link"]
+        self.events.base_external_force_torque.params["asset_cfg"].body_names = ["waist_yaw_link"]
         self.events.reset_base.params = {
             "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
             "velocity_range": {
@@ -229,7 +224,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
 
         # terminations
-        self.terminations.base_contact.params["sensor_cfg"].body_names = "torso_link"
+        self.terminations.base_contact.params["sensor_cfg"].body_names = "waist_yaw_link"
 
 
 @configclass

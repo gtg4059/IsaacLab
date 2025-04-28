@@ -95,7 +95,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="/World/envs/env_.*/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.24, 0, 0.80], rot=[1, 0, 0, 0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.30, 0, 0.80], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=(3.1,2.8, 4.1),
@@ -144,7 +144,7 @@ class MySceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_instanceable.usd", scale=(0.6, 0.6, 0.1),
         ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.24, 0.0, 0.74)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.30, 0.0, 0.74)),
     )
 
 
@@ -157,30 +157,23 @@ class MySceneCfg(InteractiveSceneCfg):
 class CommandsCfg:
     """Command specifications for the MDP."""
 
-    # base_velocity = mdp.UniformVelocityCommandCfg(
+    # base_velocity = mdp.UniformPoseCommandCfg(
     #     asset_name="robot",
+    #     body_name=".*_wrist_yaw_link",  # will be set by agent env cfg
     #     resampling_time_range=(24.0, 24.0),
-    #     rel_standing_envs=0.02,
-    #     rel_heading_envs=1.0,
-    #     heading_command=True,
-    #     heading_control_stiffness=0.5,
     #     debug_vis=True,
-    #     ranges=mdp.UniformVelocityCommandCfg.Ranges(
-    #         #lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
-    #         x=(0.0, 1.0),
-    #         y=(-0.5, 0.5),
-    #         ang_vel_z=(-1.0, 1.0),
-    #         heading=(-math.pi, math.pi)
+    #     ranges=mdp.UniformPoseCommandCfg.Ranges(
+    #         pos_x=(0.0, 0.0), pos_y=(-0.0, 0.0), pos_z=(0.0, 0.0), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+    #         # pos_x=(0.3, 0.3), pos_y=(-0.0, 0.0), pos_z=(0.9, 0.9), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
     #     ),
     # )
-    base_velocity = mdp.UniformPoseCommandCfg(
+    object_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
-        body_name=".*_wrist_yaw_link",  # will be set by agent env cfg
-        resampling_time_range=(24.0, 24.0),
+        body_name=MISSING,  # will be set by agent env cfg
+        resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.0, 0.0), pos_y=(-0.0, 0.0), pos_z=(0.0, 0.0), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
-            # pos_x=(0.3, 0.3), pos_y=(-0.0, 0.0), pos_z=(0.93, 0.93), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            pos_x=(0.3, 0.3), pos_y=(-0.0, 0.0), pos_z=(0.9, 0.9), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
         ),
     )
 
@@ -224,7 +217,6 @@ class ObservationsCfg:
             func=mdp.projected_gravity,
             noise=Unoise(n_min=-0.05, n_max=0.05),
         )# 3
-        velocity_commands = ObsTerm(func=mdp.generated_commands_pos, params={"command_name": "base_velocity"})# 3
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))# 1
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-1.5, n_max=1.5))# 1
         actions = ObsTerm(func=mdp.last_action)
@@ -234,6 +226,10 @@ class ObservationsCfg:
             noise=Unoise(n_min=-0.1, n_max=0.1),
             clip=(-1.0, 1.0),
         )
+
+        #####################################################################################
+        velocity_commands = ObsTerm(func=mdp.generated_commands_pos, params={"command_name": "object_pose"})# 3
+        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
 
         def __post_init__(self):
             self.enable_corruption = True

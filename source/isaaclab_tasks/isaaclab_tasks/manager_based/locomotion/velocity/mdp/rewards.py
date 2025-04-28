@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor, FrameTransformer
-from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, combine_frame_transforms, euler_xyz_from_quat
+from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, subtract_frame_transforms
 from isaaclab.assets import RigidObject, Articulation
 
 if TYPE_CHECKING:
@@ -59,8 +59,8 @@ def feet_air_time_positive_biped(env, command_name: str, threshold: float, senso
     contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
     in_contact = contact_time > 0.0
     in_mode_time = torch.where(in_contact, contact_time, air_time)
-    single_stance = torch.sum(in_contact.int(), dim=1) == 1
-    reward = torch.min(torch.where(single_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
+    double_stance = torch.sum(in_contact.int(), dim=1) == 2
+    reward = torch.min(torch.where(double_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
     reward = torch.clamp(reward, max=threshold)
     # reward for zero command
     reward *= torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) < 0.1
@@ -224,6 +224,22 @@ def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = Sc
     # extract the used quantities (to enable type-hinting)
     object: RigidObject = env.scene[object_cfg.name]
     return torch.sum(torch.square(object.data.projected_gravity_b[:, :2]), dim=1)*torch.where(object.data.root_pos_w[:, 2] > 0.83, 1.0, 0.0)
+
+def object_position_in_robot_root_frame(
+    env: ManagerBasedRLEnv,
+    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+) -> torch.Tensor:
+    """The position of the object in the robot's root frame."""
+    robot: RigidObject = env.scene[robot_cfg.name]
+    object: RigidObject = env.scene[object_cfg.name]
+    object_pos_w = object.data.root_pos_w[:, :3]
+    object_pos_b, _ = subtract_frame_transforms(
+        robot.data.root_state_w[:, :3], robot.data.root_state_w[:, 3:7], object_pos_w
+    )
+    return object_pos_b
+
+##############################################################################
 
 def motion_equality_pros(
     env: ManagerBasedRLEnv,
