@@ -76,13 +76,17 @@ class G1Rewards(RewardsCfg):
 
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
 
-    track_lin_vel_xy_exp = RewTerm(
-        func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=2.0,
-        params={"command_name": "object_pose", "std": 1.0},
-    )
-    track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "object_pose", "std": 0.5}
+    # track_lin_vel_xy_exp = RewTerm(
+    #     func=mdp.track_lin_vel_xy_yaw_frame_exp,
+    #     weight=2.0,
+    #     params={"command_name": "object_pose", "std": 1.0},
+    # )
+    # track_ang_vel_z_exp = RewTerm(
+    #     func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "object_pose", "std": 0.5}
+    # )
+
+    track_COM_exp = RewTerm(
+        func=mdp.track_COM_exp, weight=2.0, params={"command_name": "object_pose", "std": 0.5}
     )
 
     feet_air_time = RewTerm(
@@ -124,8 +128,11 @@ class G1Rewards(RewardsCfg):
                 joint_names=[
                     ".*_shoulder_pitch_joint",
                     ".*_shoulder_roll_joint",
-                    #".*_shoulder_yaw_joint",
+                    ".*_shoulder_yaw_joint",
                     ".*_elbow_joint",
+                    ".*_wrist_roll_joint",
+                    ".*_wrist_pitch_joint",
+                    ".*_wrist_yaw_joint",
                 ],
             )
         },

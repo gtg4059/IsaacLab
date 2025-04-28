@@ -133,8 +133,10 @@ def track_COM_exp(
     # extract the used quantities (to enable type-hinting)
     asset = env.scene[asset_cfg.name]
 
-    total_mass = asset.default_mass.sum(dim=1)
-    com = (asset.data.body_mass * asset.data.body_pos_w).sum(dim=1) / total_mass
+    # total_mass = asset.default_mass.sum(dim=1)
+    # com = (asset.data.body_mass * asset.data.body_pos_w).sum(dim=1) / total_mass
+    print("root_com_pos_w:",asset.data.root_com_pos_w)
+    #print("com:",com)
 
 
     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_w[:, 2])
