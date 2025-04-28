@@ -56,21 +56,21 @@ class G1Rewards(RewardsCfg):
     # flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=0.2)
 
     ## same motion
-    motion_equality_shoulder = RewTerm(
-        func=mdp.motion_equality_cons,
-        weight=2.0,
-        params={
-            "std": 0.1,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_yaw_joint"),
-        },
-    )
+    # motion_equality_shoulder = RewTerm(
+    #     func=mdp.motion_equality_cons,
+    #     weight=2.0,
+    #     params={
+    #         "std": 0.1,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_yaw_joint"),
+    #     },
+    # )
 
-    motion_equality_elbow = RewTerm(
-        func=mdp.motion_equality_pros,
-        weight=2.0,
-        params={
-            "std": 0.1,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_elbow_joint"),
-        },
-    )
+    # motion_equality_elbow = RewTerm(
+    #     func=mdp.motion_equality_pros,
+    #     weight=2.0,
+    #     params={
+    #         "std": 0.1,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_elbow_joint"),
+    #     },
+    # )
 
     ## normal reward
 
@@ -159,20 +159,20 @@ class G1Rewards(RewardsCfg):
     )
 
     # Penalize deviation from default of the joints that are not essential for Pickup
-    joint_deviation_leg = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-0.1,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
-                    ".*_hip_roll_joint",
-                    ".*_hip_pitch_joint",
-                    ".*_hip_yaw_joint",
-                    ".*_knee_joint",
-                    ".*_ankle_roll_joint",
-                    ".*_ankle_pitch_joint",
-                ]
-            )
-        },
-    )
+    # joint_deviation_leg = RewTerm(
+    #     func=mdp.joint_deviation_l1,
+    #     weight=-0.1,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
+    #                 ".*_hip_roll_joint",
+    #                 ".*_hip_pitch_joint",
+    #                 ".*_hip_yaw_joint",
+    #                 ".*_knee_joint",
+    #                 ".*_ankle_roll_joint",
+    #                 ".*_ankle_pitch_joint",
+    #             ]
+    #         )
+    #     },
+    # )
 
     
 
@@ -231,7 +231,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
 
         # terminations
-        self.terminations.base_contact.params["sensor_cfg"].body_names = "waist_yaw_link"
+        # self.terminations.base_contact.params["sensor_cfg"].body_names = "waist_yaw_link"
 
 
 @configclass
