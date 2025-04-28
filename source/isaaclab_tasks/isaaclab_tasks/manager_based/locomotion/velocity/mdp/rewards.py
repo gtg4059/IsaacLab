@@ -133,16 +133,11 @@ def track_COM_exp(
     # extract the used quantities (to enable type-hinting)
     asset = env.scene[asset_cfg.name]
 
-    # total_mass = asset.default_mass.sum(dim=1)
-    # com = (asset.data.body_mass * asset.data.body_pos_w).sum(dim=1) / total_mass
+    COM_error = torch.sum(
+        torch.square(asset.data.root_com_pos_w[:, :2]-asset.data.root_pos_w[:, :2]), dim=1
+    )
 
-    # print("COM:",asset.data.root_com_pos_w-asset.data.root_pos_w)
-
-
-
-    ang_vel_error = torch.square(asset.data.root_com_pos_w[:, 0:2]-asset.data.root_pos_w[:, 0:2])
-
-    return torch.exp(-ang_vel_error / std**2)# torch.where(lin_vel_error<0.1,torch.exp(-ang_vel_error / std**2),0)
+    return torch.exp(-COM_error / std**2)# torch.where(lin_vel_error<0.1,torch.exp(-ang_vel_error / std**2),0)
 
 def track_world_exp(
     env, command_name: str, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
