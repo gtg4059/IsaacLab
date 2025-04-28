@@ -51,6 +51,15 @@ class G1Rewards(RewardsCfg):
         },
     )
 
+    balance_air_time = RewTerm(
+        func=mdp.balance_air_time_reward,
+        weight=1.0,
+        params={
+            "command_name": "base_velocity",
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
+        },
+    )
+
     # Penalize ankle joint limits
     dof_pos_limits = RewTerm(
         func=mdp.joint_pos_limits,
@@ -70,7 +79,7 @@ class G1Rewards(RewardsCfg):
             "asset_cfg": SceneEntityCfg(
                 "robot",
                 joint_names=[
-                    #".*_shoulder_pitch_joint",
+                    ".*_shoulder_pitch_joint",
                     ".*_shoulder_roll_joint",
                     ".*_shoulder_yaw_joint",
                     ".*_elbow_joint",

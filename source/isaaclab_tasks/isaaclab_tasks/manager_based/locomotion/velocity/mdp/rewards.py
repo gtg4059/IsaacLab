@@ -82,6 +82,31 @@ def feet_slide(env, sensor_cfg: SceneEntityCfg, asset_cfg: SceneEntityCfg = Scen
     reward = torch.sum(body_vel.norm(dim=-1) * contacts, dim=1)
     return reward
 
+def balance_air_time_reward(env, command_name: str, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    #Reward for balancing the air time of both feet.
+
+    #This function rewards the agent for keeping the air time of both feet balanced.
+    
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    left_air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids[0]] #if isinstance(sensor_cfg.body_ids, (list, tuple)) and len(sensor_cfg.body_ids) > 0 else torch.zeros_like(contact_sensor.data.current_air_time[:, 0])
+    right_air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids[1]] #if isinstance(sensor_cfg.body_ids, (list, tuple)) and len(sensor_cfg.body_ids) > 1 else torch.zeros_like(contact_sensor.data.current_air_time[:, 0])
+    total_air_time = left_air_time + right_air_time
+    epsilon = 1e-6
+    #
+    air_time_difference = torch.abs(right_air_time - left_air_time)
+    #air_time_ratio = torch.abs(left_air_time / (right_air_time + epsilon) - 1)
+    balance_penalty = torch.clamp(air_time_difference, max=0.3)  # Example: max penalty if difference is large
+
+    # Adjust penalty based on speed
+    base_speed = torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1)
+    speed_factor = torch.clamp(1.0 / (base_speed + epsilon), max=0.5)  # Higher penalty at lower speeds
+    adjusted_penalty = balance_penalty * speed_factor
+    low_air_time_penalty = torch.clamp(0.1 - total_air_time, min=0.0) * 10.0  # 0.1초 이하이면 패널티 부여
+
+    return adjusted_penalty +low_air_time_penalty
+
+###############################################################################################################
+
 
 def track_lin_vel_xy_yaw_frame_exp(
     env, std: float, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
