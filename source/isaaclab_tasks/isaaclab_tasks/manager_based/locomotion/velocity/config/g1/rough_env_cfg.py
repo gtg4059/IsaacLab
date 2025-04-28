@@ -126,7 +126,6 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         
         # New Rewards
         self.rewards.joint_deviation_arms.weight = -1.0
-        self.rewards.joint_deviation_fingers.weight = -0.5
 
         # Rewards
         self.rewards.lin_vel_z_l2.weight = 0.0
