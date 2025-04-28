@@ -213,21 +213,19 @@ def object_goal_distance(
     env: ManagerBasedRLEnv,
     std: float,
     minimal_height: float,
-    height: float,
+    command_name: str,
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
 ) -> torch.Tensor:
     """Reward the agent for tracking the goal pose using tanh-kernel."""
     # extract the used quantities (to enable type-hinting)
     object: RigidObject = env.scene[object_cfg.name]
     # distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*(height))
-    distance = torch.norm((object.data.root_pos_w[:,:3]-env.scene.env_origins)-object.data.default_root_state[:,:3], dim=1)
-    angle = torch.norm(object.data.root_quat_w-object.data.default_root_state[:,3:7], dim=1)
-    # print("distance:",(1 - torch.tanh(distance / std)))
-    # print("angle:",(1 - torch.tanh(angle / std)))
-    # print("distance:",distance)
-    # print("angle:",angle)
-    # print("diff:",(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle / std)))
-    return (1 - torch.tanh(distance / std))*(1 - torch.tanh(angle / std))
+    distance = torch.norm((object.data.root_pos_w[:,:3]-env.scene.env_origins)-env.command_manager.get_command(command_name)[:,:3], dim=1)
+    angle = torch.norm(object.data.root_quat_w-env.command_manager.get_command(command_name)[:,3:7], dim=1)
+    # print("object.data.root_pos_w[:,:3]:",object.data.root_pos_w[:,:3])
+    # print("object.data.default_root_state[:,:3]:",object.data.default_root_state[:,:3])
+    # print("env.scene.env_origins:",env.scene.env_origins)
+    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle / std))
 
 def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
     """Penalize non-flat base orientation using L2 squared kernel.

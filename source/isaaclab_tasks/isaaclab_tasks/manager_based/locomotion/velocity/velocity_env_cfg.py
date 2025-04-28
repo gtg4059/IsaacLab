@@ -92,24 +92,7 @@ class MySceneCfg(InteractiveSceneCfg):
     #         ],
     #     )
 
-    # Set Cube as object
-    object = RigidObjectCfg(
-        prim_path="/World/envs/env_.*/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.30, 0, 2.80], rot=[1, 0, 0, 0]),
-        spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            scale=(3.1,2.8, 4.1),
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.1),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                solver_position_iteration_count=16,
-                solver_velocity_iteration_count=1,
-                max_angular_velocity=1000.0,
-                max_linear_velocity=1000.0,
-                max_depenetration_velocity=5.0,
-                disable_gravity=False,
-            ),
-        ),
-    )
+    
 
 
     # sensors
@@ -134,7 +117,24 @@ class MySceneCfg(InteractiveSceneCfg):
         ),
     )
 
-    
+    # Set Cube as object
+    object = RigidObjectCfg(
+        prim_path="/World/envs/env_.*/Object",
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.20, 0, 0.76], rot=[1, 0, 0, 0]),
+        spawn=sim_utils.UsdFileCfg(
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+            scale=(3.1,2.8, 4.1),
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.1),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                solver_position_iteration_count=16,
+                solver_velocity_iteration_count=1,
+                max_angular_velocity=1000.0,
+                max_linear_velocity=1000.0,
+                max_depenetration_velocity=5.0,
+                disable_gravity=False,
+            ),
+        ),
+    )
 
     # mount
     table = AssetBaseCfg(
@@ -142,7 +142,7 @@ class MySceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_instanceable.usd", scale=(0.6, 0.6, 0.1),
         ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.30, 0.0, 2.74)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.20, 0.0, 0.70)),
     )
 
 
@@ -171,7 +171,7 @@ class CommandsCfg:
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.3, 0.3), pos_y=(-0.0, 0.0), pos_z=(2.9, 2.9), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            pos_x=(0.22, 0.22), pos_y=(-0.0, 0.0), pos_z=(0.9, 0.9), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
         ),
     )
 
@@ -187,8 +187,8 @@ class ActionsCfg:
         use_default_offset=True,
         clip={
                ".*_shoulder_pitch_joint": (-0.2, 0.6), 
-               "left_shoulder_yaw_joint": (-0.2, 0.0), 
-               "right_shoulder_yaw_joint": (0.0, 0.2), 
+            #    "left_shoulder_yaw_joint": (-0.2, 0.0), 
+            #    "right_shoulder_yaw_joint": (0.0, 0.2), 
                "left_shoulder_roll_joint": (0.0, 0.3), 
                "right_shoulder_roll_joint": (-0.3, -0.0), 
                ".*_elbow_joint": (-1.047, 1.57),
@@ -346,10 +346,16 @@ class RewardsCfg:
     
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
-    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-2.0)
+    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
+    # base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-2.0, params={
+    #         "target_height": 0.7, 
+    #         # "sensor_cfg": SceneEntityCfg("height_scanner")
+    #     }
+    # )
+
     # feet_air_time = RewTerm(
     #     func=mdp.feet_air_time,
     #     weight=0.0,
@@ -375,17 +381,17 @@ class TerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    # base_contact = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 10.0},
-    # )
-    # base_contact2 = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="pelvis"), "threshold": 1.0},
-    # )
-    # object_dropping = DoneTerm(
-    #     func=mdp.root_height_below_minimum, params={"minimum_height": 0.7, "asset_cfg": SceneEntityCfg("object")}
-    # )
+    base_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="waist_yaw_link"), "threshold": 10.0},
+    )
+    base_contact2 = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="pelvis"), "threshold": 1.0},
+    )
+    object_dropping = DoneTerm(
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.7, "asset_cfg": SceneEntityCfg("object")}
+    )
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("robot")}
     )

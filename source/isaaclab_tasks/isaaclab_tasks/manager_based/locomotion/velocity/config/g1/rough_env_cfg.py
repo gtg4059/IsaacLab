@@ -22,36 +22,36 @@ class G1Rewards(RewardsCfg):
 
     # ## pickup reward
 
-    # reaching_object= RewTerm(
-    #     func=mdp.object_ee_distance, 
-    #     params={
-    #         "std": 0.1,
-    #         "asset_cfg":SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
-    #     }, 
-    #     weight=1.0
-    # )
+    reaching_object= RewTerm(
+        func=mdp.object_ee_distance, 
+        params={
+            "std": 0.1,
+            "asset_cfg":SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
+        }, 
+        weight=1.0
+    )
 
-    # object_contact = RewTerm(
-    #     func=mdp.object_is_contacted, 
-    #     weight=1.0,
-    #     params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_wrist_yaw_link"
-    #         )
-    #     }, 
-    # )
+    object_contact = RewTerm(
+        func=mdp.object_is_contacted, 
+        weight=1.0,
+        params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_wrist_yaw_link"
+            )
+        }, 
+    )
 
-    # # lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.83}, weight=15.0)
+    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.85}, weight=1.0)
 
-    # # object_goal_tracking = RewTerm(
-    # #     func=mdp.object_goal_distance,
-    # #     params={"std": 0.3, "minimal_height": 0.83,"height": 0.9, "object_cfg": SceneEntityCfg("object")},
-    # #     weight=1.0,
-    # # )
+    object_goal_tracking = RewTerm(
+        func=mdp.object_goal_distance,
+        params={"std": 0.3, "minimal_height": 0.85,"command_name": "object_pose", "object_cfg": SceneEntityCfg("object")},
+        weight=1.0,
+    )
 
-    # # object_goal_tracking_fine_grained = RewTerm(
-    # #     func=mdp.object_goal_distance,
-    # #     params={"std": 0.05, "minimal_height": 0.83,"height": 0.9, "object_cfg": SceneEntityCfg("object")},
-    # #     weight=5.0,
-    # # )
+    object_goal_tracking_fine_grained = RewTerm(
+        func=mdp.object_goal_distance,
+        params={"std": 0.05, "minimal_height": 0.85,"command_name": "object_pose", "object_cfg": SceneEntityCfg("object")},
+        weight=5.0,
+    )
 
     # flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=0.2)
 
@@ -86,7 +86,7 @@ class G1Rewards(RewardsCfg):
     # )
 
     track_COM_exp = RewTerm(
-        func=mdp.track_COM_exp, weight=2.0, params={"std": 0.5}
+        func=mdp.track_COM_exp, weight=1.0, params={"std": 0.5}
     )
 
     feet_air_time = RewTerm(
@@ -128,7 +128,7 @@ class G1Rewards(RewardsCfg):
                 joint_names=[
                     ".*_shoulder_pitch_joint",
                     ".*_shoulder_roll_joint",
-                    ".*_shoulder_yaw_joint",
+                    # ".*_shoulder_yaw_joint",
                     ".*_elbow_joint",
                     ".*_wrist_roll_joint",
                     ".*_wrist_pitch_joint",

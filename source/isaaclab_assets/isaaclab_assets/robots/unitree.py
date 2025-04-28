@@ -519,7 +519,7 @@ G1_DEX = ArticulationCfg(
 
 G1_LWFH = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/g1_29dof_lock_waist_rev_1_0/g1_29dof_lock_waist_rev_1_0.usd",
+        usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/g1_29dof_lock_waist_rev_1_hand/g1_29dof_lock_waist_rev_1_hand.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
