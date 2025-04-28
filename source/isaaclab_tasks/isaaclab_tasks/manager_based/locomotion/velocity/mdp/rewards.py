@@ -222,10 +222,13 @@ def object_goal_distance(
     # distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*(height))
     distance = torch.norm((object.data.root_pos_w[:,:3]-env.scene.env_origins)-env.command_manager.get_command(command_name)[:,:3], dim=1)
     angle = torch.norm(object.data.root_quat_w-env.command_manager.get_command(command_name)[:,3:7], dim=1)
+    # print("distance:",distance)
+    # print("object.data.root_quat_w:",object.data.root_quat_w)
+    # print(env.command_manager.get_command(command_name)[:,3:7])
     # print("object.data.root_pos_w[:,:3]:",object.data.root_pos_w[:,:3])
     # print("object.data.default_root_state[:,:3]:",object.data.default_root_state[:,:3])
     # print("env.scene.env_origins:",env.scene.env_origins)
-    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle / std))
+    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle/(std*std)))
 
 def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
     """Penalize non-flat base orientation using L2 squared kernel.
