@@ -13,7 +13,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import G1_MINIMAL_CFG, G1_DEX # isort: skip
+from isaaclab_assets import G1_MINIMAL_CFG, G1_LWFH # isort: skip
 
 
 @configclass
@@ -107,7 +107,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # post init of parent
         super().__post_init__()
         # Scene
-        self.scene.robot = G1_DEX.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot = G1_LWFH.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/waist_yaw_link/visuals/torso_link_rev_1_0"
 
         # Randomization
