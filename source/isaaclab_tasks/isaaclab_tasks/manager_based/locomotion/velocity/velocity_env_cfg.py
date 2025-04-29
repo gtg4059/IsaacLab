@@ -186,7 +186,6 @@ class ActionsCfg:
         scale=0.5, 
         use_default_offset=True,
         clip={
-               ".*_shoulder_pitch_joint": (0.35, 0.35), 
                # inner arm to grip object
                "left_shoulder_yaw_joint": (-0.2, 0.0), 
                "right_shoulder_yaw_joint": (0.0, 0.2), 
@@ -194,8 +193,9 @@ class ActionsCfg:
                "left_shoulder_roll_joint": (0.2, 0.2), 
                "right_shoulder_roll_joint": (-0.2, -0.2), 
                 # limit after contact
+                ".*_shoulder_pitch_joint": (0.0, 0.35), 
                ".*_elbow_joint": (-0.4, 0.01),
-               ".*_wrist_pitch_joint": (-0.01, 0.4),
+               ".*_wrist_pitch_joint": (-0.01, 0.75),
                # leg limit
                "left_hip_roll_joint": (0.0, 0.2), 
                "right_hip_roll_joint": (-0.2, -0.0), 
@@ -373,6 +373,11 @@ class RewardsCfg:
         func=mdp.undesired_contacts,
         weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
+    )
+    base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-2.0, params={
+            "target_height": 0.7, 
+            # "sensor_cfg": SceneEntityCfg("height_scanner")
+        }
     )
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
