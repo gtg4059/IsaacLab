@@ -14,7 +14,7 @@ from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import RewardTermCfg as RewTerm
-from isaaclab.managers import SceneEntityCfg
+from isaaclab.managers import SceneEntityCfg, ActionTermCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
@@ -186,15 +186,19 @@ class ActionsCfg:
         scale=0.5, 
         use_default_offset=True,
         clip={
-               ".*_shoulder_pitch_joint": (-0.2, 0.6), 
-            #    "left_shoulder_yaw_joint": (-0.2, 0.0), 
-            #    "right_shoulder_yaw_joint": (0.0, 0.2), 
-               "left_shoulder_roll_joint": (0.0, 0.3), 
-               "right_shoulder_roll_joint": (-0.3, -0.0), 
-               ".*_elbow_joint": (-1.047, 1.57),
+               ".*_shoulder_pitch_joint": (0.35, 0.35), 
+               # inner arm to grip object
+               "left_shoulder_yaw_joint": (-0.2, 0.0), 
+               "right_shoulder_yaw_joint": (0.0, 0.2), 
+               # make wing
+               "left_shoulder_roll_joint": (0.2, 0.2), 
+               "right_shoulder_roll_joint": (-0.2, -0.2), 
+                # limit after contact
+               ".*_elbow_joint": (-0.4, 0.01),
+               ".*_wrist_pitch_joint": (-0.01, 0.4),
+               # leg limit
                "left_hip_roll_joint": (0.0, 0.2), 
                "right_hip_roll_joint": (-0.2, -0.0), 
-               ".*_wrist_yaw_joint": (-0.3,0.3),
             }
     )
 
@@ -402,7 +406,6 @@ class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
-    # convert_lift = CurrTerm(func=mdp.modify_reward_weight)
 
 
 ##

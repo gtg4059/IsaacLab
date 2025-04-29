@@ -540,7 +540,7 @@ G1_LWFH = ArticulationCfg(
             ".*_hip_pitch_joint": -0.20,
             ".*_knee_joint": 0.42,
             ".*_ankle_pitch_joint": -0.23,
-            ".*_elbow_joint": -0.35,#-0.51,
+            ".*_elbow_joint": -0.35,#-0.51,  -30, wrist_pitch_yaw 30
             "left_shoulder_roll_joint": 0.2,
             "right_shoulder_roll_joint": -0.2,
             ".*_shoulder_pitch_joint": 0.35,
