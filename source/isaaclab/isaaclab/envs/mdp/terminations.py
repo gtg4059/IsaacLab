@@ -58,6 +58,17 @@ def bad_orientation(
     asset: RigidObject = env.scene[asset_cfg.name]
     return torch.acos(-asset.data.projected_gravity_b[:, 2]).abs() > limit_angle
 
+def bad_position(
+    env: ManagerBasedRLEnv, limit_dist: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Terminate when the asset's distance is too far from the desired orientation limits.
+
+    This is computed by checking the angle between the projected gravity vector and the z-axis.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    return torch.sum(torch.square(asset.data.root_pos_w[:, :2]-env.scene.env_origins[:, :2]),dim=1) > limit_dist
+
 
 def root_height_below_minimum(
     env: ManagerBasedRLEnv, minimum_height: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
@@ -171,8 +182,6 @@ def feet_standing(env: ManagerBasedRLEnv, threshold: float, sensor_cfg: SceneEnt
     reward = torch.clamp(reward, max=threshold)
     # no reward for zero command
     #reward *= torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) > 0.1
-    # print("reward:",reward)
-    # print(env.episode_length_buf)
     # check if any contact force exceeds the threshold
     return reward
 

@@ -120,7 +120,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="/World/envs/env_.*/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.20, 0, 0.76], rot=[1, 0, 0, 0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.24, 0, 0.83], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=(3.1,2.8, 4.1),
@@ -140,9 +140,9 @@ class MySceneCfg(InteractiveSceneCfg):
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_instanceable.usd", scale=(0.6, 0.6, 0.1),
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_instanceable.usd", scale=(0.8, 0.8, 2.0),
         ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.20, 0.0, 0.70)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.24, 0.0, 0.72)),
     )
 
 
@@ -171,7 +171,7 @@ class CommandsCfg:
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.22, 0.22), pos_y=(-0.0, 0.0), pos_z=(0.88, 0.88), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            pos_x=(0.24, 0.24), pos_y=(-0.0, 0.0), pos_z=(0.88, 0.88), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
         ),
     )
 
@@ -187,18 +187,18 @@ class ActionsCfg:
         use_default_offset=True,
         clip={
                # inner arm to grip object
-               "left_shoulder_yaw_joint": (-0.2, 0.0), 
-               "right_shoulder_yaw_joint": (0.0, 0.2), 
+               "left_shoulder_yaw_joint": (-0.3, 0.3), 
+               "right_shoulder_yaw_joint": (0.3, 0.3), 
                # make wing
                "left_shoulder_roll_joint": (0.2, 0.2), 
                "right_shoulder_roll_joint": (-0.2, -0.2), 
                 # limit after contact
-                ".*_shoulder_pitch_joint": (0.0, 0.35), 
-               ".*_elbow_joint": (-0.4, 0.01),
-               ".*_wrist_pitch_joint": (-0.01, 0.75),
+                ".*_shoulder_pitch_joint": (-1.08, 1.08),
+            #    ".*_elbow_joint": (-1.08, 1.08),
+            #    ".*_wrist_pitch_joint": (-1.08, 1.08),
                # leg limit
-               "left_hip_roll_joint": (0.0, 0.2), 
-               "right_hip_roll_joint": (-0.2, -0.0), 
+               "left_hip_roll_joint": (-0.3, 0.3), 
+               "right_hip_roll_joint": (-0.3, 0.3), 
             }
     )
 
@@ -229,8 +229,11 @@ class ObservationsCfg:
         )
 
         #####################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands_pos, params={"command_name": "object_pose"})# 3
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
+        # iscontact = ObsTerm(func=mdp.object_is_contacted, 
+        #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_wrist_yaw_link")}
+        # )
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -316,7 +319,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "pose_range": {"x": (0.0, 0.0), "y": (0.0, 0.0), "yaw": (-0.0, 0.0)},
+            "pose_range": {"x": (-0.02, 0.02), "y": (-0.02, 0.02), "yaw": (-0.2, 0.2)},
             "velocity_range": {
                 "x": (-0.0, 0.0),
                 "y": (-0.0, 0.0),
@@ -349,6 +352,7 @@ class RewardsCfg:
     # )
     
     # -- penalties
+    base_position_l2 = RewTerm(func=mdp.base_position_l2, weight=-10.0)
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
@@ -380,7 +384,7 @@ class RewardsCfg:
         }
     )
     # -- optional penalties
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-1.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
     # is_alive = RewTerm(func=mdp.is_alive,weight=10.0)
 
@@ -396,13 +400,16 @@ class TerminationsCfg:
     )
     base_contact2 = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="pelvis"), "threshold": 1.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="pelvis"), "threshold": 10.0},
     )
     object_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.7, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("robot")}
+    )
+    bad_position = DoneTerm(
+        func=mdp.bad_position, params={"limit_dist": 0.2, "asset_cfg": SceneEntityCfg("robot")}
     )
 
 

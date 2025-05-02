@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor, FrameTransformer
-from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, subtract_frame_transforms
+from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, subtract_frame_transforms, euler_xyz_from_quat, quat_mul, quat_error_magnitude
 from isaaclab.assets import RigidObject, Articulation
 
 if TYPE_CHECKING:
@@ -90,16 +90,10 @@ def track_lin_vel_xy_yaw_frame_exp(
     # extract the used quantities (to enable type-hinting)
     asset = env.scene[asset_cfg.name]
     # vel_yaw = quat_rotate_inverse(yaw_quat(asset.data.root_quat_w), asset.data.root_pos_w[:, :3])
-    # print("vel_yaw:",vel_yaw)
     vel_yaw = quat_rotate_inverse(yaw_quat(asset.data.root_quat_w), asset.data.root_lin_vel_w[:, :3])
     lin_vel_error = torch.sum(
         torch.square(env.command_manager.get_command(command_name)[:, :2] - vel_yaw[:, :2]), dim=1
     )
-    # print("torch.exp(-lin_vel_error / std**2):",torch.exp(-lin_vel_error / std**2))
-    # print("lin_vel_error:",torch.exp(-lin_vel_error / std**2))
-    # print("command:",env.command_manager.get_command(command_name)[:, :2])
-    # print("lin_vel_error2:",asset.data.root_pos_w[:, :2])
-    # print("torch.exp(-lin_vel_error / std**2):",env.command_manager.get_command(command_name)[:, :2],asset.data.root_pos_w[:, :2],torch.exp(-lin_vel_error / std**2))
     return torch.exp(-lin_vel_error / std**2)
 
 def track_ang_vel_z_world_exp(
@@ -109,18 +103,12 @@ def track_ang_vel_z_world_exp(
     # extract the used quantities (to enable type-hinting)
     asset = env.scene[asset_cfg.name]
     # euler_w = euler_xyz_from_quat(asset.data.root_quat_w)[2]
-    # # print("euler_w:",euler_w)
     # ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2]-euler_w)
 
     # lin_vel_error = torch.sum(
     #     torch.square(env.command_manager.get_command(command_name)[:, :2] - asset.data.root_pos_w[:, :2]), dim=1
     # )
     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_w[:, 2])
-    # print("command_name:",env.command_manager.get_command(command_name)[:, 2])
-    # print("asset.data.root_ang_vel_w[:, 2]:",asset.data.root_ang_vel_w[:, 2])
-    # print("ang_vel_error:",ang_vel_error)
-    # print("torch.exp(-ang_vel_error / std**2):",torch.exp(-ang_vel_error / std**2))
-    # print("torch.exp(-ang_vel_error / std**2):",torch.exp(-ang_vel_error / std**2))
     return torch.exp(-ang_vel_error / std**2)# torch.where(lin_vel_error<0.1,torch.exp(-ang_vel_error / std**2),0)
 
 def track_COM_exp(
@@ -147,8 +135,6 @@ def track_world_exp(
         torch.square(env.command_manager.get_command(command_name)[:, :2] - vel_yaw[:, :2]), dim=1
     )
     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_w[:, 2])
-    # print("command_manager:",env.command_manager.get_command(command_name)[:, :3])
-    #print("command_manager:",env.command_manager.get_command(command_name)[:, 2])
     return 100*torch.exp(-ang_vel_error / std**2)/(1+2*torch.exp(lin_vel_error))
 
 
@@ -160,11 +146,11 @@ def object_is_lifted(
 ) -> torch.Tensor:
     """Reward the agent for lifting the object above the minimal height."""
     object: RigidObject = env.scene[object_cfg.name]
-    # print(object.data.root_pos_w[:, 2])
     return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
 
 def object_is_contacted(
-    env: ManagerBasedRLEnv, threshold: float, 
+    env: ManagerBasedRLEnv,
+    threshold: float,
     sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces_arm"),
 ) -> torch.Tensor:
     """Reward the agent for lifting the object above the minimal height."""
@@ -192,18 +178,33 @@ def object_ee_distance(
     asset = env.scene[asset_cfg.name]
     # ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
     # Target object position: (num_envs, 3)
-    cube_pos_w = object.data.root_pos_w
-    # End-effector position: (num_envs, 3)
-    # print("asset_cfg.body_ids:",asset_cfg.body_ids)
-    curr_pos_w1 = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]
-    curr_pos_w2 = asset.data.body_state_w[:, asset_cfg.body_ids[1], :3]
-    # ee_w = ee_frame.data.target_pos_w[..., 0, :]
-    # Distance of the end-effector to the object: (num_envs,)
-    object_ee_distance1 = torch.norm(cube_pos_w - curr_pos_w1, dim=1)
-    object_ee_distance2 = torch.norm(cube_pos_w - curr_pos_w2, dim=1)
 
-    # print("object_ee_distance:",object_ee_distance1,object_ee_distance2)
-    return 0.7 - object_ee_distance1 - object_ee_distance2 #torch.tanh(object_ee_distance1 / std)-torch.tanh(object_ee_distance2 / std)
+    # cube_pos_w = object.data.root_pos_w
+    # # End-effector position: (num_envs, 3)
+    # curr_pos_w1 = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]
+    # curr_pos_w2 = asset.data.body_state_w[:, asset_cfg.body_ids[1], :3]
+    # # ee_w = ee_frame.data.target_pos_w[..., 0, :]
+    # # Distance of the end-effector to the object: (num_envs,)
+    # object_ee_distance1 = torch.norm(cube_pos_w - curr_pos_w1, dim=1)
+    # object_ee_distance2 = torch.norm(cube_pos_w - curr_pos_w2, dim=1)
+
+    des_pos_b = object.data.root_pos_w
+    curr_pos_w1 = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]  # type: ignore
+    curr_pos_w2 = asset.data.body_state_w[:, asset_cfg.body_ids[1], :3]  # type: ignore
+    distance1 = torch.norm(curr_pos_w1 - des_pos_b, dim=1)
+    distance2 = torch.norm(curr_pos_w2 - des_pos_b, dim=1)
+
+    # obtain the desired and current orientations
+    des_quat_b = object.data.root_quat_w
+    curr_quat_w1 = asset.data.body_state_w[:, asset_cfg.body_ids[0], 3:7]  # type: ignore
+    curr_quat_w2 = asset.data.body_state_w[:, asset_cfg.body_ids[1], 3:7]  # type: ignore
+    angle1 = quat_error_magnitude(curr_quat_w1, des_quat_b)
+    angle2 = quat_error_magnitude(curr_quat_w2, des_quat_b)
+
+    result1 = (1 - torch.tanh(angle1/std))+(1 - torch.tanh(torch.abs(distance1-0.15)/std))
+    result2 = (1 - torch.tanh(angle2/std))+(1 - torch.tanh(torch.abs(distance2-0.15)/std))
+
+    return result1*result2 #torch.tanh(object_ee_distance1 / std)-torch.tanh(object_ee_distance2 / std)
 
 
 def object_goal_distance(
@@ -217,15 +218,10 @@ def object_goal_distance(
     # extract the used quantities (to enable type-hinting)
     object: RigidObject = env.scene[object_cfg.name]
     # distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*(height))
-    distance = torch.norm((object.data.root_pos_w[:,:3]-env.scene.env_origins)-env.command_manager.get_command(command_name)[:,:3], dim=1)
-    angle = torch.norm(object.data.root_quat_w-env.command_manager.get_command(command_name)[:,3:7], dim=1)
-    # print("distance:",distance)
-    # print("object.data.root_quat_w:",object.data.root_quat_w)
-    # print(env.command_manager.get_command(command_name)[:,3:7])
-    # print("object.data.root_pos_w[:,:3]:",object.data.root_pos_w[:,:3])
-    # print("object.data.default_root_state[:,:3]:",object.data.default_root_state[:,:3])
-    # print("env.scene.env_origins:",env.scene.env_origins)
-    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle/(std*std)))
+    distance = torch.norm((object.data.root_pos_w-env.scene.env_origins)-env.command_manager.get_command(command_name)[:,:3], dim=1)
+    angle = quat_error_magnitude(object.data.root_quat_w,env.command_manager.get_command(command_name)[:,3:7])
+    # print(object.data.root_pos_w[:, 2])
+    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle/std))
 
 def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
     """Penalize non-flat base orientation using L2 squared kernel.
@@ -248,6 +244,7 @@ def object_position_in_robot_root_frame(
     object_pos_b, _ = subtract_frame_transforms(
         robot.data.root_state_w[:, :3], robot.data.root_state_w[:, 3:7], object_pos_w
     )
+    # print("object:",object.data.root_pos_w[:, 2])
     return object_pos_b
 
 ##############################################################################
