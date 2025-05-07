@@ -25,15 +25,15 @@ class G1Rewards(RewardsCfg):
     reaching_object= RewTerm(
         func=mdp.object_ee_distance, 
         params={
-            "std": 0.3,
+            "std": 0.1,
             "asset_cfg":SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
         }, 
-        weight=1.0
+        weight=2.0
     )
 
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=1.0,
+        weight=5.0,
         params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_wrist_yaw_link"
             )
         }, 
@@ -44,13 +44,13 @@ class G1Rewards(RewardsCfg):
     object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
         params={"std": 0.3, "minimal_height": 0.85,"command_name": "object_pose", "object_cfg": SceneEntityCfg("object")},
-        weight=5.0,
+        weight=10.0,
     )
 
     object_goal_tracking_fine_grained = RewTerm(
         func=mdp.object_goal_distance,
-        params={"std": 0.05, "minimal_height": 0.85,"command_name": "object_pose", "object_cfg": SceneEntityCfg("object")},
-        weight=25.0,
+        params={"std": 0.1, "minimal_height": 0.85,"command_name": "object_pose", "object_cfg": SceneEntityCfg("object")},
+        weight=50.0,
     )
 
     # flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=0.2)
@@ -93,8 +93,8 @@ class G1Rewards(RewardsCfg):
     #     func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "object_pose", "std": 0.5}
     # )
 
-    track_COM_exp = RewTerm(
-        func=mdp.track_COM_exp, weight=1.0, params={"std": 0.5}
+    track_pos_exp = RewTerm(
+        func=mdp.track_pos_exp, weight=1.0, params={"std": 0.2}
     )
 
     feet_air_time = RewTerm(

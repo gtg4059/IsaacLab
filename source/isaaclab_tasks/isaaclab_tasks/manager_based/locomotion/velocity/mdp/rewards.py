@@ -111,7 +111,7 @@ def track_ang_vel_z_world_exp(
     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_w[:, 2])
     return torch.exp(-ang_vel_error / std**2)# torch.where(lin_vel_error<0.1,torch.exp(-ang_vel_error / std**2),0)
 
-def track_COM_exp(
+def track_pos_exp(
     env, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
     """Reward tracking of angular velocity commands (yaw) in world frame using exponential kernel."""
@@ -119,10 +119,10 @@ def track_COM_exp(
     asset = env.scene[asset_cfg.name]
 
     COM_error = torch.sum(
-        torch.square(asset.data.root_com_pos_w[:, :2]-asset.data.root_pos_w[:, :2]), dim=1
+        torch.square(asset.data.root_pos_w[:, :2]-env.scene.env_origins[:, :2]), dim=1
     )
-
-    return torch.exp(-COM_error / std**2)# torch.where(lin_vel_error<0.1,torch.exp(-ang_vel_error / std**2),0)
+    # print(asset.data.root_pos_w[:, :2])
+    return torch.exp(-COM_error / std)# torch.where(lin_vel_error<0.1,torch.exp(-ang_vel_error / std**2),0)
 
 def track_world_exp(
     env, command_name: str, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
@@ -151,7 +151,7 @@ def object_is_lifted(
 def object_is_contacted(
     env: ManagerBasedRLEnv,
     threshold: float,
-    sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces_arm"),
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces"),
 ) -> torch.Tensor:
     """Reward the agent for lifting the object above the minimal height."""
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
@@ -164,6 +164,7 @@ def object_is_contacted(
     double_stance = torch.sum(in_contact.int(), dim=1) == 2
     reward = torch.min(torch.where(double_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
     reward = torch.clamp(reward, max=threshold)
+    # print("reward:",reward)
     return reward
 
 def object_ee_distance(
@@ -201,9 +202,13 @@ def object_ee_distance(
     angle1 = quat_error_magnitude(curr_quat_w1, des_quat_b)
     angle2 = quat_error_magnitude(curr_quat_w2, des_quat_b)
 
-    result1 = (1 - torch.tanh(angle1/std))+(1 - torch.tanh(torch.abs(distance1-0.15)/std))
-    result2 = (1 - torch.tanh(angle2/std))+(1 - torch.tanh(torch.abs(distance2-0.15)/std))
+    result1 = (1 - torch.tanh(angle1/std))+(1 - torch.tanh(torch.abs(distance1-0.18)/std))
+    result2 = (1 - torch.tanh(angle2/std))+(1 - torch.tanh(torch.abs(distance2-0.18)/std))
 
+    # print("distance1:",distance1)
+    # print("angle1:",angle1)
+    # print("distance2:",distance2)
+    # print("angle2:",angle2)
     return result1*result2 #torch.tanh(object_ee_distance1 / std)-torch.tanh(object_ee_distance2 / std)
 
 
@@ -220,8 +225,8 @@ def object_goal_distance(
     # distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*(height))
     distance = torch.norm((object.data.root_pos_w-env.scene.env_origins)-env.command_manager.get_command(command_name)[:,:3], dim=1)
     angle = quat_error_magnitude(object.data.root_quat_w,env.command_manager.get_command(command_name)[:,3:7])
-    # print(object.data.root_pos_w[:, 2])
-    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle/std))
+    # print("height:",object.data.root_pos_w[:, 2])
+    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle/(std**2)))
 
 def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
     """Penalize non-flat base orientation using L2 squared kernel.
