@@ -124,7 +124,7 @@ class MySceneCfg(InteractiveSceneCfg):
         init_state=RigidObjectCfg.InitialStateCfg(pos=[0.24, 0, 0.83], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            scale=(3.1,2.8, 4.1),
+            scale=(3.10,4.14, 2.84),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.1),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 solver_position_iteration_count=16,
@@ -161,7 +161,7 @@ class CommandsCfg:
 
     # base_velocity = mdp.UniformPoseCommandCfg(
     #     asset_name="robot",
-    #     body_name=".*_wrist_yaw_link",  # will be set by agent env cfg
+    #     body_name=".*_thumb_proximal",  # will be set by agent env cfg
     #     resampling_time_range=(24.0, 24.0),
     #     debug_vis=True,
     #     ranges=mdp.UniformPoseCommandCfg.Ranges(
@@ -194,13 +194,14 @@ class ActionsCfg:
                "left_shoulder_yaw_joint": (-0.3, 0.3), 
                "right_shoulder_yaw_joint": (0.3, 0.3), 
                # make wing
-               "left_shoulder_roll_joint": (0.2, 0.2), 
-               "right_shoulder_roll_joint": (-0.2, -0.2), 
+               "left_shoulder_roll_joint": (0.3, 0.3), 
+               "right_shoulder_roll_joint": (-0.3, -0.3), 
                 # limit after contact
                 # ".*_shoulder_pitch_joint": (-1.08, 1.08),
             #    ".*_elbow_joint": (-1.08, 1.08),
                 # ".*_wrist_pitch_joint": (-0.54, 1.08),
-                ".*_wrist_yaw_joint": (-0.01, 0.01),
+                "left_wrist_roll_joint": (-0.2, -0.2),
+                "right_wrist_roll_joint": (0.2, 0.2),
                # leg limit
                "left_hip_roll_joint": (-0.3, 0.3), 
                "right_hip_roll_joint": (-0.3, 0.3), 
@@ -237,7 +238,7 @@ class ObservationsCfg:
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
         # iscontact = ObsTerm(func=mdp.object_is_contacted, 
-        #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_wrist_yaw_link")}
+        #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_thumb_proximal")}
         # )
 
         def __post_init__(self):
@@ -401,7 +402,7 @@ class TerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     base_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="waist_yaw_link"), "threshold": 10.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 10.0},
     )
     base_contact2 = DoneTerm(
         func=mdp.illegal_contact,

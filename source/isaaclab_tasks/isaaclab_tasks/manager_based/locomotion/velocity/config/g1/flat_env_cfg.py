@@ -25,8 +25,8 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.curriculum.terrain_levels = None
 
         # New Rewards
-        self.rewards.joint_deviation_torso.weight = -2.0
-        # self.rewards.joint_deviation_fingers.weight = -1.0
+        self.rewards.joint_deviation_torso.weight = -0.2
+        self.rewards.joint_deviation_fingers.weight = -2.0
         self.rewards.joint_deviation_hip.weight = -0.2
         self.rewards.joint_deviation_arms.weight = -2.0
         # self.rewards.joint_deviation_arms_contact.weight = -0.02
@@ -53,7 +53,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
-        self.commands.object_pose.body_name = ".*_wrist_yaw_link"
+        self.commands.object_pose.body_name = ".*_thumb_proximal"
 
         # self.rewards.reaching_object.params["asset_cfg"].body_names = "".*_hand_base_link""
 
