@@ -38,6 +38,13 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
+        
+        # another rewards for balance about of time-two-legs contact time
+        # balance_air_time, xx_pos_limit
+        self.rewards.balance_air_time.weight = 0.1
+        self.rewards.balance_air_time.params["command_name"] = "base_velocity"
+        self.rewards.balance_air_time.params["sensor_cfg"] = SceneEntityCfg("contact_forces", body_names = [".*_ankle_roll_link"])
+
         # Commands
         self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
         self.commands.base_velocity.ranges.lin_vel_y = (-0.2, 0.2)

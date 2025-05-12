@@ -44,5 +44,5 @@ class G1FlatPPORunnerCfg(G1RoughPPORunnerCfg):
         
         self.max_iterations = 30000
         self.experiment_name = "g1_flat"
-        self.policy.actor_hidden_dims = [512, 256, 128]
-        self.policy.critic_hidden_dims = [512, 256, 128]
+        self.policy.actor_hidden_dims = [256, 128, 128]
+        self.policy.critic_hidden_dims = [256, 128, 128]

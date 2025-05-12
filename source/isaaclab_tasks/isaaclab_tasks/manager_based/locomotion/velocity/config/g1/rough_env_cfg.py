@@ -13,7 +13,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import G1_MINIMAL_CFG, G1_LWFH  # isort: skip
+from isaaclab_assets import G1_DEX  # isort: skip
 
 
 @configclass
@@ -51,14 +51,6 @@ class G1Rewards(RewardsCfg):
         },
     )
 
-    balance_air_time = RewTerm(
-        func=mdp.balance_air_time_reward,
-        weight=1.0,
-        params={
-            "command_name": "base_velocity",
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
-        },
-    )
 
     # Penalize ankle joint limits
     dof_pos_limits = RewTerm(
@@ -90,25 +82,36 @@ class G1Rewards(RewardsCfg):
             )
         },
     )
-    # joint_deviation_fingers = RewTerm(
-    #     func=mdp.joint_deviation_l1,
-    #     weight=-0.05,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg(
-    #             "robot",
-    #             joint_names=[
-    #                 "R_.*",
-    #                 "L_.*",
-    #             ],
-    #         )
-    #     },
-    # )
+    joint_deviation_fingers = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-0.05,
+        params={
+            "asset_cfg": SceneEntityCfg(
+                "robot",
+                joint_names=[
+                    "R_.*",
+                    "L_.*",
+                ],
+            )
+        },
+    )
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
+            "waist_roll_joint",
+            "waist_pitch_joint",
             "waist_yaw_joint",
         ])},
+    )
+
+    balance_air_time = RewTerm(
+        func=mdp.balance_air_time_reward,
+        weight=1.0,
+        params={
+            "command_name": "base_velocity",
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
+        },
     )
 
 
@@ -120,7 +123,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # post init of parent
         super().__post_init__()
         # Scene
-        self.scene.robot = G1_LWFH.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot = G1_DEX.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/waist_yaw_link/visuals/torso_link_rev_1_0"
 
         # Randomization
