@@ -80,8 +80,6 @@ def feet_slide(env, sensor_cfg: SceneEntityCfg, asset_cfg: SceneEntityCfg = Scen
     asset = env.scene[asset_cfg.name]
 
     body_vel = asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2]
-    # print("contacts:",contacts)
-    # print("body_vel:",body_vel)
     reward = torch.sum(body_vel.norm(dim=-1) * contacts, dim=1)
     return reward
 
@@ -92,7 +90,6 @@ def track_lin_vel_xy_yaw_frame_exp(
     """Reward tracking of linear velocity commands (xy axes) in the gravity aligned robot frame using exponential kernel."""
     # extract the used quantities (to enable type-hinting)
     asset = env.scene[asset_cfg.name]
-    # vel_yaw = quat_rotate_inverse(yaw_quat(asset.data.root_quat_w), asset.data.root_pos_w[:, :3])
     vel_yaw = quat_rotate_inverse(yaw_quat(asset.data.root_quat_w), asset.data.root_lin_vel_w[:, :3])
     lin_vel_error = torch.sum(
         torch.square(env.command_manager.get_command(command_name)[:, :2] - vel_yaw[:, :2]), dim=1
@@ -105,14 +102,8 @@ def track_ang_vel_z_world_exp(
     """Reward tracking of angular velocity commands (yaw) in world frame using exponential kernel."""
     # extract the used quantities (to enable type-hinting)
     asset = env.scene[asset_cfg.name]
-    # euler_w = euler_xyz_from_quat(asset.data.root_quat_w)[2]
-    # ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2]-euler_w)
-
-    # lin_vel_error = torch.sum(
-    #     torch.square(env.command_manager.get_command(command_name)[:, :2] - asset.data.root_pos_w[:, :2]), dim=1
-    # )
     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_w[:, 2])
-    return torch.exp(-ang_vel_error / std**2)# torch.where(lin_vel_error<0.1,torch.exp(-ang_vel_error / std**2),0)
+    return torch.exp(-ang_vel_error / std**2)
 
 def track_pos_exp(
     env, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
@@ -124,8 +115,7 @@ def track_pos_exp(
     COM_error = torch.sum(
         torch.square(asset.data.root_pos_w[:, :2]-env.scene.env_origins[:, :2]), dim=1
     )
-    # print(asset.data.root_pos_w[:, :2])
-    return torch.exp(-COM_error / std)# torch.where(lin_vel_error<0.1,torch.exp(-ang_vel_error / std**2),0)
+    return torch.exp(-COM_error / std)
 
 def track_world_exp(
     env, command_name: str, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
@@ -165,12 +155,9 @@ def object_is_contacted(
     in_contact = contact_time > 0.0
     in_mode_time = torch.where(in_contact, contact_time, air_time)
     double_stance = torch.sum(in_contact.int(), dim=1) >= 8
-    # print(in_contact)
     reward = torch.min(torch.where(double_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
     reward = torch.clamp(reward, max=threshold)
-    # print("reward:",reward*double_stance)
-    # print("torch.sum(in_contact.int(), dim=1):",torch.sum(in_contact.int(), dim=1))
-    return reward#*torch.sum(in_contact.int(), dim=1)
+    return reward
 
 def object_ee_distance(
     env: ManagerBasedRLEnv,
@@ -199,17 +186,7 @@ def object_ee_distance(
     result1 = (1 - torch.tanh((angle1)/std))+(1 - torch.tanh(torch.abs(distance1-0.1)/(std)))
     result2 = (1 - torch.tanh((angle2)/std))+(1 - torch.tanh(torch.abs(distance2-0.1)/(std)))
 
-    # print("distance1:",distance1)
-    # print("angle1:",angle1)
-    # print("distance2:",distance2)
-    # print("angle2:",angle2)
-    # print("box:",euler_xyz_from_quat(des_quat_b))
-    # print("1:",euler_xyz_from_quat(curr_quat_w1))
-    # print("2:",euler_xyz_from_quat(curr_quat_w2))
-    # print("box:",(des_quat_b))
-    # print("1:",(curr_quat_w1))
-    # print("2:",(curr_quat_w2))
-    return result1*result2 #torch.tanh(object_ee_distance1 / std)-torch.tanh(object_ee_distance2 / std)
+    return result1*result2
 
 
 def object_goal_distance(
@@ -222,10 +199,8 @@ def object_goal_distance(
     """Reward the agent for tracking the goal pose using tanh-kernel."""
     # extract the used quantities (to enable type-hinting)
     object: RigidObject = env.scene[object_cfg.name]
-    # distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*(height))
     distance = torch.norm((object.data.root_pos_w-env.scene.env_origins)-env.command_manager.get_command(command_name)[:,:3], dim=1)
     angle = quat_error_magnitude(object.data.root_quat_w,env.command_manager.get_command(command_name)[:,3:7])
-    # print("height:",object.data.root_pos_w[:, 2])
     return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle/std))
 
 def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
@@ -249,7 +224,6 @@ def object_position_in_robot_root_frame(
     object_pos_b, _ = subtract_frame_transforms(
         robot.data.root_state_w[:, :3], robot.data.root_state_w[:, 3:7], object_pos_w
     )
-    # print("object:",object.data.root_state_w[:, :7])
     return object_pos_b
 
 ##############################################################################
@@ -264,8 +238,6 @@ def motion_equality_pros(
     asset: Articulation = env.scene[asset_cfg.name]
     curr_pos_w1 = asset.data.joint_pos[:, asset_cfg.joint_ids[0]]
     curr_pos_w2 = asset.data.joint_pos[:, asset_cfg.joint_ids[1]]
-    # print(asset.data.joint_names)
-    # print("joint:",asset.data.joint_pos[:,:])
     return 1 - torch.tanh(torch.abs(curr_pos_w1-curr_pos_w2) / std)
 
 def motion_equality_cons(

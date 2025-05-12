@@ -13,7 +13,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import G1_DEX, G1_DEX_PICK # isort: skip
+from isaaclab_assets import G1_DEX_PICK # isort: skip
 
 
 @configclass
@@ -36,12 +36,7 @@ class G1Rewards(RewardsCfg):
         weight=1000.0,
         params={"threshold": 20.0,"sensor_cfg": SceneEntityCfg("contact_forces", 
                                                               body_names=[
-                                                                        #   ".*_wrist_yaw_link",
                                                                           ".*_thumb_proximal",
-                                                                        #   ".*_index_proximal",
-                                                                        #   ".*_middle_proximal",
-                                                                        #   ".*_pinky_proximal",
-                                                                        #   ".*_ring_proximal",
                                                                           ".*_thumb_intermediate",
                                                                           ".*_index_intermediate",
                                                                           ".*_middle_intermediate",
@@ -65,17 +60,6 @@ class G1Rewards(RewardsCfg):
         params={"std": 0.05, "minimal_height": 0.85,"command_name": "object_pose", "object_cfg": SceneEntityCfg("object")},
         weight=25.0,
     )
-
-    # flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=0.2)
-
-    # same motion
-    # motion_equality_shoulder = RewTerm(
-    #     func=mdp.motion_equality_cons,
-    #     weight=2.0,
-    #     params={
-    #         "std": 0.1,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_yaw_joint"),
-    #     },
-    # )
 
     motion_equality_elbow = RewTerm(
         func=mdp.motion_equality_pros,
@@ -110,17 +94,7 @@ class G1Rewards(RewardsCfg):
     )
 
     ## normal reward
-
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
-
-    # track_lin_vel_xy_exp = RewTerm(
-    #     func=mdp.track_lin_vel_xy_yaw_frame_exp,
-    #     weight=2.0,
-    #     params={"command_name": "object_pose", "std": 1.0},
-    # )
-    # track_ang_vel_z_exp = RewTerm(
-    #     func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "object_pose", "std": 0.5}
-    # )
 
     track_pos_exp = RewTerm(
         func=mdp.track_pos_exp, weight=1.0, params={"std": 0.2}
@@ -135,14 +109,6 @@ class G1Rewards(RewardsCfg):
             "threshold": 0.4,
         },
     )
-    # slide = RewTerm(
-    #     func=mdp.feet_slide,
-    #     weight=-0.1,
-    #     params={
-    #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
-    #         "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
-    #     },
-    # )
 
     slide = RewTerm(
         func=mdp.feet_slide,
@@ -152,10 +118,6 @@ class G1Rewards(RewardsCfg):
                 ".*_ankle_roll_link",
                                                                           ".*_wrist_yaw_link",
                                                                           ".*_thumb_proximal",
-                                                                        #   ".*_index_proximal",
-                                                                        #   ".*_middle_proximal",
-                                                                        #   ".*_pinky_proximal",
-                                                                        #   ".*_ring_proximal",
                                                                           ".*_thumb_intermediate",
                                                                           ".*_index_intermediate",
                                                                           ".*_middle_intermediate",
@@ -166,10 +128,6 @@ class G1Rewards(RewardsCfg):
                 ".*_ankle_roll_link",
                                                                           ".*_wrist_yaw_link",
                                                                           ".*_thumb_proximal",
-                                                                        #   ".*_index_proximal",
-                                                                        #   ".*_middle_proximal",
-                                                                        #   ".*_pinky_proximal",
-                                                                        #   ".*_ring_proximal",
                                                                           ".*_thumb_intermediate",
                                                                           ".*_index_intermediate",
                                                                           ".*_middle_intermediate",
@@ -199,9 +157,7 @@ class G1Rewards(RewardsCfg):
                 "robot",
                 joint_names=[
                     ".*_shoulder_roll_joint",
-                    # ".*_shoulder_yaw_joint",
                     ".*_wrist_roll_joint",
-                    #".*_wrist_yaw_joint",
                 ],
             )
         },
@@ -223,35 +179,9 @@ class G1Rewards(RewardsCfg):
         func=mdp.joint_deviation_l1,
         weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
-            # "waist_roll_joint",
-            # "waist_pitch_joint",
             "waist_yaw_joint",
         ])},
     )
-
-    # Penalize deviation from default of the joints that are not essential for Pickup
-    # joint_deviation_leg = RewTerm(
-    #     func=mdp.joint_deviation_l1,
-    #     weight=-0.1,
-    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
-    #                 ".*_hip_roll_joint",
-    #                 ".*_hip_pitch_joint",
-    #                 ".*_hip_yaw_joint",
-    #                 ".*_knee_joint",
-    #                 ".*_ankle_roll_joint",
-    #                 ".*_ankle_pitch_joint",
-    #             ]
-    #         )
-    #     },
-    # )
-
-    
-
-    # undesired_contacts = RewTerm(
-    #     func=mdp.undesired_contacts,
-    #     weight=-1.0,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="pelvis"), "threshold": 1.0},
-    # )
 
 
 @configclass
@@ -297,14 +227,6 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint", ".*_ankle_.*"]
         )
 
-        # Commands
-        # self.commands.base_velocity.ranges.x = (-5.0, 5.0)
-        # self.commands.base_velocity.ranges.y = (-5.0, 5.0)
-        # self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
-
-        # terminations
-        # self.terminations.base_contact.params["sensor_cfg"].body_names = "waist_yaw_link"
-
 
 @configclass
 class G1RoughEnvCfg_PLAY(G1RoughEnvCfg):
@@ -324,10 +246,6 @@ class G1RoughEnvCfg_PLAY(G1RoughEnvCfg):
             self.scene.terrain.terrain_generator.num_cols = 5
             self.scene.terrain.terrain_generator.curriculum = False
 
-        # self.commands.base_velocity.ranges.x = (-5.0, 5.0)
-        # self.commands.base_velocity.ranges.y = (-5.0, 5.0)
-        # self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
-        # self.commands.base_velocity.ranges.heading = (0.0, 0.0)
         # disable randomization for play
         self.observations.policy.enable_corruption = False
         # remove random pushing

@@ -65,36 +65,6 @@ class MySceneCfg(InteractiveSceneCfg):
     # robots
     robot: ArticulationCfg = MISSING
 
-    # ee_frame_L: FrameTransformerCfg = FrameTransformerCfg(
-    #         prim_path="{ENV_REGEX_NS}/Robot",
-    #         debug_vis=False,
-    #         target_frames=[
-    #             FrameTransformerCfg.FrameCfg(
-    #                 prim_path="{ENV_REGEX_NS}/Robot/left_palm_link",
-    #                 name="end_effector",
-    #                 offset=OffsetCfg(
-    #                     pos=[0.0, 0.0, 0.1034],
-    #                 ),
-    #             ),
-    #         ],
-    #     )
-    # ee_frame_R: FrameTransformerCfg = FrameTransformerCfg(
-    #         prim_path="{ENV_REGEX_NS}/Robot",
-    #         debug_vis=False,
-    #         target_frames=[
-    #             FrameTransformerCfg.FrameCfg(
-    #                 prim_path="{ENV_REGEX_NS}/Robot/right_palm_link",
-    #                 name="end_effector",
-    #                 offset=OffsetCfg(
-    #                     pos=[0.0, 0.0, 0.1034],
-    #                 ),
-    #             ),
-    #         ],
-    #     )
-
-    
-
-
     # sensors
     height_scanner = RayCasterCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base",
@@ -121,7 +91,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=[0.24, 0, 0.80], rot=[1, 0, 0, 0]),
+        # initialize object pick_state
         init_state=RigidObjectCfg.InitialStateCfg(pos=[0.1866,0.0015,0.9298], rot=[0.9898,-0.0035,-0.1409,-0.0183]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
@@ -138,18 +108,6 @@ class MySceneCfg(InteractiveSceneCfg):
         ),
     )
 
-    # mount
-    # table = AssetBaseCfg(
-    #     prim_path="{ENV_REGEX_NS}/Table",
-    #     spawn=sim_utils.UsdFileCfg(
-    #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/ThorlabsTable/table_instanceable.usd", scale=(0.2, 0.2, 0.04),
-    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
-    #             disable_gravity=True,
-    #         ),
-    #     ),
-    #     init_state=AssetBaseCfg.InitialStateCfg(pos=(0.20, 0.0, 0.72)),
-    # )
-
 
 ##
 # MDP settings
@@ -159,17 +117,6 @@ class MySceneCfg(InteractiveSceneCfg):
 @configclass
 class CommandsCfg:
     """Command specifications for the MDP."""
-
-    # base_velocity = mdp.UniformPoseCommandCfg(
-    #     asset_name="robot",
-    #     body_name=".*_middle_proximal",  # will be set by agent env cfg
-    #     resampling_time_range=(24.0, 24.0),
-    #     debug_vis=True,
-    #     ranges=mdp.UniformPoseCommandCfg.Ranges(
-    #         pos_x=(0.0, 0.0), pos_y=(-0.0, 0.0), pos_z=(0.0, 0.0), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
-    #         # pos_x=(0.3, 0.3), pos_y=(-0.0, 0.0), pos_z=(0.9, 0.9), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
-    #     ),
-    # )
     object_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
         body_name=MISSING,  # will be set by agent env cfg
@@ -198,9 +145,6 @@ class ActionsCfg:
                "left_shoulder_roll_joint": (0.3, 0.3), 
                "right_shoulder_roll_joint": (-0.3, -0.3), 
                 # limit after contact
-                # ".*_shoulder_pitch_joint": (-1.08, 1.08),
-            #    ".*_elbow_joint": (-1.08, 1.08),
-                # ".*_wrist_pitch_joint": (-0.54, 1.08),
                 "left_wrist_roll_joint": (-0.2, -0.2),
                 "right_wrist_roll_joint": (0.2, 0.2),
                # leg limit
@@ -211,11 +155,8 @@ class ActionsCfg:
                "waist_pitch_joint": (-0.05, 0.05), 
                "waist_yaw_joint": (-0.01, 0.01), 
                # arm_limit
-               # ".*_wrist_roll_joint": (-0.01, 0.01),
-               # ".*_wrist_pitch_joint": (-0.4, 0.4),
                ".*_wrist_yaw_joint": (-0.3, 0.3),
                # finger
-               
                 ".*_thumb_proximal_pitch_joint": (0.52, 0.52),
                 ".*_thumb_proximal_yaw_joint": (-0.01, 0.01),
                 ".*_index_proximal_joint": (0.3, 1.2),
@@ -254,9 +195,6 @@ class ObservationsCfg:
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
-        # iscontact = ObsTerm(func=mdp.object_is_contacted, 
-        #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_middle_proximal")}
-        # )
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -307,17 +245,6 @@ class EventCfg:
     reset_base = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
-        # params={
-        #     "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
-        #     "velocity_range": {
-        #         "x": (-0.5, 0.5),
-        #         "y": (-0.5, 0.5),
-        #         "z": (-0.5, 0.5),
-        #         "roll": (-0.5, 0.5),
-        #         "pitch": (-0.5, 0.5),
-        #         "yaw": (-0.5, 0.5),
-        #     },
-        # },
         params={
             "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
             "velocity_range": {
@@ -372,21 +299,6 @@ class EventCfg:
 @configclass
 class RewardsCfg:
     """Reward terms for the MDP."""
-
-    # # -- task
-    # track_lin_vel_xy_exp = RewTerm(
-    #     func=mdp.track_lin_vel_xy_exp, weight=1.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
-    # )
-    # track_ang_vel_z_exp = RewTerm(
-    #     func=mdp.track_ang_vel_z_exp, weight=0.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
-    # )
-    # -- task
-    # track_lin_vel_xy_exp = RewTerm(
-    #     func=mdp.track_lin_vel_xy_exp, weight=1.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
-    # )
-    # track_ang_vel_z_exp = RewTerm(
-    #     func=mdp.track_ang_vel_z_exp, weight=0.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
-    # )
     
     # -- penalties
     base_position_l2 = RewTerm(func=mdp.base_position_l2, weight=-50.0)
@@ -396,15 +308,6 @@ class RewardsCfg:
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
 
-    # feet_air_time = RewTerm(
-    #     func=mdp.feet_air_time,
-    #     weight=0.0,
-    #     params={
-    #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*FOOT"),
-    #         "command_name": "base_velocity",
-    #         "threshold": 0.5,
-    #     },
-    # )
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-1.0,
