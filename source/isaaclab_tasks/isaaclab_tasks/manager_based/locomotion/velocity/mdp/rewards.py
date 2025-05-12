@@ -249,7 +249,7 @@ def object_position_in_robot_root_frame(
     object_pos_b, _ = subtract_frame_transforms(
         robot.data.root_state_w[:, :3], robot.data.root_state_w[:, 3:7], object_pos_w
     )
-    # print("object:",object.data.root_pos_w[:, 2])
+    # print("object:",object.data.root_state_w[:, :7])
     return object_pos_b
 
 ##############################################################################
@@ -264,6 +264,8 @@ def motion_equality_pros(
     asset: Articulation = env.scene[asset_cfg.name]
     curr_pos_w1 = asset.data.joint_pos[:, asset_cfg.joint_ids[0]]
     curr_pos_w2 = asset.data.joint_pos[:, asset_cfg.joint_ids[1]]
+    # print(asset.data.joint_names)
+    # print("joint:",asset.data.joint_pos[:,:])
     return 1 - torch.tanh(torch.abs(curr_pos_w1-curr_pos_w2) / std)
 
 def motion_equality_cons(
