@@ -121,7 +121,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.24, 0, 0.83], rot=[1, 0, 0, 0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.24, 0, 0.80], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=(3.10,4.14, 2.84),
@@ -161,7 +161,7 @@ class CommandsCfg:
 
     # base_velocity = mdp.UniformPoseCommandCfg(
     #     asset_name="robot",
-    #     body_name=".*_thumb_proximal",  # will be set by agent env cfg
+    #     body_name=".*_middle_proximal",  # will be set by agent env cfg
     #     resampling_time_range=(24.0, 24.0),
     #     debug_vis=True,
     #     ranges=mdp.UniformPoseCommandCfg.Ranges(
@@ -203,8 +203,24 @@ class ActionsCfg:
                 "left_wrist_roll_joint": (-0.2, -0.2),
                 "right_wrist_roll_joint": (0.2, 0.2),
                # leg limit
-               "left_hip_roll_joint": (-0.3, 0.3), 
-               "right_hip_roll_joint": (-0.3, 0.3), 
+               "left_hip_roll_joint": (-0.2, 0.2), 
+               "right_hip_roll_joint": (-0.2, 0.2), 
+               # waist limit
+               "waist_roll_joint": (-0.05, 0.05), 
+               "waist_pitch_joint": (-0.05, 0.05), 
+               "waist_yaw_joint": (-0.01, 0.01), 
+               # arm_limit
+               # ".*_wrist_roll_joint": (-0.01, 0.01),
+               # ".*_wrist_pitch_joint": (-0.4, 0.4),
+               ".*_wrist_yaw_joint": (-0.3, 0.3),
+               # finger
+               
+                ".*_thumb_proximal_pitch_joint": (0.52, 0.52),
+                ".*_thumb_proximal_yaw_joint": (-0.01, 0.01),
+                ".*_index_proximal_joint": (0.3, 1.2),
+                ".*_middle_proximal_joint": (0.3, 1.2),
+                ".*_pinky_proximal_joint": (0.3, 1.2),
+                ".*_ring_proximal_joint": (0.3, 1.2),
             }
     )
 
@@ -238,7 +254,7 @@ class ObservationsCfg:
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
         # iscontact = ObsTerm(func=mdp.object_is_contacted, 
-        #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_thumb_proximal")}
+        #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_middle_proximal")}
         # )
 
         def __post_init__(self):
@@ -364,11 +380,6 @@ class RewardsCfg:
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
-    # base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-2.0, params={
-    #         "target_height": 0.7, 
-    #         # "sensor_cfg": SceneEntityCfg("height_scanner")
-    #     }
-    # )
 
     # feet_air_time = RewTerm(
     #     func=mdp.feet_air_time,
@@ -384,15 +395,15 @@ class RewardsCfg:
         weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
     )
-    base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-20.0, params={
-            "target_height": 0.7, 
+    base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-100.0, params={
+            "target_height": 0.75, 
             # "sensor_cfg": SceneEntityCfg("height_scanner")
         }
     )
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-1.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
-    # is_alive = RewTerm(func=mdp.is_alive,weight=10.0)
+    is_alive = RewTerm(func=mdp.is_alive,weight=4.0)
 
 
 @configclass
@@ -402,11 +413,11 @@ class TerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     base_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 10.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 5.0},
     )
     base_contact2 = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 10.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 5.0},
     )
     base_contact3 = DoneTerm(
         func=mdp.illegal_contact,
@@ -427,7 +438,7 @@ class TerminationsCfg:
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("robot")}
     )
     bad_position = DoneTerm(
-        func=mdp.bad_position, params={"limit_dist": 0.12, "asset_cfg": SceneEntityCfg("robot")}
+        func=mdp.bad_position, params={"limit_dist": 0.2, "asset_cfg": SceneEntityCfg("robot")}
     )
 
 

@@ -25,8 +25,8 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.curriculum.terrain_levels = None
 
         # New Rewards
-        self.rewards.joint_deviation_torso.weight = -0.2
-        self.rewards.joint_deviation_fingers.weight = -2.0
+        self.rewards.joint_deviation_torso.weight = -2.0
+        self.rewards.joint_deviation_fingers.weight = -0.2
         self.rewards.joint_deviation_hip.weight = -0.2
         self.rewards.joint_deviation_arms.weight = -2.0
         # self.rewards.joint_deviation_arms_contact.weight = -0.02
@@ -42,18 +42,19 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # Main Rewards
         # self.rewards.track_lin_vel_xy_exp.weight = 1.0
         # self.rewards.track_ang_vel_z_exp.weight = 1.0
+        
         # Rewards
         # self.rewards.lin_vel_z_l2.weight = -0.2
         self.rewards.action_rate_l2.weight = -0.005
         self.rewards.dof_acc_l2.weight = -1.0e-7
-        self.rewards.feet_air_time.weight = 6#0.75
-        self.rewards.base_height_l2.weight = -10.0
+        self.rewards.feet_air_time.weight = 0.25
+        # self.rewards.base_height_l2.weight = -20.0
         self.rewards.feet_air_time.params["threshold"] = 0.4
         self.rewards.dof_torques_l2.weight = -2.0e-6
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
-        self.commands.object_pose.body_name = ".*_thumb_proximal"
+        self.commands.object_pose.body_name = ".*_middle_proximal"
 
         # self.rewards.reaching_object.params["asset_cfg"].body_names = "".*_hand_base_link""
 

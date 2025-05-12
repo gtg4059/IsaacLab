@@ -67,7 +67,9 @@ def bad_position(
     """
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
-    return torch.sum(torch.square(asset.data.root_pos_w[:, :2]-env.scene.env_origins[:, :2]),dim=1) > limit_dist
+    # print("asset.data.heading_w:",asset.data.heading_w)
+    # print(torch.sum(torch.square(asset.data.root_pos_w[:, :2]-env.scene.env_origins[:, :2]),dim=1)+torch.abs(asset.data.heading_w))
+    return torch.sum(torch.square(asset.data.root_pos_w[:, :2]-env.scene.env_origins[:, :2]),dim=1)+torch.abs(asset.data.heading_w)> limit_dist
 
 
 def root_height_below_minimum(

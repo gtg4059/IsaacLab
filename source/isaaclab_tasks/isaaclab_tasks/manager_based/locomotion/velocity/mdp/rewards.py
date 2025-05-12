@@ -12,6 +12,7 @@ specify the reward function and its parameters.
 from __future__ import annotations
 
 import torch
+import math
 from typing import TYPE_CHECKING
 
 from isaaclab.managers import SceneEntityCfg
@@ -79,6 +80,8 @@ def feet_slide(env, sensor_cfg: SceneEntityCfg, asset_cfg: SceneEntityCfg = Scen
     asset = env.scene[asset_cfg.name]
 
     body_vel = asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2]
+    # print("contacts:",contacts)
+    # print("body_vel:",body_vel)
     reward = torch.sum(body_vel.norm(dim=-1) * contacts, dim=1)
     return reward
 
@@ -161,11 +164,13 @@ def object_is_contacted(
     contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
     in_contact = contact_time > 0.0
     in_mode_time = torch.where(in_contact, contact_time, air_time)
-    double_stance = torch.sum(in_contact.int(), dim=1) == 2
+    double_stance = torch.sum(in_contact.int(), dim=1) >= 8
+    # print(in_contact)
     reward = torch.min(torch.where(double_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
     reward = torch.clamp(reward, max=threshold)
-    # print("reward:",reward)
-    return reward
+    # print("reward:",reward*double_stance)
+    # print("torch.sum(in_contact.int(), dim=1):",torch.sum(in_contact.int(), dim=1))
+    return reward#*torch.sum(in_contact.int(), dim=1)
 
 def object_ee_distance(
     env: ManagerBasedRLEnv,
@@ -177,17 +182,6 @@ def object_ee_distance(
     # extract the used quantities (to enable type-hinting)
     object: RigidObject = env.scene[object_cfg.name]
     asset = env.scene[asset_cfg.name]
-    # ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
-    # Target object position: (num_envs, 3)
-
-    # cube_pos_w = object.data.root_pos_w
-    # # End-effector position: (num_envs, 3)
-    # curr_pos_w1 = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]
-    # curr_pos_w2 = asset.data.body_state_w[:, asset_cfg.body_ids[1], :3]
-    # # ee_w = ee_frame.data.target_pos_w[..., 0, :]
-    # # Distance of the end-effector to the object: (num_envs,)
-    # object_ee_distance1 = torch.norm(cube_pos_w - curr_pos_w1, dim=1)
-    # object_ee_distance2 = torch.norm(cube_pos_w - curr_pos_w2, dim=1)
 
     des_pos_b = object.data.root_pos_w
     curr_pos_w1 = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]  # type: ignore
@@ -202,13 +196,19 @@ def object_ee_distance(
     angle1 = quat_error_magnitude(curr_quat_w1, des_quat_b)
     angle2 = quat_error_magnitude(curr_quat_w2, des_quat_b)
 
-    result1 = (1 - torch.tanh(angle1/std))+(1 - torch.tanh(torch.abs(distance1-0.18)/std))
-    result2 = (1 - torch.tanh(angle2/std))+(1 - torch.tanh(torch.abs(distance2-0.18)/std))
+    result1 = (1 - torch.tanh((angle1)/std))+(1 - torch.tanh(torch.abs(distance1-0.1)/(std)))
+    result2 = (1 - torch.tanh((angle2)/std))+(1 - torch.tanh(torch.abs(distance2-0.1)/(std)))
 
     # print("distance1:",distance1)
     # print("angle1:",angle1)
     # print("distance2:",distance2)
     # print("angle2:",angle2)
+    # print("box:",euler_xyz_from_quat(des_quat_b))
+    # print("1:",euler_xyz_from_quat(curr_quat_w1))
+    # print("2:",euler_xyz_from_quat(curr_quat_w2))
+    # print("box:",(des_quat_b))
+    # print("1:",(curr_quat_w1))
+    # print("2:",(curr_quat_w2))
     return result1*result2 #torch.tanh(object_ee_distance1 / std)-torch.tanh(object_ee_distance2 / std)
 
 
@@ -226,7 +226,7 @@ def object_goal_distance(
     distance = torch.norm((object.data.root_pos_w-env.scene.env_origins)-env.command_manager.get_command(command_name)[:,:3], dim=1)
     angle = quat_error_magnitude(object.data.root_quat_w,env.command_manager.get_command(command_name)[:,3:7])
     # print("height:",object.data.root_pos_w[:, 2])
-    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle/(std**2)))
+    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle/std))
 
 def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
     """Penalize non-flat base orientation using L2 squared kernel.

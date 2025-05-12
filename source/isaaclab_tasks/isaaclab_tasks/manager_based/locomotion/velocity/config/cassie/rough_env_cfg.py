@@ -18,7 +18,7 @@ from isaaclab_assets.robots.cassie import CASSIE_CFG  # isort: skip
 
 @configclass
 class CassieRewardsCfg(RewardsCfg):
-    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-2000.0)
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
         weight=2.5,

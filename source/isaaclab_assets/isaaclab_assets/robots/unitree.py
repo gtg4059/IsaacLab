@@ -435,12 +435,20 @@ G1_DEX = ArticulationCfg(
             ".*_ankle_pitch_joint": -0.23,
             "left_shoulder_roll_joint": 0.3,
             "right_shoulder_roll_joint": -0.3,
-            "left_wrist_roll_joint": -0.2,
-            "right_wrist_roll_joint": 0.2,
+            "left_wrist_roll_joint": -0.4,
+            "right_wrist_roll_joint": 0.4,
             ".*_shoulder_pitch_joint": 0.8,
             ".*_elbow_joint": -0.4,
             ".*_wrist_pitch_joint": -0.4,
-            ".*_thumb_proximal_pitch_joint": 0.52
+            #".*_thumb_proximal_pitch_joint": 0.52,
+            
+            ".*_index_proximal_joint": 0.3,
+            ".*_middle_proximal_joint": 0.3,
+            ".*_pinky_proximal_joint": 0.3,
+            ".*_ring_proximal_joint": 0.3,
+            # ".*_thumb_proximal_pitch_joint": 0.52,
+            # ".*_thumb_proximal_yaw_joint": 0.26,
+
         },
         joint_vel={".*": 0.0},
     ),
