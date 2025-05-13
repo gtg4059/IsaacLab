@@ -20,7 +20,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.scene.terrain.terrain_generator = None
         # no height scan
         self.scene.height_scanner = None
-        self.observations.policy.height_scan = None
+        # self.observations.policy.height_scan = None
         # no terrain curriculum
         self.curriculum.terrain_levels = None
         # New Rewards
@@ -38,7 +38,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
-        
+
         # another rewards for balance about of time-two-legs contact time
         # balance_air_time, xx_pos_limit
         self.rewards.balance_air_time.weight = 0.1

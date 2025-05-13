@@ -22,6 +22,8 @@ if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
     from isaaclab.managers.command_manager import CommandTerm
 
+
+
 """
 MDP terminations.
 """
@@ -29,8 +31,7 @@ MDP terminations.
 
 def time_out(env: ManagerBasedRLEnv) -> torch.Tensor:
     """Terminate the episode when the episode length exceeds the maximum episode length."""
-    # if env.episode_length_buf >= env.max_episode_length:
-    #     print("timeout")
+    # print("env.episode_length_buf:",env.episode_length_buf)
     return env.episode_length_buf >= env.max_episode_length
 
 

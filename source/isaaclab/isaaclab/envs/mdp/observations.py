@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import torch
 from typing import TYPE_CHECKING
-
 import isaaclab.utils.math as math_utils
 from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import SceneEntityCfg
@@ -525,3 +524,12 @@ Commands.
 def generated_commands(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """The generated command from command term in the command manager with the given name."""
     return env.command_manager.get_command(command_name)
+
+"""
+Phases.
+"""
+
+# def sin_phase(env: ManagerBasedRLEnv) -> torch.Tensor:
+#     return env.episode_length_buf >= env.max_episode_length
+# def cos_phase(env: ManagerBasedRLEnv) -> torch.Tensor:
+#     return env.episode_length_buf >= env.max_episode_length
