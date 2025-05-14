@@ -529,7 +529,8 @@ def generated_commands(env: ManagerBasedRLEnv, command_name: str) -> torch.Tenso
 Phases.
 """
 
-# def sin_phase(env: ManagerBasedRLEnv) -> torch.Tensor:
-#     return env.episode_length_buf >= env.max_episode_length
-# def cos_phase(env: ManagerBasedRLEnv) -> torch.Tensor:
-#     return env.episode_length_buf >= env.max_episode_length
+def sin_phase(env: ManagerBasedRLEnv) -> torch.Tensor:
+    return env.episode_length_buf >= env.max_episode_length
+    
+def cos_phase(env: ManagerBasedRLEnv) -> torch.Tensor:
+    return env.episode_length_buf >= env.max_episode_length

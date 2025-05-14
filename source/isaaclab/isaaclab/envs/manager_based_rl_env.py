@@ -72,6 +72,8 @@ class ManagerBasedRLEnv(ManagerBasedEnv, gym.Env):
             render_mode: The render mode for the environment. Defaults to None, which
                 is similar to ``"human"``.
         """
+        # initialize the episode length buffer BEFORE loading the managers to use it in mdp functions.
+        self.episode_length_buf = torch.zeros(cfg.scene.num_envs, device=cfg.sim.device, dtype=torch.long)
         # initialize the base class to setup the scene.
         super().__init__(cfg=cfg)
         # store the render mode
@@ -80,8 +82,6 @@ class ManagerBasedRLEnv(ManagerBasedEnv, gym.Env):
         # initialize data and constants
         # -- counter for curriculum
         self.common_step_counter = 0
-        # -- init buffers
-        self.episode_length_buf = torch.zeros(self.num_envs, device=self.device, dtype=torch.long)
         # -- set the framerate of the gym video recorder wrapper so that the playback speed of the produced video matches the simulation
         self.metadata["render_fps"] = 1 / self.step_dt
 
