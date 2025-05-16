@@ -13,7 +13,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import G1_DEX  # isort: skip
+from isaaclab_assets import G1_DEX, G1_DEX_29  # isort: skip
 
 
 @configclass
@@ -82,19 +82,19 @@ class G1Rewards(RewardsCfg):
             )
         },
     )
-    joint_deviation_fingers = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-0.05,
-        params={
-            "asset_cfg": SceneEntityCfg(
-                "robot",
-                joint_names=[
-                    "R_.*",
-                    "L_.*",
-                ],
-            )
-        },
-    )
+    # joint_deviation_fingers = RewTerm(
+    #     func=mdp.joint_deviation_l1,
+    #     weight=-0.05,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg(
+    #             "robot",
+    #             joint_names=[
+    #                 "R_.*",
+    #                 "L_.*",
+    #             ],
+    #         )
+    #     },
+    # )
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-0.1,
@@ -123,14 +123,21 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # post init of parent
         super().__post_init__()
         # Scene
-        self.scene.robot = G1_DEX.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/waist_yaw_link/visuals/torso_link_rev_1_0"
+        # # G1_inspire_hand
+        # self.scene.robot = G1_DEX.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        # self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/waist_yaw_link/visuals/torso_link_rev_1_0"
+        # G1_no_hand
+        self.scene.robot = G1_DEX_29.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
 
         # Randomization
         self.events.push_robot = None
         self.events.add_base_mass = None
         self.events.reset_robot_joints.params["position_range"] = (1.0, 1.0)
-        self.events.base_external_force_torque.params["asset_cfg"].body_names = ["waist_yaw_link"]
+        # # G1_inspire_hand
+        # self.events.base_external_force_torque.params["asset_cfg"].body_names = ["waist_yaw_link"]
+        # G1_no_hand
+        self.events.base_external_force_torque.params["asset_cfg"].body_names = ["torso_link"]
         self.events.reset_base.params = {
             "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
             "velocity_range": {
@@ -163,7 +170,10 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
 
         # terminations
-        self.terminations.base_contact.params["sensor_cfg"].body_names = "waist_yaw_link"
+        # # G1_inspire_hand
+        # self.terminations.base_contact.params["sensor_cfg"].body_names = "waist_yaw_link"
+        # G1_no_hand
+        self.terminations.base_contact.params["sensor_cfg"].body_names = "torso_link"
 
 
 @configclass

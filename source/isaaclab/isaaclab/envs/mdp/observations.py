@@ -12,6 +12,7 @@ the observation introduced by the function.
 from __future__ import annotations
 
 import torch
+import math
 from typing import TYPE_CHECKING
 import isaaclab.utils.math as math_utils
 from isaaclab.assets import Articulation, RigidObject
@@ -530,7 +531,9 @@ Phases.
 """
 
 def sin_phase(env: ManagerBasedRLEnv) -> torch.Tensor:
-    return env.episode_length_buf >= env.max_episode_length
+    phase = (env.episode_length_buf * 0.02) % 0.8 / 0.8
+    return torch.sin(2 * math.pi * phase ).unsqueeze(1)
     
-def cos_phase(env: ManagerBasedRLEnv) -> torch.Tensor:
-    return env.episode_length_buf >= env.max_episode_length
+def cos_phase(env: ManagerBasedRLEnv)  -> torch.Tensor:
+    phase = (env.episode_length_buf * 0.02) % 0.8 / 0.8
+    return torch.cos(2 * math.pi * phase ).unsqueeze(1)
