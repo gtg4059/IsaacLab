@@ -119,8 +119,20 @@ class ActionsCfg:
             #   "left_shoulder_roll_joint": (0.1, 0.3), 
             #   "right_shoulder_roll_joint": (-0.3, -0.1), 
             #   ".*_elbow_joint": (-1.047, 1.57),
-               "left_hip_roll_joint": (0.0, 0.16), 
-               "right_hip_roll_joint": (-0.16, -0.0), 
+
+            # make wing
+            "left_shoulder_roll_joint": (0.2, 0.4), 
+            "right_shoulder_roll_joint": (-0.4, -0.2), 
+            # waist limit
+            "waist_roll_joint": (-0.05, 0.05), 
+            "waist_pitch_joint": (-0.05, 0.05), 
+            "waist_yaw_joint": (-0.01, 0.01), 
+            # # leg limit
+            ".*_knee_joint": (0.3, 1.0), 
+            "left_hip_roll_joint": (-0.2, 0.2), 
+            "right_hip_roll_joint": (-0.2, 0.2),
+            # "left_hip_roll_joint": (0.0, 0.16), 
+            # "right_hip_roll_joint": (-0.16, -0.0), 
             }
     )
 
@@ -185,7 +197,7 @@ class EventCfg:
         func=mdp.randomize_rigid_body_mass,
         mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="base"),
+            "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
             "mass_distribution_params": (-1., 3.),
             "operation": "add",
         },
@@ -232,7 +244,8 @@ class EventCfg:
         func=mdp.push_by_setting_velocity,
         mode="interval",
         interval_range_s=(5.0, 5.0),
-        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+        # params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
     )
 
 
@@ -268,6 +281,7 @@ class RewardsCfg:
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
     )
     # -- optional penalties
+    base_height = RewTerm(func=mdp.base_height_l2, weight=-2.0, params={"target_height": 0.65})
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
 

@@ -69,7 +69,7 @@ G1_DEX_29 = ArticulationCfg(
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
-        pos=(0.0, 0.0, 0.74),
+        pos=(0.0, 0.0, 0.8),
         joint_pos={
             ".*_hip_pitch_joint": -0.20,
             ".*_knee_joint": 0.42,
@@ -150,18 +150,18 @@ G1_DEX_29 = ArticulationCfg(
                 ".*_shoulder_roll_joint": 50.0,
                 ".*_shoulder_yaw_joint": 50.0,
                 ".*_elbow_joint": 50.0,
-                "_wrist_roll_joint": 30.0,
-                "_wrist_pitch_joint": 30.0,
-                "_wrist_yaw_joint": 30.0,
+                ".*_wrist_roll_joint": 30.0,
+                ".*_wrist_pitch_joint": 30.0,
+                ".*_wrist_yaw_joint": 30.0,
             },
             damping={
                 ".*_shoulder_pitch_joint": 2.0,
                 ".*_shoulder_roll_joint": 2.0,
                 ".*_shoulder_yaw_joint": 2.0,
                 ".*_elbow_joint": 2.0,
-                "_wrist_roll_joint": 2.0,
-                "_wrist_pitch_joint": 2.0,
-                "_wrist_yaw_joint": 2.0,
+                ".*_wrist_roll_joint": 2.0,
+                ".*_wrist_pitch_joint": 2.0,
+                ".*_wrist_yaw_joint": 2.0,
             },
             armature={
                 ".*_shoulder_.*": 0.01,
