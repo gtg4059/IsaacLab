@@ -24,7 +24,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # no terrain curriculum
         self.curriculum.terrain_levels = None
         # New Rewards
-        self.rewards.joint_deviation_arms.weight = -2.0
+        self.rewards.joint_deviation_arms.weight = -0.2
         self.rewards.joint_deviation_torso.weight = -0.2
         # self.rewards.joint_deviation_fingers.weight = -0.1
         # Rewards
@@ -41,15 +41,15 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
 
         # another rewards for balance about of time-two-legs contact time
         # balance_air_time, xx_pos_limit
-        self.rewards.balance_air_time.weight = 0.01
+        self.rewards.balance_air_time.weight = 0.001
         self.rewards.balance_air_time.params["command_name"] = "base_velocity"
         self.rewards.balance_air_time.params["sensor_cfg"] = SceneEntityCfg("contact_forces", body_names = [".*_ankle_roll_link"])
 
         # Commands
-        self.commands.base_velocity.ranges.lin_vel_x = (0.01, 1.0)
-        self.commands.base_velocity.ranges.lin_vel_y = (-0.01, 0.01)
+        self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_y = (-1.0, 1.0)
         self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
-        self.commands.base_velocity.ranges.heading = (0.0, 0.0)
+        self.commands.base_velocity.ranges.heading = (-3.14, 3.14)
 
 
 class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):

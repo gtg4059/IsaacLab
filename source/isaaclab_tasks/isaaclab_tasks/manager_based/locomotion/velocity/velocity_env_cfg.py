@@ -129,8 +129,8 @@ class ActionsCfg:
             "waist_yaw_joint": (-0.01, 0.01), 
             # # leg limit
             ".*_knee_joint": (0.3, 1.0), 
-            "left_hip_roll_joint": (-0.2, 0.2), 
-            "right_hip_roll_joint": (-0.2, 0.2),
+            # "left_hip_roll_joint": (-0.2, 0.2), 
+            # "right_hip_roll_joint": (-0.2, 0.2),
             # "left_hip_roll_joint": (0.0, 0.16), 
             # "right_hip_roll_joint": (-0.16, -0.0), 
             }
