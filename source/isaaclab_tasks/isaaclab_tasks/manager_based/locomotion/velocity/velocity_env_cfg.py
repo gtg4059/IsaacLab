@@ -112,23 +112,18 @@ class ActionsCfg:
     joint_pos = mdp.JointPositionActionCfg(
         asset_name="robot", 
         joint_names=[".*"], 
-        scale=0.5, 
+        scale=0.25, 
         use_default_offset=True,
         clip={
-            #   ".*_shoulder_pitch_joint": (-1.0, 0.2), 
-            #   "left_shoulder_roll_joint": (0.1, 0.3), 
-            #   "right_shoulder_roll_joint": (-0.3, -0.1), 
-            #   ".*_elbow_joint": (-1.047, 1.57),
-
-            # make wing
-            "left_shoulder_roll_joint": (0.2, 0.4), 
-            "right_shoulder_roll_joint": (-0.4, -0.2), 
-            # waist limit
-            "waist_roll_joint": (-0.05, 0.05), 
-            "waist_pitch_joint": (-0.05, 0.05), 
-            "waist_yaw_joint": (-0.01, 0.01), 
-            # # leg limit
-            ".*_knee_joint": (0.3, 1.0), 
+            # # make wing
+            # "left_shoulder_roll_joint": (0.2, 0.4), 
+            # "right_shoulder_roll_joint": (-0.4, -0.2), 
+            # # waist limit
+            # "waist_roll_joint": (-0.05, 0.05), 
+            # "waist_pitch_joint": (-0.05, 0.05), 
+            # "waist_yaw_joint": (-0.01, 0.01), 
+            # # # leg limit
+            ".*_knee_joint": (0.4, 1.2), 
             # "left_hip_roll_joint": (-0.2, 0.2), 
             # "right_hip_roll_joint": (-0.2, 0.2),
             # "left_hip_roll_joint": (0.0, 0.16), 
@@ -244,8 +239,8 @@ class EventCfg:
         func=mdp.push_by_setting_velocity,
         mode="interval",
         interval_range_s=(5.0, 5.0),
-        # params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
-        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
+        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+        # params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
     )
 
 
