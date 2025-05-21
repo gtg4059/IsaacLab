@@ -109,7 +109,7 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_pos = mdp.JointPositionActionCfg(
+    joint_pos = mdp.RelativeJointPositionActionCfg(
         asset_name="robot", 
         joint_names=[
                      'left_hip_pitch_joint', 
@@ -126,7 +126,7 @@ class ActionsCfg:
                      'right_ankle_roll_joint',
                      ], 
         scale=0.25, 
-        use_default_offset=True,
+        # use_default_offset=True,
         preserve_order=True,
         # clip={
         #     # # make wing
