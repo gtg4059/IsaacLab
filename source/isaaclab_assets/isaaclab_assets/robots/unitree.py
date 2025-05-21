@@ -51,84 +51,6 @@ This model is taken from: https://github.com/Improbable-AI/walk-these-ways
 # Configuration
 ##
 
-# G1_12 = ArticulationCfg(
-#     spawn=sim_utils.UsdFileCfg(
-#         usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/g1_12dof/g1_12dof.usd",
-#         activate_contact_sensors=True,
-#         rigid_props=sim_utils.RigidBodyPropertiesCfg(
-#             disable_gravity=False,
-#             retain_accelerations=False,
-#             linear_damping=0.0,
-#             angular_damping=0.0,
-#             max_linear_velocity=1000.0,
-#             max_angular_velocity=1000.0,
-#             max_depenetration_velocity=1.0,
-#         ),
-#         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-#             enabled_self_collisions=True, solver_position_iteration_count=8, solver_velocity_iteration_count=4
-#         ),
-#     ),
-#     init_state=ArticulationCfg.InitialStateCfg(
-#         pos=(0.0, 0.0, 0.8),
-#         joint_pos={
-#            '.*_hip_yaw_joint' : 0.00 ,   
-#            '.*_hip_roll_joint' : 0.00,               
-#            '.*_hip_pitch_joint' : -0.1,         
-#            '.*_knee_joint' : 0.3,       
-#            '.*_ankle_pitch_joint' : -0.2,     
-#            '.*_ankle_roll_joint' : 0.00,    
-#         },
-#         joint_vel={".*": 0.0},
-#     ),
-#     soft_joint_pos_limit_factor=0.9,
-#     actuators={
-#         "legs": IdealPDActuatorCfg(
-#             joint_names_expr=[
-#                 ".*_hip_yaw_joint",
-#                 ".*_hip_roll_joint",
-#                 ".*_hip_pitch_joint",
-#                 ".*_knee_joint",
-#             ],
-#             effort_limit={
-#                 ".*_hip_yaw_joint": 88.0,
-#                 ".*_hip_roll_joint": 139.0,
-#                 ".*_hip_pitch_joint": 88.0,
-#                 ".*_knee_joint": 139.0,
-#             },
-#             velocity_limit={
-#                 ".*_hip_yaw_joint": 32.0,
-#                 ".*_hip_roll_joint": 20.0,
-#                 ".*_hip_pitch_joint": 32.0,
-#                 ".*_knee_joint": 20.0,
-#             },
-#             stiffness={
-#                 ".*_hip_yaw_joint": 100.0,
-#                 ".*_hip_roll_joint": 100.0,
-#                 ".*_hip_pitch_joint": 100.0,
-#                 ".*_knee_joint": 150.0,
-#             },
-#             damping={
-#                 ".*_hip_yaw_joint": 2.0,
-#                 ".*_hip_roll_joint": 2.0,
-#                 ".*_hip_pitch_joint": 2.0,
-#                 ".*_knee_joint": 4.0,
-#             },
-#             armature={
-#                 ".*_hip_.*": 0.01,
-#                 ".*_knee_joint": 0.01,
-#             },
-#         ),
-#         "feet": IdealPDActuatorCfg(
-#             effort_limit=50,
-#             velocity_limit=37,
-#             joint_names_expr=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
-#             stiffness=40.0,
-#             damping=2.0,
-#             armature=0.01,
-#         ),
-#     },
-# )
-
 G1_12 = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/g1_12dof/g1_12dof.usd",
@@ -160,7 +82,7 @@ G1_12 = ArticulationCfg(
     ),
     soft_joint_pos_limit_factor=0.9,
     actuators={
-        "legs": ImplicitActuatorCfg(
+        "legs": IdealPDActuatorCfg(
             joint_names_expr=[
                 ".*_hip_yaw_joint",
                 ".*_hip_roll_joint",
@@ -196,7 +118,7 @@ G1_12 = ArticulationCfg(
                 ".*_knee_joint": 0.01,
             },
         ),
-        "feet": ImplicitActuatorCfg(
+        "feet": IdealPDActuatorCfg(
             effort_limit=50,
             velocity_limit=37,
             joint_names_expr=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
@@ -206,6 +128,84 @@ G1_12 = ArticulationCfg(
         ),
     },
 )
+
+# G1_12 = ArticulationCfg(
+#     spawn=sim_utils.UsdFileCfg(
+#         usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/g1_12dof/g1_12dof.usd",
+#         activate_contact_sensors=True,
+#         rigid_props=sim_utils.RigidBodyPropertiesCfg(
+#             disable_gravity=False,
+#             retain_accelerations=False,
+#             linear_damping=0.0,
+#             angular_damping=0.0,
+#             max_linear_velocity=1000.0,
+#             max_angular_velocity=1000.0,
+#             max_depenetration_velocity=1.0,
+#         ),
+#         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
+#             enabled_self_collisions=True, solver_position_iteration_count=8, solver_velocity_iteration_count=4
+#         ),
+#     ),
+#     init_state=ArticulationCfg.InitialStateCfg(
+#         pos=(0.0, 0.0, 0.8),
+#         joint_pos={
+#            '.*_hip_yaw_joint' : 0.00 ,   
+#            '.*_hip_roll_joint' : 0.00,               
+#            '.*_hip_pitch_joint' : -0.1,         
+#            '.*_knee_joint' : 0.3,       
+#            '.*_ankle_pitch_joint' : -0.2,     
+#            '.*_ankle_roll_joint' : 0.00,    
+#         },
+#         joint_vel={".*": 0.0},
+#     ),
+#     soft_joint_pos_limit_factor=0.9,
+#     actuators={
+#         "legs": ImplicitActuatorCfg(
+#             joint_names_expr=[
+#                 ".*_hip_yaw_joint",
+#                 ".*_hip_roll_joint",
+#                 ".*_hip_pitch_joint",
+#                 ".*_knee_joint",
+#             ],
+#             effort_limit={
+#                 ".*_hip_yaw_joint": 88.0,
+#                 ".*_hip_roll_joint": 139.0,
+#                 ".*_hip_pitch_joint": 88.0,
+#                 ".*_knee_joint": 139.0,
+#             },
+#             velocity_limit={
+#                 ".*_hip_yaw_joint": 32.0,
+#                 ".*_hip_roll_joint": 20.0,
+#                 ".*_hip_pitch_joint": 32.0,
+#                 ".*_knee_joint": 20.0,
+#             },
+#             stiffness={
+#                 ".*_hip_yaw_joint": 100.0,
+#                 ".*_hip_roll_joint": 100.0,
+#                 ".*_hip_pitch_joint": 100.0,
+#                 ".*_knee_joint": 150.0,
+#             },
+#             damping={
+#                 ".*_hip_yaw_joint": 2.0,
+#                 ".*_hip_roll_joint": 2.0,
+#                 ".*_hip_pitch_joint": 2.0,
+#                 ".*_knee_joint": 4.0,
+#             },
+#             armature={
+#                 ".*_hip_.*": 0.01,
+#                 ".*_knee_joint": 0.01,
+#             },
+#         ),
+#         "feet": ImplicitActuatorCfg(
+#             effort_limit=50,
+#             velocity_limit=37,
+#             joint_names_expr=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
+#             stiffness=40.0,
+#             damping=2.0,
+#             armature=0.01,
+#         ),
+#     },
+# )
 
 
 G1_DEX_29 = ArticulationCfg(
