@@ -111,25 +111,75 @@ class ActionsCfg:
 
     joint_pos = mdp.JointPositionActionCfg(
         asset_name="robot", 
-        joint_names=[".*"], 
+        joint_names=[
+                     'left_hip_pitch_joint', 
+                     'left_hip_roll_joint', 
+                     'left_hip_yaw_joint', 
+                     'left_knee_joint', 
+                     'left_ankle_pitch_joint', 
+                     'left_ankle_roll_joint', 
+                     'right_hip_pitch_joint', 
+                     'right_hip_roll_joint', 
+                     'right_hip_yaw_joint', 
+                     'right_knee_joint', 
+                     'right_ankle_pitch_joint', 
+                     'right_ankle_roll_joint',
+                     ], 
         scale=0.25, 
         use_default_offset=True,
-        clip={
-            # # make wing
-            # "left_shoulder_roll_joint": (0.2, 0.4), 
-            # "right_shoulder_roll_joint": (-0.4, -0.2), 
-            # # waist limit
-            # "waist_roll_joint": (-0.05, 0.05), 
-            # "waist_pitch_joint": (-0.05, 0.05), 
-            # "waist_yaw_joint": (-0.01, 0.01), 
-            # # # leg limit
-            ".*_knee_joint": (0.4, 1.2), 
-            # "left_hip_roll_joint": (-0.2, 0.2), 
-            # "right_hip_roll_joint": (-0.2, 0.2),
-            # "left_hip_roll_joint": (0.0, 0.16), 
-            # "right_hip_roll_joint": (-0.16, -0.0), 
-            }
+        preserve_order=True,
+        # clip={
+        #     # # make wing
+        #     # "left_shoulder_roll_joint": (0.2, 0.4), 
+        #     # "right_shoulder_roll_joint": (-0.4, -0.2), 
+        #     # # waist limit
+        #     # "waist_roll_joint": (-0.05, 0.05), 
+        #     # "waist_pitch_joint": (-0.05, 0.05), 
+        #     # "waist_yaw_joint": (-0.01, 0.01), 
+        #     # # # leg limit
+        #     ".*_knee_joint": (0.4, 1.2), 
+        #     "left_hip_roll_joint": (-0.1, 1.0), 
+        #     "right_hip_roll_joint": (-1.0, 0.1),
+        #     # "left_hip_roll_joint": (0.0, 0.16), 
+        #     # "right_hip_roll_joint": (-0.16, -0.0), 
+        #     }
     )
+
+    # joint_pos = mdp.JointPositionActionCfg(
+    #     asset_name="robot", 
+    #     joint_names=[
+    #                  'left_hip_pitch_joint', 
+    #                  'left_hip_roll_joint', 
+    #                  'left_hip_yaw_joint', 
+    #                  'left_knee_joint', 
+    #                  'left_ankle_pitch_joint', 
+    #                  'left_ankle_roll_joint', 
+    #                  'right_hip_pitch_joint', 
+    #                  'right_hip_roll_joint', 
+    #                  'right_hip_yaw_joint', 
+    #                  'right_knee_joint', 
+    #                  'right_ankle_pitch_joint', 
+    #                  'right_ankle_roll_joint',
+    #                  ], 
+    #     scale=0.25, 
+    #     use_default_offset=True,
+    #     preserve_order=True,
+    #     # clip={
+    #     #     # # make wing
+    #     #     # "left_shoulder_roll_joint": (0.2, 0.4), 
+    #     #     # "right_shoulder_roll_joint": (-0.4, -0.2), 
+    #     #     # # waist limit
+    #     #     # "waist_roll_joint": (-0.05, 0.05), 
+    #     #     # "waist_pitch_joint": (-0.05, 0.05), 
+    #     #     # "waist_yaw_joint": (-0.01, 0.01), 
+    #     #     # # # leg limit
+    #     #     ".*_knee_joint": (0.4, 1.2), 
+    #     #     "left_hip_roll_joint": (-0.1, 1.0), 
+    #     #     "right_hip_roll_joint": (-1.0, 0.1),
+    #     #     # "left_hip_roll_joint": (0.0, 0.16), 
+    #     #     # "right_hip_roll_joint": (-0.16, -0.0), 
+    #     #     }
+    # )
 
 
 @configclass
@@ -147,12 +197,13 @@ class ObservationsCfg:
             func=mdp.projected_gravity,
             noise=Unoise(n_min=-0.05, n_max=0.05),
         )
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})
+        velocity_commands = ObsTerm(func=mdp.generated_commands, 
+                                    params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01),scale=1.0)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
-        sin_phase = ObsTerm(func=mdp.sin_phase)
-        cos_phase = ObsTerm(func=mdp.cos_phase)
+        # sin_phase = ObsTerm(func=mdp.sin_phase)
+        # cos_phase = ObsTerm(func=mdp.cos_phase)
         # height_scan = ObsTerm(
         #     func=mdp.height_scan,
         #     params={"sensor_cfg": SceneEntityCfg("height_scanner")},
@@ -276,7 +327,7 @@ class RewardsCfg:
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
     )
     # -- optional penalties
-    base_height = RewTerm(func=mdp.base_height_l2, weight=-2.0, params={"target_height": 0.65})
+    base_height = RewTerm(func=mdp.base_height_l2, weight=-10.0, params={"target_height": 0.68})
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
 
