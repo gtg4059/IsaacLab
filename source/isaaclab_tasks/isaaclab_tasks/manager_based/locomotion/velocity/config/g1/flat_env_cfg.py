@@ -23,10 +23,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # self.observations.policy.height_scan = None
         # no terrain curriculum
         self.curriculum.terrain_levels = None
-        # New Rewards
-        # self.rewards.joint_deviation_arms.weight = -1.0
-        # self.rewards.joint_deviation_torso.weight = -1.0
-        # self.rewards.joint_deviation_fingers.weight = -0.1
+
         self.rewards.joint_deviation_legs.weight = -1.0
         # Rewards
         self.rewards.track_ang_vel_z_exp.weight = 1.0
@@ -39,6 +36,11 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
+        # G1_29_no_hand
+        self.rewards.joint_deviation_arms.weight = -1.0
+        self.rewards.joint_deviation_torso.weight = -1.0
+        # G1_inspire_hand
+        # self.rewards.joint_deviation_fingers.weight = -0.1
 
         # another rewards for balance about of time-two-legs contact time
         # balance_air_time, xx_pos_limit

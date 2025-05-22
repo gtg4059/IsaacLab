@@ -64,37 +64,6 @@ class G1Rewards(RewardsCfg):
         weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint"])},
     )
-    # joint_deviation_arms = RewTerm(
-    #     func=mdp.joint_deviation_l1,
-    #     weight=-0.1,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg(
-    #             "robot",
-    #             joint_names=[
-    #                 ".*_shoulder_pitch_joint",
-    #                 ".*_shoulder_roll_joint",
-    #                 ".*_shoulder_yaw_joint",
-    #                 ".*_elbow_joint",
-    #                 ".*_wrist_roll_joint",
-    #                 ".*_wrist_pitch_joint",
-    #                 ".*_wrist_yaw_joint",
-    #             ],
-    #         )
-    #     },
-    # )
-    # joint_deviation_fingers = RewTerm(
-    #     func=mdp.joint_deviation_l1,
-    #     weight=-0.05,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg(
-    #             "robot",
-    #             joint_names=[
-    #                 "R_.*",
-    #                 "L_.*",
-    #             ],
-    #         )
-    #     },
-    # )
     joint_deviation_legs = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-0.1,
@@ -112,16 +81,7 @@ class G1Rewards(RewardsCfg):
             )
         },
     )
-    # joint_deviation_torso = RewTerm(
-    #     func=mdp.joint_deviation_l1,
-    #     weight=-0.1,
-    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
-    #         "waist_roll_joint",
-    #         "waist_pitch_joint",
-    #         "waist_yaw_joint",
-    #     ])},
-    # )
-
+    
     balance_air_time = RewTerm(
         func=mdp.balance_air_time_reward,
         weight=1.0,
@@ -130,6 +90,49 @@ class G1Rewards(RewardsCfg):
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
         },
     )
+
+    # G1_29_no_hand
+    joint_deviation_torso = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-0.1,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
+            "waist_roll_joint",
+            "waist_pitch_joint",
+            "waist_yaw_joint",
+        ])},
+    )
+    joint_deviation_arms = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-0.1,
+        params={
+            "asset_cfg": SceneEntityCfg(
+                "robot",
+                joint_names=[
+                    # ".*_shoulder_pitch_joint",
+                    # ".*_shoulder_roll_joint",
+                    ".*_shoulder_yaw_joint",
+                    ".*_elbow_joint",
+                    ".*_wrist_roll_joint",
+                    ".*_wrist_pitch_joint",
+                    ".*_wrist_yaw_joint",
+                ],
+            )
+        },
+    )
+
+    # joint_deviation_fingers = RewTerm(
+    #     func=mdp.joint_deviation_l1,
+    #     weight=-0.05,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg(
+    #             "robot",
+    #             joint_names=[
+    #                 "R_.*",
+    #                 "L_.*",
+    #             ],
+    #         )
+    #     },
+    # )
 
 
 @configclass
@@ -143,24 +146,26 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # # G1_inspire_hand
         # self.scene.robot = G1_DEX.replace(prim_path="{ENV_REGEX_NS}/Robot")
         # self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/waist_yaw_link/visuals/torso_link_rev_1_0"
-        # # G1_no_hand
-        # self.scene.robot = G1_DEX_29.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        # self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
-        # G1_12
-        self.scene.robot = G1_12.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/pelvis"
+        # G1_29_no_hand
+        self.scene.robot = G1_DEX_29.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
+        # # G1_12
+        # self.scene.robot = G1_12.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        # self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/pelvis"
 
         # Randomization
         # self.events.push_robot = None
         # self.events.add_base_mass = None
 
         self.events.reset_robot_joints.params["position_range"] = (1.0, 1.0)
+
         # # G1_inspire_hand
         # self.events.base_external_force_torque.params["asset_cfg"].body_names = ["waist_yaw_link"]
-        # # G1_no_hand
-        # self.events.base_external_force_torque.params["asset_cfg"].body_names = ["torso_link"]
-        # G1_12
-        self.events.base_external_force_torque.params["asset_cfg"].body_names = ["pelvis"]
+        # G1_29_no_hand
+        self.events.base_external_force_torque.params["asset_cfg"].body_names = ["torso_link"]
+        # # G1_12
+        # self.events.base_external_force_torque.params["asset_cfg"].body_names = ["pelvis"]
+
         self.events.reset_base.params = {
             "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
             "velocity_range": {
@@ -195,10 +200,10 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # terminations
         # # G1_inspire_hand
         # self.terminations.base_contact.params["sensor_cfg"].body_names = "waist_yaw_link"
-        # # G1_no_hand
-        # self.terminations.base_contact.params["sensor_cfg"].body_names = "torso_link"
-        # G1_12
-        self.terminations.base_contact.params["sensor_cfg"].body_names = "pelvis"
+        # G1_29_no_hand
+        self.terminations.base_contact.params["sensor_cfg"].body_names = "torso_link"
+        # # G1_12
+        # self.terminations.base_contact.params["sensor_cfg"].body_names = "pelvis"
 
 
 @configclass
