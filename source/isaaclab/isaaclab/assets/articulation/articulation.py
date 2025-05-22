@@ -1425,6 +1425,7 @@ class Articulation(AssetBase):
                 self._joint_vel_target_sim[:, actuator.joint_indices] = control_action.joint_velocities
             if control_action.joint_efforts is not None:
                 self._joint_effort_target_sim[:, actuator.joint_indices] = control_action.joint_efforts
+            # print("actuator.joint_indices:",actuator.joint_indices)
             # update state of the actuator model
             # -- torques
             self._data.computed_torque[:, actuator.joint_indices] = actuator.computed_effort

@@ -109,7 +109,7 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_pos = mdp.RelativeJointPositionActionCfg(
+    joint_pos = mdp.JointPositionActionCfg(
         asset_name="robot", 
         joint_names=[
                      'left_hip_pitch_joint', 
@@ -126,7 +126,7 @@ class ActionsCfg:
                      'right_ankle_roll_joint',
                      ], 
         scale=0.25, 
-        # use_default_offset=True,
+        use_default_offset=True,
         preserve_order=True,
         # clip={
         #     # # make wing
@@ -199,8 +199,44 @@ class ObservationsCfg:
         )
         velocity_commands = ObsTerm(func=mdp.generated_commands, 
                                     params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01),scale=1.0)
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel, 
+                            params={"asset_cfg": SceneEntityCfg("robot",
+                                    joint_names=[
+                                                'left_hip_pitch_joint', 
+                                                'left_hip_roll_joint', 
+                                                'left_hip_yaw_joint', 
+                                                'left_knee_joint', 
+                                                'left_ankle_pitch_joint', 
+                                                'left_ankle_roll_joint', 
+                                                'right_hip_pitch_joint', 
+                                                'right_hip_roll_joint', 
+                                                'right_hip_yaw_joint', 
+                                                'right_knee_joint', 
+                                                'right_ankle_pitch_joint', 
+                                                'right_ankle_roll_joint',
+                                                ],
+                                    preserve_order=True,
+                                    )},
+                            noise=Unoise(n_min=-0.01, n_max=0.01),scale=1.0)
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, 
+                            params={"asset_cfg": SceneEntityCfg("robot",
+                                    joint_names=[
+                                                'left_hip_pitch_joint', 
+                                                'left_hip_roll_joint', 
+                                                'left_hip_yaw_joint', 
+                                                'left_knee_joint', 
+                                                'left_ankle_pitch_joint', 
+                                                'left_ankle_roll_joint', 
+                                                'right_hip_pitch_joint', 
+                                                'right_hip_roll_joint', 
+                                                'right_hip_yaw_joint', 
+                                                'right_knee_joint', 
+                                                'right_ankle_pitch_joint', 
+                                                'right_ankle_roll_joint',
+                                                ],
+                                    preserve_order=True,
+                                    )},
+                            noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         # sin_phase = ObsTerm(func=mdp.sin_phase)
         # cos_phase = ObsTerm(func=mdp.cos_phase)
@@ -209,7 +245,7 @@ class ObservationsCfg:
         #     params={"sensor_cfg": SceneEntityCfg("height_scanner")},
         #     noise=Unoise(n_min=-0.1, n_max=0.1),
         #     clip=(-1.0, 1.0),
-        # )
+        # )  asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
         #########################################################################################
         
 

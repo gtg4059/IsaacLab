@@ -71,7 +71,6 @@ class JointAction(ActionTerm):
             f"Resolved joint names for the action term {self.__class__.__name__}:"
             f" {self._joint_names} [{self._joint_ids}]"
         )
-
         # Avoid indexing across all joints for efficiency
         if self._num_joints == self._asset.num_joints and not self.cfg.preserve_order:
             self._joint_ids = slice(None)
