@@ -128,21 +128,21 @@ class ActionsCfg:
         scale=0.25, 
         use_default_offset=True,
         preserve_order=True,
-        # clip={
-        #     # # make wing
-        #     # "left_shoulder_roll_joint": (0.2, 0.4), 
-        #     # "right_shoulder_roll_joint": (-0.4, -0.2), 
-        #     # # waist limit
-        #     # "waist_roll_joint": (-0.05, 0.05), 
-        #     # "waist_pitch_joint": (-0.05, 0.05), 
-        #     # "waist_yaw_joint": (-0.01, 0.01), 
-        #     # # # leg limit
-        #     ".*_knee_joint": (0.4, 1.2), 
-        #     "left_hip_roll_joint": (-0.1, 1.0), 
-        #     "right_hip_roll_joint": (-1.0, 0.1),
-        #     # "left_hip_roll_joint": (0.0, 0.16), 
-        #     # "right_hip_roll_joint": (-0.16, -0.0), 
-        #     }
+        clip={
+            # # make wing
+            # "left_shoulder_roll_joint": (0.2, 0.4), 
+            # "right_shoulder_roll_joint": (-0.4, -0.2), 
+            # # waist limit
+            # "waist_roll_joint": (-0.05, 0.05), 
+            # "waist_pitch_joint": (-0.05, 0.05), 
+            # "waist_yaw_joint": (-0.01, 0.01), 
+            # # # leg limit
+            ".*_knee_joint": (0.4, 1.2), 
+            "left_hip_roll_joint": (-0.2, 1.0), 
+            "right_hip_roll_joint": (-1.0, 0.2),
+            # "left_hip_roll_joint": (0.0, 0.16), 
+            # "right_hip_roll_joint": (-0.16, -0.0), 
+            }
     )
 
     # joint_pos = mdp.JointPositionActionCfg(
