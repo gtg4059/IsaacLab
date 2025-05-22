@@ -145,42 +145,6 @@ class ActionsCfg:
             }
     )
 
-    # joint_pos = mdp.JointPositionActionCfg(
-    #     asset_name="robot", 
-    #     joint_names=[
-    #                  'left_hip_pitch_joint', 
-    #                  'left_hip_roll_joint', 
-    #                  'left_hip_yaw_joint', 
-    #                  'left_knee_joint', 
-    #                  'left_ankle_pitch_joint', 
-    #                  'left_ankle_roll_joint', 
-    #                  'right_hip_pitch_joint', 
-    #                  'right_hip_roll_joint', 
-    #                  'right_hip_yaw_joint', 
-    #                  'right_knee_joint', 
-    #                  'right_ankle_pitch_joint', 
-    #                  'right_ankle_roll_joint',
-    #                  ], 
-    #     scale=0.25, 
-    #     use_default_offset=True,
-    #     preserve_order=True,
-    #     # clip={
-    #     #     # # make wing
-    #     #     # "left_shoulder_roll_joint": (0.2, 0.4), 
-    #     #     # "right_shoulder_roll_joint": (-0.4, -0.2), 
-    #     #     # # waist limit
-    #     #     # "waist_roll_joint": (-0.05, 0.05), 
-    #     #     # "waist_pitch_joint": (-0.05, 0.05), 
-    #     #     # "waist_yaw_joint": (-0.01, 0.01), 
-    #     #     # # # leg limit
-    #     #     ".*_knee_joint": (0.4, 1.2), 
-    #     #     "left_hip_roll_joint": (-0.1, 1.0), 
-    #     #     "right_hip_roll_joint": (-1.0, 0.1),
-    #     #     # "left_hip_roll_joint": (0.0, 0.16), 
-    #     #     # "right_hip_roll_joint": (-0.16, -0.0), 
-    #     #     }
-    # )
-
 
 @configclass
 class ObservationsCfg:
@@ -214,6 +178,24 @@ class ObservationsCfg:
                                                 'right_knee_joint', 
                                                 'right_ankle_pitch_joint', 
                                                 'right_ankle_roll_joint',
+                                                # # 29_dof
+                                                # "waist_yaw_joint",
+                                                # "waist_roll_joint",
+                                                # "waist_pitch_joint",
+                                                # "left_shoulder_pitch_joint",
+                                                # "left_shoulder_roll_joint",
+                                                # "left_shoulder_yaw_joint",
+                                                # "left_elbow_joint",
+                                                # "left_wrist_roll_joint",
+                                                # "left_wrist_pitch_joint",
+                                                # "left_wrist_yaw_joint",
+                                                # "right_shoulder_pitch_joint",
+                                                # "right_shoulder_roll_joint",
+                                                # "right_shoulder_yaw_joint",
+                                                # "right_elbow_joint",
+                                                # "right_wrist_roll_joint",
+                                                # "right_wrist_pitch_joint",
+                                                # "right_wrist_yaw_joint",
                                                 ],
                                     preserve_order=True,
                                     )},

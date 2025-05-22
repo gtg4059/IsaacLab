@@ -197,7 +197,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # self.terminations.base_contact.params["sensor_cfg"].body_names = "waist_yaw_link"
         # # G1_no_hand
         # self.terminations.base_contact.params["sensor_cfg"].body_names = "torso_link"
-        # G1_no_hand
+        # G1_12
         self.terminations.base_contact.params["sensor_cfg"].body_names = "pelvis"
 
 
