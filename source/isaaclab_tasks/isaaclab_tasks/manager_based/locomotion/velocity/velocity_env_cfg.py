@@ -142,17 +142,41 @@ class ActionsCfg:
 
     joint_pos = mdp.JointPositionActionCfg(
         asset_name="robot", 
-        joint_names=[".*"], 
-        scale=0.5, 
+        joint_names=[
+                     'left_hip_pitch_joint', 
+                     'left_hip_roll_joint', 
+                     'left_hip_yaw_joint', 
+                     'left_knee_joint', 
+                     'left_ankle_pitch_joint', 
+                     'left_ankle_roll_joint', 
+                     'right_hip_pitch_joint', 
+                     'right_hip_roll_joint', 
+                     'right_hip_yaw_joint', 
+                     'right_knee_joint', 
+                     'right_ankle_pitch_joint', 
+                     'right_ankle_roll_joint',
+                     # G1_29_no_hand
+                    "waist_yaw_joint",
+                    "waist_roll_joint",
+                    "waist_pitch_joint",
+                    "left_shoulder_pitch_joint",
+                    "left_shoulder_roll_joint",
+                    "left_shoulder_yaw_joint",
+                    "left_elbow_joint",
+                    "left_wrist_roll_joint",
+                    "left_wrist_pitch_joint",
+                    "left_wrist_yaw_joint",
+                    "right_shoulder_pitch_joint",
+                    "right_shoulder_roll_joint",
+                    "right_shoulder_yaw_joint",
+                    "right_elbow_joint",
+                    "right_wrist_roll_joint",
+                    "right_wrist_pitch_joint",
+                    "right_wrist_yaw_joint",
+                     ], 
+        scale=0.25, 
         use_default_offset=True,
-        clip={
-              ".*_shoulder_pitch_joint": (-0.2, 0.2), 
-               "left_shoulder_roll_joint": (0.0, 0.3), 
-               "right_shoulder_roll_joint": (-0.3, -0.0), 
-            #   ".*_elbow_joint": (-1.047, 1.57),
-               "left_hip_roll_joint": (0.0, 0.2), 
-               "right_hip_roll_joint": (-0.2, -0.0), 
-            }
+        preserve_order=True,
     )
 
 
@@ -165,23 +189,198 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
-        base_lin_vel = ObsTerm(func=mdp.base_lin_vel, noise=Unoise(n_min=-0.1, n_max=0.1))
-        base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2))
+        base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2),scale=0.25)
         projected_gravity = ObsTerm(
             func=mdp.projected_gravity,
             noise=Unoise(n_min=-0.05, n_max=0.05),
         )
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-1.5, n_max=1.5))
+        velocity_commands = ObsTerm(func=mdp.generated_commands, 
+                                    params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel, 
+                            params={"asset_cfg": SceneEntityCfg("robot",
+                                    joint_names=[
+                                                'left_hip_pitch_joint', 
+                                                'left_hip_roll_joint', 
+                                                'left_hip_yaw_joint', 
+                                                'left_knee_joint', 
+                                                'left_ankle_pitch_joint', 
+                                                'left_ankle_roll_joint', 
+                                                'right_hip_pitch_joint', 
+                                                'right_hip_roll_joint', 
+                                                'right_hip_yaw_joint', 
+                                                'right_knee_joint', 
+                                                'right_ankle_pitch_joint', 
+                                                'right_ankle_roll_joint',
+                                                # G1_29_no_hand
+                                                "waist_yaw_joint",
+                                                "waist_roll_joint",
+                                                "waist_pitch_joint",
+                                                "left_shoulder_pitch_joint",
+                                                "left_shoulder_roll_joint",
+                                                "left_shoulder_yaw_joint",
+                                                "left_elbow_joint",
+                                                "left_wrist_roll_joint",
+                                                "left_wrist_pitch_joint",
+                                                "left_wrist_yaw_joint",
+                                                "right_shoulder_pitch_joint",
+                                                "right_shoulder_roll_joint",
+                                                "right_shoulder_yaw_joint",
+                                                "right_elbow_joint",
+                                                "right_wrist_roll_joint",
+                                                "right_wrist_pitch_joint",
+                                                "right_wrist_yaw_joint",
+                                                ],
+                                    preserve_order=True,
+                                    )},
+                            noise=Unoise(n_min=-0.01, n_max=0.01),scale=1.0)
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, 
+                            params={"asset_cfg": SceneEntityCfg("robot",
+                                    joint_names=[
+                                                'left_hip_pitch_joint', 
+                                                'left_hip_roll_joint', 
+                                                'left_hip_yaw_joint', 
+                                                'left_knee_joint', 
+                                                'left_ankle_pitch_joint', 
+                                                'left_ankle_roll_joint', 
+                                                'right_hip_pitch_joint', 
+                                                'right_hip_roll_joint', 
+                                                'right_hip_yaw_joint', 
+                                                'right_knee_joint', 
+                                                'right_ankle_pitch_joint', 
+                                                'right_ankle_roll_joint',
+                                                # G1_29_no_hand
+                                                "waist_yaw_joint",
+                                                "waist_roll_joint",
+                                                "waist_pitch_joint",
+                                                "left_shoulder_pitch_joint",
+                                                "left_shoulder_roll_joint",
+                                                "left_shoulder_yaw_joint",
+                                                "left_elbow_joint",
+                                                "left_wrist_roll_joint",
+                                                "left_wrist_pitch_joint",
+                                                "left_wrist_yaw_joint",
+                                                "right_shoulder_pitch_joint",
+                                                "right_shoulder_roll_joint",
+                                                "right_shoulder_yaw_joint",
+                                                "right_elbow_joint",
+                                                "right_wrist_roll_joint",
+                                                "right_wrist_pitch_joint",
+                                                "right_wrist_yaw_joint",
+                                                ],
+                                    preserve_order=True,
+                                    )},
+                            noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
-        height_scan = ObsTerm(
-            func=mdp.height_scan,
-            params={"sensor_cfg": SceneEntityCfg("height_scanner")},
-            noise=Unoise(n_min=-0.1, n_max=0.1),
-            clip=(-1.0, 1.0),
-        )
+        sin_phase = ObsTerm(func=mdp.sin_phase)
+        cos_phase = ObsTerm(func=mdp.cos_phase)
+        # height_scan = ObsTerm(
+        #     func=mdp.height_scan,
+        #     params={"sensor_cfg": SceneEntityCfg("height_scanner")},
+        #     noise=Unoise(n_min=-0.1, n_max=0.1),
+        #     clip=(-1.0, 1.0),
+        # )  asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
         #########################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})
+        
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+    @configclass
+    class CriticCfg(ObsGroup):
+        # observation terms (order preserved)
+        base_lin_vel = ObsTerm(func=mdp.base_lin_vel, noise=Unoise(n_min=-0.1, n_max=0.1),scale=2.0)
+        base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2),scale=0.25)
+        projected_gravity = ObsTerm(
+            func=mdp.projected_gravity,
+            noise=Unoise(n_min=-0.05, n_max=0.05),
+        )
+        velocity_commands = ObsTerm(func=mdp.generated_commands, 
+                                    params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel, 
+                            params={"asset_cfg": SceneEntityCfg("robot",
+                                    joint_names=[
+                                                'left_hip_pitch_joint', 
+                                                'left_hip_roll_joint', 
+                                                'left_hip_yaw_joint', 
+                                                'left_knee_joint', 
+                                                'left_ankle_pitch_joint', 
+                                                'left_ankle_roll_joint', 
+                                                'right_hip_pitch_joint', 
+                                                'right_hip_roll_joint', 
+                                                'right_hip_yaw_joint', 
+                                                'right_knee_joint', 
+                                                'right_ankle_pitch_joint', 
+                                                'right_ankle_roll_joint',
+                                                # G1_29_no_hand
+                                                "waist_yaw_joint",
+                                                "waist_roll_joint",
+                                                "waist_pitch_joint",
+                                                "left_shoulder_pitch_joint",
+                                                "left_shoulder_roll_joint",
+                                                "left_shoulder_yaw_joint",
+                                                "left_elbow_joint",
+                                                "left_wrist_roll_joint",
+                                                "left_wrist_pitch_joint",
+                                                "left_wrist_yaw_joint",
+                                                "right_shoulder_pitch_joint",
+                                                "right_shoulder_roll_joint",
+                                                "right_shoulder_yaw_joint",
+                                                "right_elbow_joint",
+                                                "right_wrist_roll_joint",
+                                                "right_wrist_pitch_joint",
+                                                "right_wrist_yaw_joint",
+                                                ],
+                                    preserve_order=True,
+                                    )},
+                            noise=Unoise(n_min=-0.01, n_max=0.01),scale=1.0)
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, 
+                            params={"asset_cfg": SceneEntityCfg("robot",
+                                    joint_names=[
+                                                'left_hip_pitch_joint', 
+                                                'left_hip_roll_joint', 
+                                                'left_hip_yaw_joint', 
+                                                'left_knee_joint', 
+                                                'left_ankle_pitch_joint', 
+                                                'left_ankle_roll_joint', 
+                                                'right_hip_pitch_joint', 
+                                                'right_hip_roll_joint', 
+                                                'right_hip_yaw_joint', 
+                                                'right_knee_joint', 
+                                                'right_ankle_pitch_joint', 
+                                                'right_ankle_roll_joint',
+                                                # G1_29_no_hand
+                                                "waist_yaw_joint",
+                                                "waist_roll_joint",
+                                                "waist_pitch_joint",
+                                                "left_shoulder_pitch_joint",
+                                                "left_shoulder_roll_joint",
+                                                "left_shoulder_yaw_joint",
+                                                "left_elbow_joint",
+                                                "left_wrist_roll_joint",
+                                                "left_wrist_pitch_joint",
+                                                "left_wrist_yaw_joint",
+                                                "right_shoulder_pitch_joint",
+                                                "right_shoulder_roll_joint",
+                                                "right_shoulder_yaw_joint",
+                                                "right_elbow_joint",
+                                                "right_wrist_roll_joint",
+                                                "right_wrist_pitch_joint",
+                                                "right_wrist_yaw_joint",
+                                                ],
+                                    preserve_order=True,
+                                    )},
+                            noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
+        actions = ObsTerm(func=mdp.last_action)
+        sin_phase = ObsTerm(func=mdp.sin_phase)
+        cos_phase = ObsTerm(func=mdp.cos_phase)
+        # height_scan = ObsTerm(
+        #     func=mdp.height_scan,
+        #     params={"sensor_cfg": SceneEntityCfg("height_scanner")},
+        #     noise=Unoise(n_min=-0.1, n_max=0.1),
+        #     clip=(-1.0, 1.0),
+        # )  asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+        #########################################################################################
+        
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -189,6 +388,7 @@ class ObservationsCfg:
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
+    critic: CriticCfg = CriticCfg()
 
 
 @configclass
@@ -201,19 +401,32 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (0.8, 0.8),
-            "dynamic_friction_range": (0.6, 0.6),
+            "static_friction_range": (0.1, 1.25),
+            "dynamic_friction_range": (0.1, 1.25),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
+            "make_consistent": True
         },
     )
+
+    # robot_joint_stiffness_and_damping = EventTerm(
+    #     func=mdp.randomize_actuator_gains,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+    #         "stiffness_distribution_params": (0.75, 1.5),
+    #         "damping_distribution_params": (0.3, 3.0),
+    #         "operation": "scale",
+    #         "distribution": "log_uniform",
+    #     },
+    # )
 
     add_base_mass = EventTerm(
         func=mdp.randomize_rigid_body_mass,
         mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="base"),
-            "mass_distribution_params": (-5.0, 5.0),
+            "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
+            "mass_distribution_params": (-1., 3.),
             "operation": "add",
         },
     )
@@ -259,7 +472,8 @@ class EventCfg:
         func=mdp.push_by_setting_velocity,
         mode="interval",
         interval_range_s=(10.0, 15.0),
-        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
+        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+        # params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
     )
 
 
