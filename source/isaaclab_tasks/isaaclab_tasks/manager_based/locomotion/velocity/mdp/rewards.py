@@ -126,6 +126,26 @@ def balance_air_time_reward(env, command_name: str, sensor_cfg: SceneEntityCfg) 
     return adjusted_penalty +low_air_time_penalty
 
 
+def foot_clearance_reward(
+    env: ManagerBasedRLEnv, 
+    asset_cfg: SceneEntityCfg,
+    sensor_cfg: SceneEntityCfg,
+    target_height: float, std: float
+) -> torch.Tensor:
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    # compute the reward
+    air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]
+    contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
+    in_contact = contact_time > 0.0
+    in_mode_time = torch.where(in_contact, contact_time, air_time)
+    single_stance = torch.sum(in_contact.int(), dim=1) == 1
+    """Reward the swinging feet for clearing a specified height off the ground"""
+    asset = env.scene[asset_cfg.name]
+    reward = torch.square(asset.data.body_pos_w[:, asset_cfg.body_ids, 2] - target_height)
+    # print(single_stance)
+    return torch.exp(-torch.sum(reward, dim=1) / std)*single_stance
+
+
 def track_lin_vel_xy_yaw_frame_exp(
     env, std: float, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:

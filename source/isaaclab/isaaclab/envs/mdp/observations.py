@@ -11,7 +11,7 @@ the observation introduced by the function.
 
 from __future__ import annotations
 
-import torch
+import torch, math
 from typing import TYPE_CHECKING
 
 import isaaclab.utils.math as math_utils
@@ -591,3 +591,15 @@ def generated_commands(env: ManagerBasedRLEnv, command_name: str) -> torch.Tenso
     """The generated command from command term in the command manager with the given name."""
     # print("env.command_manager.get_command(command_name)",env.command_manager.get_command(command_name))
     return env.command_manager.get_command(command_name)
+
+"""
+Phases.
+"""
+
+def sin_phase(env: ManagerBasedRLEnv) -> torch.Tensor:
+    phase = (env.episode_length_buf * 0.02) % 0.8 / 0.8
+    return torch.sin(2 * math.pi * phase ).unsqueeze(1)
+    
+def cos_phase(env: ManagerBasedRLEnv)  -> torch.Tensor:
+    phase = (env.episode_length_buf * 0.02) % 0.8 / 0.8
+    return torch.cos(2 * math.pi * phase ).unsqueeze(1)
