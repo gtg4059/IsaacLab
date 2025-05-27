@@ -131,8 +131,7 @@ G1_12 = ArticulationCfg(
 
 G1_DEX_29 = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0/g1_29dof_rev_1_0.usd",
-        usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/g1_29dof_rev_1_1/g1_29dof_rev_1_0.usd",
+        usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0/g1_29dof_rev_1_0.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
