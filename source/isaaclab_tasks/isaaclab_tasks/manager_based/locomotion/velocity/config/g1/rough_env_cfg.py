@@ -33,13 +33,23 @@ class G1Rewards(RewardsCfg):
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "base_velocity", "std": 0.5}
     )
-    feet_air_time = RewTerm(
-        func=mdp.feet_air_time_positive_biped,
-        weight=0.25,
+    # feet_air_time = RewTerm(
+    #     func=mdp.feet_air_time_positive_biped,
+    #     weight=0.25,
+    #     params={
+    #         "command_name": "base_velocity",
+    #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
+    #         "threshold": 0.4,
+    #     },
+    # )
+    foot_clearance = RewTerm(
+        func=mdp.foot_clearance_reward,
+        weight=0.5,
         params={
-            "command_name": "base_velocity",
+            "std": 0.05,
+            "target_height": 0.1,
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_foot"),
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
-            "threshold": 0.4,
         },
     )
     feet_slide = RewTerm(
@@ -64,23 +74,23 @@ class G1Rewards(RewardsCfg):
         weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint"])},
     )
-    joint_deviation_legs = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-0.1,
-        params={
-            "asset_cfg": SceneEntityCfg(
-                "robot",
-                joint_names=[
-                    # ".*_hip_yaw_joint",
-                    # ".*_hip_roll_joint",
-                    # ".*_hip_pitch_joint",
-                    # ".*_knee_joint",
-                    ".*_ankle_pitch_joint", 
-                    # ".*_ankle_roll_joint"
-                ],
-            )
-        },
-    )
+    # joint_deviation_legs = RewTerm(
+    #     func=mdp.joint_deviation_l1,
+    #     weight=-0.1,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg(
+    #             "robot",
+    #             joint_names=[
+    #                 # ".*_hip_yaw_joint",
+    #                 # ".*_hip_roll_joint",
+    #                 # ".*_hip_pitch_joint",
+    #                 # ".*_knee_joint",
+    #                 ".*_ankle_pitch_joint", 
+    #                 # ".*_ankle_roll_joint"
+    #             ],
+    #         )
+    #     },
+    # )
     
     balance_air_time = RewTerm(
         func=mdp.balance_air_time_reward,
@@ -108,8 +118,8 @@ class G1Rewards(RewardsCfg):
             "asset_cfg": SceneEntityCfg(
                 "robot",
                 joint_names=[
-                    # ".*_shoulder_pitch_joint",
-                    # ".*_shoulder_roll_joint",
+                    ".*_shoulder_pitch_joint",
+                    ".*_shoulder_roll_joint",
                     ".*_shoulder_yaw_joint",
                     ".*_elbow_joint",
                     ".*_wrist_roll_joint",
@@ -120,6 +130,7 @@ class G1Rewards(RewardsCfg):
         },
     )
 
+    # # G1_inspire_hand
     # joint_deviation_fingers = RewTerm(
     #     func=mdp.joint_deviation_l1,
     #     weight=-0.05,
@@ -182,6 +193,10 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.lin_vel_z_l2.weight = 0.0
         self.rewards.undesired_contacts = None
         self.rewards.flat_orientation_l2.weight = -1.0
+        # self.rewards.flat_orientation_l2_foot.weight = -5.0
+        # self.rewards.flat_orientation_l2_foot.params["asset_cfg"] = SceneEntityCfg(
+        #     "robot", body_names=".*_ankle_roll_link"
+        # )
         self.rewards.action_rate_l2.weight = -0.005
         self.rewards.dof_acc_l2.weight = -1.25e-7
         self.rewards.dof_acc_l2.params["asset_cfg"] = SceneEntityCfg(

@@ -117,6 +117,7 @@ def main():
 
     # export policy to onnx/jit
     export_model_dir = os.path.join(os.path.dirname(resume_path), "exported")
+    print("export_model_dir:",export_model_dir)
     export_policy_as_jit(
         ppo_runner.alg.policy , ppo_runner.obs_normalizer, path=export_model_dir, filename="policy.pt"
     )

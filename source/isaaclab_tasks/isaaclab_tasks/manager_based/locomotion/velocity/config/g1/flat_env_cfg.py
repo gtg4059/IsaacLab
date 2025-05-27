@@ -23,40 +23,46 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # self.observations.policy.height_scan = None
         # no terrain curriculum
         self.curriculum.terrain_levels = None
+        # self.rewards.joint_deviation_legs.weight = -1.0
 
-        self.rewards.joint_deviation_legs.weight = -1.0
         # Rewards
         self.rewards.track_ang_vel_z_exp.weight = 1.0
         self.rewards.lin_vel_z_l2.weight = -0.2
         self.rewards.action_rate_l2.weight = -0.005
         self.rewards.dof_acc_l2.weight = -1.0e-7
-        self.rewards.feet_air_time.weight = 0.5
-        self.rewards.feet_air_time.params["threshold"] = 0.4
+        # self.rewards.feet_air_time.weight = 1.0
+        # self.rewards.feet_air_time.params["threshold"] = 0.4
+        self.rewards.foot_clearance.weight = 0.2
+        self.rewards.foot_clearance.params["asset_cfg"] = SceneEntityCfg(
+            "robot", body_names=[".*_ankle_roll_link"]
+        )
         self.rewards.dof_torques_l2.weight = -2.0e-6
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
         # G1_29_no_hand
         self.rewards.joint_deviation_arms.weight = -1.0
-        self.rewards.joint_deviation_torso.weight = -1.0
+        self.rewards.joint_deviation_torso.weight = -2.5
         # G1_inspire_hand
         # self.rewards.joint_deviation_fingers.weight = -0.1
 
         # another rewards for balance about of time-two-legs contact time
         # balance_air_time, xx_pos_limit
-        self.rewards.balance_air_time.weight = 0.001
+        self.rewards.balance_air_time.weight = 0.0001
         self.rewards.balance_air_time.params["command_name"] = "base_velocity"
         self.rewards.balance_air_time.params["sensor_cfg"] = SceneEntityCfg("contact_forces", body_names = [".*_ankle_roll_link"])
 
         # Commands
+        # self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
+        # self.commands.base_velocity.ranges.lin_vel_y = (-1.0, 1.0)
+        # self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
+        # self.commands.base_velocity.ranges.heading = (-3.14, 3.14)
+
+        self.commands.base_velocity.heading_command=False
         self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
         self.commands.base_velocity.ranges.lin_vel_y = (-1.0, 1.0)
         self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
-        self.commands.base_velocity.ranges.heading = (-3.14, 3.14)
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.6, 1.0)
-        # self.commands.base_velocity.ranges.lin_vel_y = (-0.01, 0.01)
-        # self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
-        # self.commands.base_velocity.ranges.heading = (-0.01, 0.01)
+        
         
 
 
