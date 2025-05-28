@@ -472,7 +472,8 @@ class EventCfg:
         func=mdp.push_by_setting_velocity,
         mode="interval",
         interval_range_s=(10.0, 15.0),
-        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+        # params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+        params={"velocity_range": {"x": (-1.0, 1.0), "y": (-1.0, 1.0)}},
         # params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
     )
 
@@ -493,7 +494,7 @@ class RewardsCfg:
         func=mdp.track_lin_vel_xy_exp, weight=1.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_exp, weight=0.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_ang_vel_z_exp, weight=2.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     
     # -- penalties
@@ -516,11 +517,7 @@ class RewardsCfg:
         weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
     )
-    base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-2.0, params={
-            "target_height": 0.7, 
-            # "sensor_cfg": SceneEntityCfg("height_scanner")
-        }
-    )
+    base_height = RewTerm(func=mdp.base_height_l2, weight=-10.0, params={"target_height": 0.70})
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
@@ -537,6 +534,9 @@ class TerminationsCfg:
     )
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("robot")}
+    )
+    bad_position = DoneTerm(
+        func=mdp.bad_position, params={"limit_dist": 5.0, "asset_cfg": SceneEntityCfg("robot")}
     )
 
 

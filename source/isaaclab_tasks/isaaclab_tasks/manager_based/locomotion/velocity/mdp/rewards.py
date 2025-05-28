@@ -62,7 +62,7 @@ def feet_air_time_positive_biped(env, command_name: str, threshold: float, senso
     reward = torch.min(torch.where(single_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
     reward = torch.clamp(reward, max=threshold)
     # reward for zero command
-    reward *= torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) < 0.1
+    # reward *= torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) < 0.1
     #print("reward:",reward)
     return reward
 
