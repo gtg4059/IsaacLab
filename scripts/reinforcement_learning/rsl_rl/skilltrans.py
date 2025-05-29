@@ -151,7 +151,7 @@ def main():
             # agent stepping
             #print("torch.norm:",torch.linalg.vector_norm(obs[:,9:11])) #command x,y
             actions = None
-            if torch.linalg.vector_norm(obs[:,9:11])>0.3: # target distance>0.2
+            if torch.linalg.vector_norm(obs[:,6:7])>0.5: # target distance>0.2
                 print("run")
                 actions = policy(obs) #target: velocity
             else:
