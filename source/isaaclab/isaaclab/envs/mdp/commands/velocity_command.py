@@ -167,13 +167,15 @@ class UniformVelocityCommand(CommandTerm):
         if self.cfg.heading_command:
             
             # compute angular velocity
+            # heading_error = torch.where(vec_norm<0.3,heading_error,
+            #                             math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]))
             heading_error = math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
             self.vel_command_b[env_ids, 2] = torch.clip(
                 self.cfg.heading_control_stiffness * heading_error,
                 min=self.cfg.ranges.ang_vel_z[0],
                 max=self.cfg.ranges.ang_vel_z[1],
             )
-            print(self.vel_command_b[0, :])
+            # print(self.vel_command_b[0, :])
         # Enforce standing (i.e., zero velocity command) for standing envs
         # TODO: check if conversion is needed
         standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()
