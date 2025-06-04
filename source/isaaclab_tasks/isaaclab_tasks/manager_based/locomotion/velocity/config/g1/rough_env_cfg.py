@@ -47,7 +47,7 @@ class G1Rewards(RewardsCfg):
         weight=0.5,
         params={
             "std": 0.05,
-            "target_height": 0.1,
+            "target_height": 0.08,
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_foot"),
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
         },
@@ -151,7 +151,7 @@ class G1Rewards(RewardsCfg):
 
     contact_forces = RewTerm(
         func=mdp.contact_forces,
-        weight=-0.0002,
+        weight=-0.0005,
         params={
             "threshold": 100.0,
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
