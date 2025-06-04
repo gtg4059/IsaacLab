@@ -59,9 +59,9 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.commands.base_velocity.ranges.heading = (-3.14, 3.14)
 
         # self.commands.base_velocity.heading_command=False
-        # self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
-        # self.commands.base_velocity.ranges.lin_vel_y = (-1.0, 1.0)
-        # self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, 0.0)
+        # self.commands.base_velocity.ranges.lin_vel_y = (1.0, 1.0)
+        # self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
         
         
 
