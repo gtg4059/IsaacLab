@@ -86,7 +86,7 @@ class UniformPoseCommand(CommandTerm):
 
         The first three elements correspond to the position, followed by the quaternion orientation in (w, x, y, z).
         """
-        return self.pose_command_b
+        return self.pose_command_b[:, :3]
 
     """
     Implementation specific functions.
