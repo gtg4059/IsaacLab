@@ -122,9 +122,9 @@ class G1Rewards(RewardsCfg):
     #     func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "object_pose", "std": 0.5}
     # )
 
-    track_pos_exp = RewTerm(
-        func=mdp.track_pos_exp, weight=1.0, params={"std": 0.2}
-    )
+    # track_pos_exp = RewTerm(
+    #     func=mdp.track_pos_exp, weight=1.0, params={"std": 0.2}
+    # )
 
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
