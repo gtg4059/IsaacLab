@@ -51,7 +51,11 @@ class G1Rewards(RewardsCfg):
     dof_pos_limits = RewTerm(
         func=mdp.joint_pos_limits,
         weight=-1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"])},
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
+            ".*_ankle_pitch_joint", 
+            ".*_ankle_roll_joint",
+            ".*_knee_joint"
+            ])},
     )
     # Penalize deviation from default of the joints that are not essential for locomotion
     joint_deviation_hip = RewTerm(
