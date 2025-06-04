@@ -130,10 +130,10 @@ class UniformVelocityCommand(CommandTerm):
         # sample velocity commands
         r = torch.empty(len(env_ids), device=self.device)
         # -- linear velocity - x direction
-        self.vel_command_w[env_ids, 0] = r.uniform_(*self.cfg.ranges.x)
+        self.vel_command_w[env_ids, 0] = r.uniform_(*self.cfg.ranges.lin_vel_x)
         self.vel_command_b[env_ids, 0] = self.vel_command_w[env_ids, 0] #4
         # -- linear velocity - y direction
-        self.vel_command_w[env_ids, 1] = r.uniform_(*self.cfg.ranges.y)
+        self.vel_command_w[env_ids, 1] = r.uniform_(*self.cfg.ranges.lin_vel_y)
         self.vel_command_b[env_ids, 1] = self.vel_command_w[env_ids, 1] #1
         # -- ang vel yaw - rotation around z
         self.vel_command_w[env_ids, 2] = r.uniform_(*self.cfg.ranges.ang_vel_z)#torch.tanh(math_utils.wrap_to_pi(self.robot.data.heading_w[env_ids]-torch.arctan2(self.vel_command_w[env_ids, 1], self.vel_command_w[env_ids, 0])))#r.uniform_(*self.cfg.ranges.ang_vel_z)
@@ -156,26 +156,20 @@ class UniformVelocityCommand(CommandTerm):
         """
         # resolve indices of envs
         env_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
-
-        vel_command_b_0 = self.vel_command_w[env_ids, 0]-self.robot.data.root_pos_w[env_ids,0]+self.base_pos_w[env_ids,0]#torch.tanh(self.vel_command_w[env_ids, 0]-self.robot.data.root_pos_w[env_ids,0])
-        vel_command_b_1 = self.vel_command_w[env_ids, 1]-self.robot.data.root_pos_w[env_ids,1]+self.base_pos_w[env_ids,1]#torch.tanh(self.vel_command_w[env_ids, 1]-self.robot.data.root_pos_w[env_ids,1])
-        vec_norm = torch.norm(self.vel_command_w[env_ids, :2]-self.robot.data.root_pos_w[env_ids,:2]+self.base_pos_w[env_ids,:2],dim=1)
-
+        vel_command_b_0 = self.vel_command_w[env_ids, 0]-(self.robot.data.root_pos_w[env_ids,0]-self.base_pos_w[env_ids,0])
+        vel_command_b_1 = self.vel_command_w[env_ids, 1]-(self.robot.data.root_pos_w[env_ids,1]-self.base_pos_w[env_ids,1])
+        vec_norm = torch.abs(torch.norm(self.vel_command_w[env_ids, :2]-self.robot.data.root_pos_w[env_ids,:2]+self.base_pos_w[env_ids,:2],dim=1))
         self.vel_command_b[env_ids, 0] = torch.where(vec_norm>1,vel_command_b_0/(vec_norm),vel_command_b_0)
         self.vel_command_b[env_ids, 1] = torch.where(vec_norm>1,vel_command_b_1/(vec_norm),vel_command_b_1)
 
         if self.cfg.heading_command:
-            
-            # compute angular velocity
-            # heading_error = torch.where(vec_norm<0.3,heading_error,
-            #                             math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]))
-            heading_error = math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
+            heading_error = torch.where(vec_norm<0.2,math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]),0)
             self.vel_command_b[env_ids, 2] = torch.clip(
                 self.cfg.heading_control_stiffness * heading_error,
                 min=self.cfg.ranges.ang_vel_z[0],
                 max=self.cfg.ranges.ang_vel_z[1],
             )
-            # print(self.vel_command_b[0, :])
+            
         # Enforce standing (i.e., zero velocity command) for standing envs
         # TODO: check if conversion is needed
         standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()
@@ -279,7 +273,7 @@ class UniformVelocityCommand(CommandTerm):
         # -- resolve the scales and quaternions
         # quat = self.robot.data.root_quat_w
         # euler_angles = euler_xyz_from_quat(quat) # vel_command_b self.robot.data.root_pos_w
-        vel_des_arrow_scale, vel_des_arrow_quat = self._resolve_xy_vec_to_arrow(self.command[:, :2])#green
+        vel_des_arrow_scale, vel_des_arrow_quat = self._resolve_xy_velocity_to_arrow(self.command[:, :2])#green
         vel_arrow_scale, vel_arrow_quat = self._resolve_xy_velocity_to_arrow(self.robot.data.root_lin_vel_b[:, :2])#heading_w
         #math_utils.quat_apply(self.root_link_quat_w, self.FORWARD_VEC_B)[:, 1]
         # display markers

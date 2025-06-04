@@ -63,8 +63,8 @@ class UniformVelocityCommandCfg(CommandTermCfg):
     class Ranges:
         """Uniform distribution ranges for the velocity commands."""
 
-        x: tuple[float, float] = MISSING
-        y: tuple[float, float] = MISSING
+        lin_vel_x: tuple[float, float] = MISSING
+        lin_vel_y: tuple[float, float] = MISSING
         # ang_z: tuple[float, float] = MISSING
         # heading: bool = MISSING
 

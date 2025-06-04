@@ -31,7 +31,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.joint_deviation_hip.weight = -0.2
         # Main Rewards
         self.rewards.track_lin_vel_xy_exp.weight = 1.0
-        self.rewards.track_ang_vel_z_exp.weight = 2.0
+        self.rewards.track_ang_vel_z_exp.weight = 1.0
         # Rewards
         self.rewards.lin_vel_z_l2.weight = -0.2
         self.rewards.action_rate_l2.weight = -0.005
@@ -44,19 +44,20 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         )
         # G1_29_no_hand
         self.rewards.joint_deviation_arms.weight = -1.0
-        self.rewards.joint_deviation_torso.weight = -0.2
+        self.rewards.joint_deviation_torso.weight = -1.0
         # G1_inspire_hand
         # self.rewards.joint_deviation_fingers.weight = -0.1
 
         # Randomization
-        # self.events.base_external_force_torque = None
-        # self.events.push_robot = None
+        self.events.base_external_force_torque = None
+        self.events.push_robot = None
 
         # Commands
-        self.commands.base_velocity.ranges.x = (-1.0, 1.0)
-        self.commands.base_velocity.ranges.y = (-1.0, 1.0)
-        self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
-        self.commands.base_velocity.ranges.heading = (-3.14, 3.14)
+        self.commands.base_velocity.heading_command = False
+        self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_y = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
+        # self.commands.base_velocity.ranges.heading = (-3.14, 3.14)
         # self.commands.base_velocity.ranges.x = (0.6, 0.6)
         # self.commands.base_velocity.ranges.y = (0.0, 0.0)
         # self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
@@ -68,7 +69,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # self.commands.base_velocity.ranges.y = (-0.7, 0.7)
 
         # self.events.reset_base.params = {
-        #     "pose_range": {"x": (-2.0, -2.0), "y": (0.0, 0.0), "yaw": (-0.0, 0.0)},
+        #     "pose_range": {"x": (-0.0, -0.0), "y": (0.0, 0.0), "yaw": (-0.0, 0.0)},
         #     "velocity_range": {
         #         "x": (0.0, 0.0),
         #         "y": (0.0, 0.0),

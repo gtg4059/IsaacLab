@@ -127,11 +127,11 @@ class CommandsCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            #lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
-            x=(-1.0, 1.0),
-            y=(-1.0, 1.0),
-            ang_vel_z=(-1.0, 1.0),
-            heading=(-math.pi, math.pi)
+            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
+            # x=(-1.0, 1.0),
+            # y=(-1.0, 1.0),
+            # ang_vel_z=(-1.0, 1.0),
+            # heading=(-math.pi, math.pi)
         ),
     )
 
@@ -536,7 +536,7 @@ class TerminationsCfg:
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("robot")}
     )
     bad_position = DoneTerm(
-        func=mdp.bad_position, params={"limit_dist": 8.0, "asset_cfg": SceneEntityCfg("robot")}
+        func=mdp.bad_position, params={"limit_dist": 6.0, "asset_cfg": SceneEntityCfg("robot")}
     )
 
 

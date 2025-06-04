@@ -69,7 +69,7 @@ def bad_position(
     asset: RigidObject = env.scene[asset_cfg.name]
     # print("asset.data.heading_w:",asset.data.heading_w)
     # print(torch.sum(torch.square(asset.data.root_pos_w[:, :2]-env.scene.env_origins[:, :2]),dim=1)+torch.abs(asset.data.heading_w))
-    return torch.sum(torch.square(asset.data.root_pos_w[:, :2]-env.scene.env_origins[:, :2]),dim=1)+torch.abs(asset.data.heading_w)> limit_dist
+    return torch.sum(torch.square(asset.data.root_pos_w[:, :2]-env.scene.env_origins[:, :2]),dim=1)> limit_dist
 
 def root_height_below_minimum(
     env: ManagerBasedRLEnv, minimum_height: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
