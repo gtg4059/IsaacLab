@@ -53,11 +53,11 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.events.push_robot = None
 
         # Commands
-        self.commands.base_velocity.heading_command = None
-        self.commands.base_velocity.ranges.lin_vel_x = (0.7, 0.7)
-        self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
+        # self.commands.base_velocity.heading_command = None
+        self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_y = (-1.0, 1.0)
         self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
-        # self.commands.base_velocity.ranges.heading = (-3.14, 3.14)
+        self.commands.base_velocity.ranges.heading = (-3.14, 3.14)
         # self.commands.base_velocity.ranges.x = (0.6, 0.6)
         # self.commands.base_velocity.ranges.y = (0.0, 0.0)
         # self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
@@ -68,17 +68,17 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # self.commands.base_velocity.ranges.x = (1.5, 1.5)
         # self.commands.base_velocity.ranges.y = (-0.7, 0.7)
 
-        self.events.reset_base.params = {
-            "pose_range": {"x": (-0.0, -0.0), "y": (0.0, 0.0), "yaw": (-3.14, 3.14)},
-            "velocity_range": {
-                "x": (0.0, 0.0),
-                "y": (0.0, 0.0),
-                "z": (0.0, 0.0),
-                "roll": (0.0, 0.0),
-                "pitch": (0.0, 0.0),
-                "yaw": (0.0, 0.0),
-            },
-        }
+        # self.events.reset_base.params = {
+        #     "pose_range": {"x": (-0.0, -0.0), "y": (0.0, 0.0), "yaw": (-3.14, 3.14)},
+        #     "velocity_range": {
+        #         "x": (0.0, 0.0),
+        #         "y": (0.0, 0.0),
+        #         "z": (0.0, 0.0),
+        #         "roll": (0.0, 0.0),
+        #         "pitch": (0.0, 0.0),
+        #         "yaw": (0.0, 0.0),
+        #     },
+        # }
         
 
 
