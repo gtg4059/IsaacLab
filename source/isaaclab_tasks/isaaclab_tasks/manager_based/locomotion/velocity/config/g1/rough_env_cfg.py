@@ -225,8 +225,8 @@ class G1RoughEnvCfg_PLAY(G1RoughEnvCfg):
             self.scene.terrain.terrain_generator.num_cols = 5
             self.scene.terrain.terrain_generator.curriculum = False
 
-        self.commands.base_velocity.ranges.x = (-5.0, 5.0)
-        self.commands.base_velocity.ranges.y = (-5.0, 5.0)
+        # self.commands.base_velocity.ranges.x = (-5.0, 5.0)
+        # self.commands.base_velocity.ranges.y = (-5.0, 5.0)
         # self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
         # self.commands.base_velocity.ranges.heading = (0.0, 0.0)
         # disable randomization for play

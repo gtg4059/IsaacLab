@@ -172,8 +172,8 @@ class UniformVelocityCommand(CommandTerm):
             )
         # Enforce standing (i.e., zero velocity command) for standing envs
         # TODO: check if conversion is needed
-        # standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()
-        # self.vel_command_b[standing_env_ids, :] = 0.0
+        standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()
+        self.vel_command_b[standing_env_ids, :] = 0.0
 
     def _set_debug_vis_impl(self, debug_vis: bool):
         # set visibility of markers

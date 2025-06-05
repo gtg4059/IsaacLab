@@ -36,7 +36,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.lin_vel_z_l2.weight = -0.2
         self.rewards.action_rate_l2.weight = -0.005
         self.rewards.dof_acc_l2.weight = -1.0e-7
-        self.rewards.feet_air_time.weight = -0.75
+        self.rewards.feet_air_time.weight = 0.75
         self.rewards.feet_air_time.params["threshold"] = 0.4
         self.rewards.dof_torques_l2.weight = -2.0e-6
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
@@ -49,8 +49,8 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # self.rewards.joint_deviation_fingers.weight = -0.1
 
         # Randomization
-        self.events.base_external_force_torque = None
-        self.events.push_robot = None
+        # self.events.base_external_force_torque = None
+        # self.events.push_robot = None
 
         # Commands
         # self.commands.base_velocity.heading_command = None
@@ -94,5 +94,5 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         # disable randomization for play
         self.observations.policy.enable_corruption = False
         # remove random pushing
-        self.events.base_external_force_torque = None
-        self.events.push_robot = None
+        # self.events.base_external_force_torque = None
+        # self.events.push_robot = None
