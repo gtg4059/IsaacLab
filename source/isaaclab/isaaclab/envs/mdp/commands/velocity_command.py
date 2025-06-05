@@ -168,7 +168,7 @@ class UniformVelocityCommand(CommandTerm):
         # print("self.vel_command_b[env_ids, 1]:",self.vel_command_b[:, 1])
         # print("vec_norm:",vec_norm)
         # print("self.vel_command_w[env_ids, 0]:",self.vel_command_w[:, 0])
-        
+
         # print("self.vel_command_w[env_ids, 0]:",self.vel_command_w[:, 0])
         # print("self.robot.data.root_pos_w[:,0]:",self.robot.data.root_pos_w[:,0])
         # print("self.base_pos_w[:,0]:",self.base_pos_w[:,0])
