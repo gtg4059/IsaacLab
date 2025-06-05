@@ -151,8 +151,9 @@ class G1Rewards(RewardsCfg):
 
     contact_forces = RewTerm(
         func=mdp.contact_forces_minimize,
-        weight=-0.0000005,
+        weight=-0.0000001,
         params={
+            "threshold": 250.0,
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
         },
     )
