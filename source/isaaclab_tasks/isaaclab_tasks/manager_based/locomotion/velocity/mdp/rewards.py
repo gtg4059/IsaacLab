@@ -224,7 +224,7 @@ def object_goal_distance(
     object: RigidObject = env.scene[object_cfg.name]
     # distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*(height))
     distance = torch.norm((object.data.root_pos_w-env.scene.env_origins)-env.command_manager.get_command(command_name)[:,:3], dim=1)
-    angle = quat_error_magnitude(object.data.root_quat_w,env.command_manager.get_command(command_name)[:,3:7])
+    angle = torch.sum(object.data.projected_gravity_b[:, :2])
     # print("height:",object.data.root_pos_w[:, 2])
     return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle/std))
 
@@ -237,7 +237,7 @@ def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = Sc
     object: RigidObject = env.scene[object_cfg.name]
     return torch.sum(torch.square(object.data.projected_gravity_b[:, :2]), dim=1)*torch.where(object.data.root_pos_w[:, 2] > 0.83, 1.0, 0.0)
 
-def object_position_in_robot_root_frame(
+def object_state_in_robot_root_frame(
     env: ManagerBasedRLEnv,
     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
@@ -246,11 +246,11 @@ def object_position_in_robot_root_frame(
     robot: RigidObject = env.scene[robot_cfg.name]
     object: RigidObject = env.scene[object_cfg.name]
     object_pos_w = object.data.root_pos_w[:, :3]
-    object_pos_b, _ = subtract_frame_transforms(
+    object_pos_b, object_quat_b = subtract_frame_transforms(
         robot.data.root_state_w[:, :3], robot.data.root_state_w[:, 3:7], object_pos_w
     )
     # print("object:",object.data.root_pos_w[:, 2])
-    return object_pos_b
+    return torch.concat((object_pos_b,object_quat_b),dim=1)
 
 ##############################################################################
 

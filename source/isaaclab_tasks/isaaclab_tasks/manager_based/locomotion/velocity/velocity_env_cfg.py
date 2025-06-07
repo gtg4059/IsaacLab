@@ -65,36 +65,6 @@ class MySceneCfg(InteractiveSceneCfg):
     # robots
     robot: ArticulationCfg = MISSING
 
-    # ee_frame_L: FrameTransformerCfg = FrameTransformerCfg(
-    #         prim_path="{ENV_REGEX_NS}/Robot",
-    #         debug_vis=False,
-    #         target_frames=[
-    #             FrameTransformerCfg.FrameCfg(
-    #                 prim_path="{ENV_REGEX_NS}/Robot/left_palm_link",
-    #                 name="end_effector",
-    #                 offset=OffsetCfg(
-    #                     pos=[0.0, 0.0, 0.1034],
-    #                 ),
-    #             ),
-    #         ],
-    #     )
-    # ee_frame_R: FrameTransformerCfg = FrameTransformerCfg(
-    #         prim_path="{ENV_REGEX_NS}/Robot",
-    #         debug_vis=False,
-    #         target_frames=[
-    #             FrameTransformerCfg.FrameCfg(
-    #                 prim_path="{ENV_REGEX_NS}/Robot/right_palm_link",
-    #                 name="end_effector",
-    #                 offset=OffsetCfg(
-    #                     pos=[0.0, 0.0, 0.1034],
-    #                 ),
-    #             ),
-    #         ],
-    #     )
-
-    
-
-
     # sensors
     height_scanner = RayCasterCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base",
@@ -159,16 +129,6 @@ class MySceneCfg(InteractiveSceneCfg):
 class CommandsCfg:
     """Command specifications for the MDP."""
 
-    # base_velocity = mdp.UniformPoseCommandCfg(
-    #     asset_name="robot",
-    #     body_name=".*_middle_proximal",  # will be set by agent env cfg
-    #     resampling_time_range=(24.0, 24.0),
-    #     debug_vis=True,
-    #     ranges=mdp.UniformPoseCommandCfg.Ranges(
-    #         pos_x=(0.0, 0.0), pos_y=(-0.0, 0.0), pos_z=(0.0, 0.0), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
-    #         # pos_x=(0.3, 0.3), pos_y=(-0.0, 0.0), pos_z=(0.9, 0.9), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
-    #     ),
-    # )
     object_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
         body_name=MISSING,  # will be set by agent env cfg
@@ -214,7 +174,6 @@ class ActionsCfg:
                # ".*_wrist_pitch_joint": (-0.4, 0.4),
                ".*_wrist_yaw_joint": (-0.3, 0.3),
                # finger
-               
                 ".*_thumb_proximal_pitch_joint": (0.52, 0.52),
                 ".*_thumb_proximal_yaw_joint": (-0.01, 0.01),
                 ".*_index_proximal_joint": (0.3, 1.2),
@@ -252,7 +211,7 @@ class ObservationsCfg:
 
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
-        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
+        object_state = ObsTerm(func=mdp.object_state_in_robot_root_frame)
         # iscontact = ObsTerm(func=mdp.object_is_contacted, 
         #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_middle_proximal")}
         # )
@@ -396,7 +355,7 @@ class RewardsCfg:
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
     )
     base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-100.0, params={
-            "target_height": 0.75, 
+            "target_height": 0.78, 
             # "sensor_cfg": SceneEntityCfg("height_scanner")
         }
     )
