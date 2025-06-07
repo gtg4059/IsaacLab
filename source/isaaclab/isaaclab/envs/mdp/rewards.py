@@ -19,7 +19,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers.manager_base import ManagerTermBase
 from isaaclab.managers.manager_term_cfg import RewardTermCfg
 from isaaclab.sensors import ContactSensor, RayCaster
-from isaaclab.utils.math import combine_frame_transforms, quat_error_magnitude, quat_mul, wrap_to_pi, euler_xyz_from_quat
+from isaaclab.utils.math import combine_frame_transforms, quat_error_magnitude, quat_mul, wrap_to_pi
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -156,19 +156,7 @@ def base_height_l2(
         # Use the provided target height directly for flat terrain
         adjusted_target_height = target_height
     # Compute the L2 squared penalty
-    # print(asset.data.root_pos_w[:, 2])
     return torch.square(asset.data.root_pos_w[:, 2] - adjusted_target_height)
-
-def base_position_l2(
-    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
-) -> torch.Tensor:
-    """Terminate when the asset's distance is too far from the desired orientation limits.
-
-    This is computed by checking the angle between the projected gravity vector and the z-axis.
-    """
-    # extract the used quantities (to enable type-hinting)
-    asset: RigidObject = env.scene[asset_cfg.name]
-    return torch.sum(torch.square(asset.data.root_pos_w[:, :2]-env.scene.env_origins[:, :2]),dim=1)
 
 
 def body_lin_acc_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
@@ -327,6 +315,17 @@ def contact_forces(env: ManagerBasedRLEnv, threshold: float, sensor_cfg: SceneEn
     # compute the penalty
     return torch.sum(violation.clip(min=0.0), dim=1)
 
+def contact_forces_minimize(env: ManagerBasedRLEnv, threshold: float, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Penalize contact forces as the amount of violations of the net contact force."""
+    # extract the used quantities (to enable type-hinting)
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    net_contact_forces = contact_sensor.data.net_forces_w_history
+    # compute the violation
+    violation = torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] - threshold
+    # print("Received max contact force of: ", violation.clip(min=0.0))
+    # compute the penalty
+    return torch.sum((violation.clip(min=0.0))**2, dim=1)
+
 
 """
 Velocity-tracking rewards.
@@ -374,5 +373,5 @@ def track_ang_vel_z_exp(
     asset: RigidObject = env.scene[asset_cfg.name]
     # compute the error
     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_b[:, 2])
-    # print(torch.exp(-ang_vel_error / std**2))
+    print(torch.exp(-ang_vel_error / std**2))
     return torch.exp(-ang_vel_error / std**2)
