@@ -224,7 +224,7 @@ def object_goal_distance(
     object: RigidObject = env.scene[object_cfg.name]
     # distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*(height))
     distance = torch.norm((object.data.root_pos_w-env.scene.env_origins)-env.command_manager.get_command(command_name)[:,:3], dim=1)
-    angle = torch.sum(object.data.projected_gravity_b[:, :2])
+    angle = euler_xyz_from_quat(object.data.root_quat_w)[0]**2+euler_xyz_from_quat(object.data.root_quat_w)[1]**2+euler_xyz_from_quat(object.data.root_quat_w)[2]**2
     # print("height:",object.data.root_pos_w[:, 2])
     return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle/std))
 
