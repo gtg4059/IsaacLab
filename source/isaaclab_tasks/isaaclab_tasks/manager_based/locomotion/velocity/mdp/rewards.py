@@ -158,19 +158,13 @@ def object_is_contacted(
 ) -> torch.Tensor:
     """Reward the agent for lifting the object above the minimal height."""
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
-
     # compute the reward
     air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]
     contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
     in_contact = contact_time > 0.0
-    in_mode_time = torch.where(in_contact, contact_time, air_time)
-    double_stance = torch.sum(in_contact.int(), dim=1) >= 8
-    # print(in_contact)
-    reward = torch.min(torch.where(double_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
-    reward = torch.clamp(reward, max=threshold)
-    # print("reward:",reward*double_stance)
-    # print("torch.sum(in_contact.int(), dim=1):",torch.sum(in_contact.int(), dim=1))
-    return reward#*torch.sum(in_contact.int(), dim=1)
+    double_stance = torch.sum(in_contact.int(), dim=1)**2
+    # print(0.001*double_stance)
+    return 0.001*double_stance#*torch.sum(in_contact.int(), dim=1)
 
 def object_ee_distance(
     env: ManagerBasedRLEnv,
@@ -196,8 +190,8 @@ def object_ee_distance(
     angle1 = quat_error_magnitude(curr_quat_w1, des_quat_b)
     angle2 = quat_error_magnitude(curr_quat_w2, des_quat_b)
 
-    result1 = (1 - torch.tanh((angle1)/std))+(1 - torch.tanh(torch.abs(distance1-0.1)/(std)))
-    result2 = (1 - torch.tanh((angle2)/std))+(1 - torch.tanh(torch.abs(distance2-0.1)/(std)))
+    result1 = (1 - torch.tanh((angle1)/std))+(1 - torch.tanh(torch.abs(distance1-0.05)/(std)))
+    result2 = (1 - torch.tanh((angle2)/std))+(1 - torch.tanh(torch.abs(distance2-0.05)/(std)))
 
     # print("distance1:",distance1)
     # print("angle1:",angle1)
@@ -251,6 +245,20 @@ def object_state_in_robot_root_frame(
     )
     # print("object:",object.data.root_pos_w[:, 2])
     return torch.concat((object_pos_b,object_quat_b),dim=1)
+
+def object_is_contacted_obs(
+    env: ManagerBasedRLEnv,
+    threshold: float,
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces"),
+) -> torch.Tensor:
+    """Reward the agent for lifting the object above the minimal height."""
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+
+    # compute the reward
+    air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]
+    contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
+    in_contact = contact_time > 0.0
+    return 0.5*in_contact#*torch.sum(in_contact.int(), dim=1)
 
 ##############################################################################
 
