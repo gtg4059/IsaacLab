@@ -30,10 +30,10 @@ class G1Rewards(RewardsCfg):
         }, 
         weight=20.0
     )
-# 50,200 20,500
+# 20,250
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=100.0,
+        weight=250.0,
         params={"threshold": 20.0,"sensor_cfg": SceneEntityCfg("contact_forces", 
                                                               body_names=[
                                                                         ".*_thumb_proximal",
