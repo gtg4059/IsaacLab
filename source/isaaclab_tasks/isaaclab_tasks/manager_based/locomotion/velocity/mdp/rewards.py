@@ -162,7 +162,7 @@ def object_is_contacted(
     air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]
     contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
     in_contact = contact_time > 0.0
-    double_stance = torch.sum(in_contact.int(), dim=1)**2
+    double_stance = torch.sum(in_contact.int(), dim=1)
     # spec = torch.sum(in_contact.int(), dim=1)>=10
     # print(0.001*double_stance)
     return 0.001*double_stance#*spec#*torch.sum(in_contact.int(), dim=1)
