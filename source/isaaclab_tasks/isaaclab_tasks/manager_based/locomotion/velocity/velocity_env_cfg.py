@@ -211,10 +211,6 @@ class ObservationsCfg:
 
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
-        object_state = ObsTerm(func=mdp.object_state_in_robot_root_frame,params={
-                    "asset_cfg":SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
-                },
-            )
         iscontact = ObsTerm(func=mdp.object_is_contacted_obs,
             params={"threshold": 1.0,
                 "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[
