@@ -91,18 +91,19 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.27, 0, 0.82], rot=[1, 0, 0, 0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.29, 0, 0.82], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=(3.10,4.14, 2.84),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.1),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                kinematic_enabled=True,
                 solver_position_iteration_count=16,
                 solver_velocity_iteration_count=1,
                 max_angular_velocity=1000.0,
                 max_linear_velocity=1000.0,
                 max_depenetration_velocity=5.0,
-                disable_gravity=False,
+                disable_gravity=True,
             ),
         ),
     )
@@ -216,10 +217,14 @@ class ObservationsCfg:
                 "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[
                                                                           ".*_thumb_proximal",
                                                                           ".*_thumb_intermediate",
+                                                                          ".*_index_proximal",
                                                                           ".*_index_intermediate",
+                                                                          ".*_middle_proximal",
                                                                           ".*_middle_intermediate",
+                                                                          ".*_pinky_proximal",
                                                                           ".*_pinky_intermediate",
-                                                                          ".*_ring_intermediate"
+                                                                          ".*_ring_proximal",
+                                                                          ".*_ring_intermediate",
                                                                           ])}
         )
 

@@ -25,7 +25,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.curriculum.terrain_levels = None
 
         # New Rewards
-        self.rewards.joint_deviation_torso.weight = -2.0
+        self.rewards.joint_deviation_torso.weight = -5.0
         self.rewards.joint_deviation_fingers.weight = -0.2
         self.rewards.joint_deviation_hip.weight = -0.2
         self.rewards.joint_deviation_arms.weight = -2.0

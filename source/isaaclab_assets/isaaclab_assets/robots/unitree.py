@@ -101,7 +101,12 @@ G1_DEX_HAND = ArticulationCfg(
             'right_wrist_roll_joint': 0.0,
             'right_wrist_pitch_joint': -1.2,
             'right_wrist_yaw_joint': 0.0,
-            ".*_thumb_proximal_pitch_joint": 0.52
+            ".*_thumb_proximal_pitch_joint": 0.52,
+            ".*_thumb_proximal_yaw_joint": 0.0,
+            ".*_index_proximal_joint": 0.3,
+            ".*_middle_proximal_joint": 0.3,
+            ".*_pinky_proximal_joint": 0.3,
+            ".*_ring_proximal_joint": 0.3,
         },
         joint_vel={".*": 0.0},
     ),
