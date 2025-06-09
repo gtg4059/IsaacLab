@@ -33,7 +33,7 @@ class G1Rewards(RewardsCfg):
 # 20,250
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=200.0,
+        weight=2000.0,
         params={"threshold": 20.0,"sensor_cfg": SceneEntityCfg("contact_forces", 
                                                               body_names=[
                                                                         ".*_thumb_proximal",
@@ -78,7 +78,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_elbow = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=0.5,
+        weight=5.0,
         params={
             "std": 0.1,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_elbow_joint"),
         },
@@ -86,7 +86,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_wrist = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=0.5,
+        weight=5.0,
         params={
             "std": 0.1,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_pitch_joint"),
         },
@@ -94,7 +94,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_leg1 = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=0.5,
+        weight=5.0,
         params={
             "std": 0.1,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_knee_joint"),
         },
@@ -102,7 +102,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_leg2 = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=0.5,
+        weight=5.0,
         params={
             "std": 0.1,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_ankle_pitch_joint"),
         },
@@ -263,7 +263,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
         # Scene
         self.scene.robot = G1_DEX_HAND.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
+        # self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
 
         # Randomization
         self.events.push_robot = None
