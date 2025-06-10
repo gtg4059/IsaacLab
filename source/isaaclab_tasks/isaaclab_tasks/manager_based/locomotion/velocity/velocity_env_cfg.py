@@ -91,19 +91,19 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.29, 0, 0.82], rot=[1, 0, 0, 0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.32, 0, 0.82], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=(3.10,4.14, 2.84),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.1),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                kinematic_enabled=True,
+                # kinematic_enabled=True,
                 solver_position_iteration_count=16,
                 solver_velocity_iteration_count=1,
                 max_angular_velocity=1000.0,
                 max_linear_velocity=1000.0,
                 max_depenetration_velocity=5.0,
-                disable_gravity=True,
+                disable_gravity=False,
             ),
         ),
     )
@@ -112,12 +112,12 @@ class MySceneCfg(InteractiveSceneCfg):
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/ThorlabsTable/table_instanceable.usd", scale=(0.2, 0.2, 0.04),
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/ThorlabsTable/table_instanceable.usd", scale=(0.2, 0.3, 0.04),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
             ),
         ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.22, 0.0, 0.74)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.30, 0.0, 0.74)),
     )
 
 
@@ -136,7 +136,7 @@ class CommandsCfg:
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.24, 0.24), pos_y=(-0.0, 0.0), pos_z=(0.88, 0.88), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            pos_x=(0.24, 0.28), pos_y=(-0.0, 0.0), pos_z=(0.86, 0.90), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
         ),
     )
 
@@ -150,38 +150,38 @@ class ActionsCfg:
         joint_names=[".*"], 
         scale=0.5, 
         use_default_offset=True,
-        clip={
-               # inner arm to grip object
-               "left_shoulder_yaw_joint": (-0.3, 0.3), 
-               "right_shoulder_yaw_joint": (0.3, 0.3), 
-               # make wing
-               "left_shoulder_roll_joint": (0.3, 0.3), 
-               "right_shoulder_roll_joint": (-0.3, -0.3), 
-                # limit after contact
-                # ".*_shoulder_pitch_joint": (-1.08, 1.08),
-            #    ".*_elbow_joint": (-1.08, 1.08),
-                # ".*_wrist_pitch_joint": (-0.54, 1.08),
-                "left_wrist_roll_joint": (-0.2, -0.2),
-                "right_wrist_roll_joint": (0.2, 0.2),
-               # leg limit
-               "left_hip_roll_joint": (-0.2, 0.2), 
-               "right_hip_roll_joint": (-0.2, 0.2), 
-               # waist limit
-               "waist_roll_joint": (-0.05, 0.05), 
-               "waist_pitch_joint": (-0.05, 0.05), 
-               "waist_yaw_joint": (-0.01, 0.01), 
-               # arm_limit
-               # ".*_wrist_roll_joint": (-0.01, 0.01),
-               # ".*_wrist_pitch_joint": (-0.4, 0.4),
-               ".*_wrist_yaw_joint": (-0.3, 0.3),
-               # finger
-                ".*_thumb_proximal_pitch_joint": (0.52, 0.52),
-                ".*_thumb_proximal_yaw_joint": (-0.01, 0.01),
-                ".*_index_proximal_joint": (0.3, 1.2),
-                ".*_middle_proximal_joint": (0.3, 1.2),
-                ".*_pinky_proximal_joint": (0.3, 1.2),
-                ".*_ring_proximal_joint": (0.3, 1.2),
-            }
+        # clip={
+        #        # inner arm to grip object
+        #        "left_shoulder_yaw_joint": (-0.3, 0.3), 
+        #        "right_shoulder_yaw_joint": (0.3, 0.3), 
+        #        # make wing
+        #        "left_shoulder_roll_joint": (0.3, 0.3), 
+        #        "right_shoulder_roll_joint": (-0.3, -0.3), 
+        #         # limit after contact
+        #         # ".*_shoulder_pitch_joint": (-1.08, 1.08),
+        #     #    ".*_elbow_joint": (-1.08, 1.08),
+        #         # ".*_wrist_pitch_joint": (-0.54, 1.08),
+        #         "left_wrist_roll_joint": (-0.2, -0.2),
+        #         "right_wrist_roll_joint": (0.2, 0.2),
+        #        # leg limit
+        #        "left_hip_roll_joint": (-0.2, 0.2), 
+        #        "right_hip_roll_joint": (-0.2, 0.2), 
+        #        # waist limit
+        #        "waist_roll_joint": (-0.05, 0.05), 
+        #        "waist_pitch_joint": (-0.05, 0.05), 
+        #        "waist_yaw_joint": (-0.01, 0.01), 
+        #        # arm_limit
+        #        # ".*_wrist_roll_joint": (-0.01, 0.01),
+        #        # ".*_wrist_pitch_joint": (-0.4, 0.4),
+        #        ".*_wrist_yaw_joint": (-0.3, 0.3),
+        #        # finger
+        #         ".*_thumb_proximal_pitch_joint": (0.52, 0.52),
+        #         ".*_thumb_proximal_yaw_joint": (-0.01, 0.01),
+        #         # ".*_index_proximal_joint": (0.3, 1.2),
+        #         # ".*_middle_proximal_joint": (0.3, 1.2),
+        #         # ".*_pinky_proximal_joint": (0.3, 1.2),
+        #         # ".*_ring_proximal_joint": (0.3, 1.2),
+        #     }
     )
 
 
@@ -211,13 +211,13 @@ class ObservationsCfg:
                                                                           ".*_thumb_proximal",
                                                                           ".*_thumb_intermediate",
                                                                           ".*_index_proximal",
-                                                                          ".*_index_intermediate",
+                                                                        #   ".*_index_intermediate",
                                                                           ".*_middle_proximal",
-                                                                          ".*_middle_intermediate",
+                                                                        #   ".*_middle_intermediate",
                                                                           ".*_pinky_proximal",
-                                                                          ".*_pinky_intermediate",
+                                                                        #   ".*_pinky_intermediate",
                                                                           ".*_ring_proximal",
-                                                                          ".*_ring_intermediate",
+                                                                        #   ".*_ring_intermediate",
                                                                           ])}
         )
 
@@ -305,7 +305,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "pose_range": {"x": (-0.02, 0.02), "y": (-0.02, 0.02), "yaw": (-0.2, 0.2)},
+            "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.8, 0.8)},
             "velocity_range": {
                 "x": (-0.0, 0.0),
                 "y": (-0.0, 0.0),
@@ -383,18 +383,18 @@ class TerminationsCfg:
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 5.0},
     )
-    base_contact3 = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_roll_link"), "threshold": 10.0},
-    )
-    base_contact4 = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_pitch_link"), "threshold": 10.0},
-    )
-    base_contact5 = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_elbow_link"), "threshold": 10.0},
-    )
+    # base_contact3 = DoneTerm(
+    #     func=mdp.illegal_contact,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_roll_link"), "threshold": 10.0},
+    # )
+    # base_contact4 = DoneTerm(
+    #     func=mdp.illegal_contact,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_pitch_link"), "threshold": 10.0},
+    # )
+    # base_contact5 = DoneTerm(
+    #     func=mdp.illegal_contact,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_elbow_link"), "threshold": 10.0},
+    # )
     object_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.7, "asset_cfg": SceneEntityCfg("object")}
     )

@@ -30,7 +30,7 @@ class G1Rewards(RewardsCfg):
         }, 
         weight=20.0
     )
-# 
+ 
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
         weight=2000.0,
@@ -39,33 +39,33 @@ class G1Rewards(RewardsCfg):
                                                                         ".*_thumb_proximal",
                                                                           ".*_thumb_intermediate",
                                                                           ".*_index_proximal",
-                                                                          ".*_index_intermediate",
+                                                                        #   ".*_index_intermediate",
                                                                           ".*_middle_proximal",
-                                                                          ".*_middle_intermediate",
+                                                                        #   ".*_middle_intermediate",
                                                                           ".*_pinky_proximal",
-                                                                          ".*_pinky_intermediate",
+                                                                        #   ".*_pinky_intermediate",
                                                                           ".*_ring_proximal",
-                                                                          ".*_ring_intermediate",
+                                                                        #   ".*_ring_intermediate",
                                                                           ]
             )
         }, 
     )
 
-    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.85}, weight=0.05)
+    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.85}, weight=0.5)
 
     object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
         params={"std": 0.3, "minimal_height": 0.85,"command_name": "object_pose", "object_cfg": SceneEntityCfg("object")},
-        weight=1.0,
+        weight=10.0,
     )
 
     object_goal_tracking_fine_grained = RewTerm(
         func=mdp.object_goal_distance,
         params={"std": 0.05, "minimal_height": 0.85,"command_name": "object_pose", "object_cfg": SceneEntityCfg("object")},
-        weight=5.0,
+        weight=50.0,
     )
 
-    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=0.2)
+    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=5.0)
 
     # # same motion
     # motion_equality_shoulder = RewTerm(
