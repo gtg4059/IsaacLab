@@ -28,7 +28,7 @@ class G1Rewards(RewardsCfg):
             "std": 0.1,
             "asset_cfg":SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
         }, 
-        weight=50.0
+        weight=30.0
     )
  
     object_contact = RewTerm(
@@ -38,14 +38,14 @@ class G1Rewards(RewardsCfg):
                                                               body_names=[
                                                                         ".*_thumb_proximal",
                                                                           ".*_thumb_intermediate",
-                                                                          ".*_index_proximal",
-                                                                        #   ".*_index_intermediate",
-                                                                          ".*_middle_proximal",
-                                                                        #   ".*_middle_intermediate",
-                                                                          ".*_pinky_proximal",
-                                                                        #   ".*_pinky_intermediate",
-                                                                          ".*_ring_proximal",
-                                                                        #   ".*_ring_intermediate",
+                                                                        #   ".*_index_proximal",
+                                                                          ".*_index_intermediate",
+                                                                        #   ".*_middle_proximal",
+                                                                          ".*_middle_intermediate",
+                                                                        #   ".*_pinky_proximal",
+                                                                          ".*_pinky_intermediate",
+                                                                        #   ".*_ring_proximal",
+                                                                          ".*_ring_intermediate",
                                                                           ]
             )
         }, 
@@ -198,10 +198,12 @@ class G1Rewards(RewardsCfg):
                 "robot",
                 joint_names=[
                     ".*_shoulder_roll_joint",
-                    # ".*_shoulder_pitch_joint",
+                    ".*_shoulder_pitch_joint",
                     # ".*_shoulder_yaw_joint",
-                    ".*_wrist_roll_joint",
+                    #"".*__elbow_joint"
                     #".*_wrist_yaw_joint",
+                    #".*_wrist_pitch_joint",
+                    # ".*_wrist_roll_joint",
                 ],
             )
         },
@@ -223,8 +225,8 @@ class G1Rewards(RewardsCfg):
         func=mdp.joint_deviation_l1,
         weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
-            # "waist_roll_joint",
-            # "waist_pitch_joint",
+            "waist_roll_joint",
+            "waist_pitch_joint",
             "waist_yaw_joint",
         ])},
     )

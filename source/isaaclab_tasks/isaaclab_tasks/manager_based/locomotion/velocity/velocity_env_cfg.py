@@ -210,14 +210,14 @@ class ObservationsCfg:
                 "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[
                                                                           ".*_thumb_proximal",
                                                                           ".*_thumb_intermediate",
-                                                                          ".*_index_proximal",
-                                                                        #   ".*_index_intermediate",
-                                                                          ".*_middle_proximal",
-                                                                        #   ".*_middle_intermediate",
-                                                                          ".*_pinky_proximal",
-                                                                        #   ".*_pinky_intermediate",
-                                                                          ".*_ring_proximal",
-                                                                        #   ".*_ring_intermediate",
+                                                                        #   ".*_index_proximal",
+                                                                          ".*_index_intermediate",
+                                                                        #   ".*_middle_proximal",
+                                                                          ".*_middle_intermediate",
+                                                                        #   ".*_pinky_proximal",
+                                                                          ".*_pinky_intermediate",
+                                                                        #   ".*_ring_proximal",
+                                                                          ".*_ring_intermediate",
                                                                           ])}
         )
 
