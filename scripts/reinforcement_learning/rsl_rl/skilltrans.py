@@ -149,8 +149,15 @@ def main():
         # run everything in inference mode
         with torch.inference_mode():
             # agent stepping
-            print("torch.norm:",torch.linalg.vector_norm(obs[:,9:11])) #command x,y
+             #command x,y
             actions = policy(obs)
+            # print("env.unwrapped.scene[]:",env.unwrapped.scene["object"].data.root_pos_w[:, :2])
+            # print("env.unwrapped.scene[]:",env.unwrapped.scene["robot"].data.root_pos_w[:, :2])
+            # vector
+            print(torch.norm(env.unwrapped.scene["object"].data.root_pos_w[:, :2]-
+                       -env.unwrapped.scene["robot"].data.root_pos_w[:, :2]))
+            print(env.unwrapped.scene["object"].data.root_pos_w[:, :2]
+                  -env.unwrapped.scene["robot"].data.root_pos_w[:, :2])
             if torch.linalg.vector_norm(obs[:,9:11])>0.2: # target distance>0.2
                 # print("run")
                 actions = policy(obs) #target: velocity
