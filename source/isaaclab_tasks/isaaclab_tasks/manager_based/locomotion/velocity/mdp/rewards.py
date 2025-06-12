@@ -191,8 +191,8 @@ def object_ee_distance(
     angle1 = quat_error_magnitude(curr_quat_w1, des_quat_b)
     angle2 = quat_error_magnitude(curr_quat_w2, des_quat_b)
 
-    result1 = (1 - torch.tanh((angle1)/(std)))+(1 - torch.tanh(torch.abs(distance1-0.2)/(std)))
-    result2 = (1 - torch.tanh((angle2)/(std)))+(1 - torch.tanh(torch.abs(distance2-0.2)/(std)))
+    result1 = (1 - torch.tanh((angle1)/(std)))+(1 - torch.tanh(torch.abs(distance1-0.15)/(std)))
+    result2 = (1 - torch.tanh((angle2)/(std)))+(1 - torch.tanh(torch.abs(distance2-0.15)/(std)))
 
     # print("distance1:",distance1-0.18)
     # print("angle1:",angle1)

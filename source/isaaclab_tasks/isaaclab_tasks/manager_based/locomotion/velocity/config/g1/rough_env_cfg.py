@@ -28,29 +28,29 @@ class G1Rewards(RewardsCfg):
             "std": 0.5,
             "asset_cfg":SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
         }, 
-        weight=5.0
+        weight=4.0
     )
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=5.0,
+        weight=1.0,
         params={"threshold": 20.0,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*_wrist_yaw_link"]
             )
         }, 
     )
 
-    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.82}, weight=0.5)
+    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.84}, weight=10.0)
 
     object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
-        params={"std": 1.0, "minimal_height": 0.82,"command_name": "object_pose", "object_cfg": SceneEntityCfg("object")},
-        weight=40.0,
+        params={"std": 1.0, "minimal_height": 0.84,"command_name": "object_pose", "object_cfg": SceneEntityCfg("object")},
+        weight=10.0,
     )
 
     object_goal_tracking_fine_grained = RewTerm(
         func=mdp.object_goal_distance,
-        params={"std": 0.05, "minimal_height": 0.82,"command_name": "object_pose", "object_cfg": SceneEntityCfg("object")},
-        weight=100.0,
+        params={"std": 0.05, "minimal_height": 0.84,"command_name": "object_pose", "object_cfg": SceneEntityCfg("object")},
+        weight=25.0,
     )
 
     flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=5.0)
@@ -211,11 +211,11 @@ class G1Rewards(RewardsCfg):
         func=mdp.joint_deviation_l1,
         weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
-                    ".*_hip_roll_joint",
+                    # ".*_hip_roll_joint",
                     ".*_hip_pitch_joint",
                     ".*_hip_yaw_joint",
                     ".*_knee_joint",
-                    ".*_ankle_roll_joint",
+                    # ".*_ankle_roll_joint",
                     ".*_ankle_pitch_joint",
                 ]
             )
