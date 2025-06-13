@@ -147,41 +147,23 @@ class ActionsCfg:
 
     joint_pos = mdp.JointPositionActionCfg(
         asset_name="robot", 
-        joint_names=[".*"], 
-        scale=0.5, 
+        joint_names=[
+                     'left_hip_pitch_joint', 
+                     'left_hip_roll_joint', 
+                     'left_hip_yaw_joint', 
+                     'left_knee_joint', 
+                     'left_ankle_pitch_joint', 
+                     'left_ankle_roll_joint', 
+                     'right_hip_pitch_joint', 
+                     'right_hip_roll_joint', 
+                     'right_hip_yaw_joint', 
+                     'right_knee_joint', 
+                     'right_ankle_pitch_joint', 
+                     'right_ankle_roll_joint',
+                     ], 
+        scale=0.25, 
         use_default_offset=True,
-        # clip={
-        #     #    # inner arm to grip object
-        #     #    "left_shoulder_yaw_joint": (-0.3, 0.3), 
-        #     #    "right_shoulder_yaw_joint": (0.3, 0.3), 
-        #     #    # make wing
-        #     #    "left_shoulder_roll_joint": (0.3, 0.3), 
-        #     #    "right_shoulder_roll_joint": (-0.3, -0.3), 
-        #     #     # limit after contact
-        #     #     # ".*_shoulder_pitch_joint": (-1.08, 1.08),
-        #     # #    ".*_elbow_joint": (-1.08, 1.08),
-        #     #     # ".*_wrist_pitch_joint": (-0.54, 1.08),
-        #     #     "left_wrist_roll_joint": (-0.2, -0.2),
-        #     #     "right_wrist_roll_joint": (0.2, 0.2),
-        #     #    # leg limit
-        #     #    "left_hip_roll_joint": (-0.2, 0.2), 
-        #     #    "right_hip_roll_joint": (-0.2, 0.2), 
-        #     #    # waist limit
-        #     #    "waist_roll_joint": (-0.05, 0.05), 
-        #     #    "waist_pitch_joint": (-0.05, 0.05), 
-        #     #    "waist_yaw_joint": (-0.01, 0.01), 
-        #     #    # arm_limit
-        #     #    # ".*_wrist_roll_joint": (-0.01, 0.01),
-        #     #    # ".*_wrist_pitch_joint": (-0.4, 0.4),
-        #     #    ".*_wrist_yaw_joint": (-0.3, 0.3),
-        #        # finger
-        #         ".*_thumb_proximal_pitch_joint": (0.52, 0.52),
-        #         ".*_thumb_proximal_yaw_joint": (-0.01, 0.01),
-        #         # ".*_index_proximal_joint": (0.3, 1.2),
-        #         # ".*_middle_proximal_joint": (0.3, 1.2),
-        #         # ".*_pinky_proximal_joint": (0.3, 1.2),
-        #         # ".*_ring_proximal_joint": (0.3, 1.2),
-        #     }
+        preserve_order=True,
     )
 
 
@@ -191,6 +173,26 @@ class ObservationsCfg:
 
     @configclass
     class PolicyCfg(ObsGroup):
+        """Observations for policy group."""
+
+        base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2)) # 3
+        projected_gravity = ObsTerm(
+            func=mdp.projected_gravity,
+            noise=Unoise(n_min=-0.05, n_max=0.05),
+        )# 3
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))# 1
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-1.5, n_max=1.5))# 1
+        actions = ObsTerm(func=mdp.last_action)
+        #####################################################################################
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
+        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+
+    @configclass
+    class CriticCfg(ObsGroup):
         """Observations for policy group."""
 
         # observation terms (order preserved)
@@ -205,7 +207,7 @@ class ObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
-        
+        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -213,7 +215,7 @@ class ObservationsCfg:
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
-
+    Critic: CriticCfg = CriticCfg()
 
 @configclass
 class EventCfg:
