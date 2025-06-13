@@ -33,7 +33,7 @@ class G1Rewards(RewardsCfg):
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=1.0,
+        weight=1.5,
         params={"threshold": 20.0,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*_wrist_yaw_link"]
             )
         }, 
