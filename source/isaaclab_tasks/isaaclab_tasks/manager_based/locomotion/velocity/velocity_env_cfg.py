@@ -91,7 +91,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.28, 0, 0.80], rot=[1, 0, 0, 0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.28, 0, 0.74], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=(3.10,4.14, 2.84),
@@ -117,7 +117,7 @@ class MySceneCfg(InteractiveSceneCfg):
                 disable_gravity=True,
             ),
         ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.26, 0.0, 0.72)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.26, 0.0, 0.66)),
     )
 
 
@@ -136,7 +136,7 @@ class CommandsCfg:
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.26, 0.30), pos_y=(-0.0, 0.0), pos_z=(0.85, 0.86), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            pos_x=(0.26, 0.30), pos_y=(-0.0, 0.0), pos_z=(0.78, 0.85), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
         ),
     )
 
@@ -227,6 +227,7 @@ class EventCfg:
             "static_friction_range": (0.8, 0.8),
             "dynamic_friction_range": (0.6, 0.6),
             "restitution_range": (0.0, 0.0),
+            "make_consistent": True,
             "num_buckets": 64,
         },
     )
@@ -236,9 +237,10 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
-            "static_friction_range": (1.5, 1.5),
-            "dynamic_friction_range": (1.5, 1.5),
+            "static_friction_range": (0.7, 1.2),
+            "dynamic_friction_range": (0.7, 1.2),
             "restitution_range": (0.0, 0.0),
+            "make_consistent": True,
             "num_buckets": 64,
         },
     )
@@ -366,8 +368,8 @@ class RewardsCfg:
         weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
     )
-    base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-0.001, params={
-            "target_height": 0.76, 
+    base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-100.0, params={
+            "target_height": 0.78, 
             # "sensor_cfg": SceneEntityCfg("height_scanner")
         }
     )
@@ -384,11 +386,11 @@ class TerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     base_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 30.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 40.0},
     )
     base_contact2 = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 30.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 40.0},
     )
     base_contact3 = DoneTerm(
         func=mdp.illegal_contact,
