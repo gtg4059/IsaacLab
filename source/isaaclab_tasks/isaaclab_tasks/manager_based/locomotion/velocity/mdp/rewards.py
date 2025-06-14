@@ -147,12 +147,10 @@ lift
 def object_is_lifted(
     env: ManagerBasedRLEnv, minimal_height: float, 
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
     """Reward the agent for lifting the object above the minimal height."""
     object: RigidObject = env.scene[object_cfg.name]
-    robot: RigidObject = env.scene[asset_cfg.name]
-    return torch.where((object.data.root_pos_w[:, 2]-robot.data.root_pos_w[:, 2]) > minimal_height, 1.0, 0.0)
+    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
 
 def object_is_contacted(
     env: ManagerBasedRLEnv,
@@ -227,7 +225,7 @@ def object_goal_distance(
     angle = euler_xyz_from_quat(object.data.root_quat_w)[0]**2+euler_xyz_from_quat(object.data.root_quat_w)[1]**2+euler_xyz_from_quat(object.data.root_quat_w)[2]**2
     # print("height:",object.data.root_pos_w[:, :2])
     # print("distance:",object.data.root_pos_w-robot.data.root_pos_w)
-    return torch.where((object.data.root_pos_w[:, 2]-robot.data.root_pos_w[:, 2]) > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle/std))
+    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(distance / std))*(1 - torch.tanh(angle/std))
 
 def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
     """Penalize non-flat base orientation using L2 squared kernel.
