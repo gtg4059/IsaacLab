@@ -516,7 +516,7 @@ class RewardsCfg:
         weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
     )
-    base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-100.0, params={
+    base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-1000.0, params={
             "target_height": 0.78, 
             # "sensor_cfg": SceneEntityCfg("height_scanner")
         }
