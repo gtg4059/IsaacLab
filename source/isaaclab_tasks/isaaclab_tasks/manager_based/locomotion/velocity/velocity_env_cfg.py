@@ -390,8 +390,8 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (0.6, 0.8),
-            "dynamic_friction_range": (0.6, 0.8),
+            "static_friction_range": (0.1, 1.25),
+            "dynamic_friction_range": (0.1, 1.25),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
             "make_consistent": True
@@ -403,8 +403,8 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
-            "static_friction_range": (1.0, 1.2),
-            "dynamic_friction_range": (1.0, 1.2),
+            "static_friction_range": (0.6, 1.25),
+            "dynamic_friction_range": (0.6, 1.25),
             "restitution_range": (0.0, 0.0),
             "make_consistent": True,
             "num_buckets": 64,
@@ -480,7 +480,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.3, 0.3)},
+            "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.5, 0.5)},
             "velocity_range": {
                 "x": (-0.0, 0.0),
                 "y": (-0.0, 0.0),
@@ -542,7 +542,7 @@ class RewardsCfg:
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-1.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
-    is_alive = RewTerm(func=mdp.is_alive,weight=4.0)
+    is_alive = RewTerm(func=mdp.is_alive,weight=1.0)
 
 
 @configclass

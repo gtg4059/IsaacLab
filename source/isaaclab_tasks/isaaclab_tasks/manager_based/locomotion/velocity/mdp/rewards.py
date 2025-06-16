@@ -165,9 +165,9 @@ def object_is_contacted(
     contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
     in_contact = contact_time > 0.0
     double_stance = torch.sum(in_contact.int(), dim=1)
-    # spec = torch.sum(in_contact.int(), dim=1)>=10
+    spec = torch.sum(in_contact.int(), dim=1)==2
     # print(0.001*double_stance)
-    return double_stance#*spec#*torch.sum(in_contact.int(), dim=1)
+    return double_stance*spec#*torch.sum(in_contact.int(), dim=1)
 
 def object_ee_distance(
     env: ManagerBasedRLEnv,
@@ -193,8 +193,8 @@ def object_ee_distance(
     angle1 = quat_error_magnitude(curr_quat_w1, des_quat_b)
     angle2 = quat_error_magnitude(curr_quat_w2, des_quat_b)
 
-    result1 = (1 - torch.tanh((angle1)/(std)))*(1 - torch.tanh(torch.abs(distance1-0.15)/(std)))
-    result2 = (1 - torch.tanh((angle2)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.15)/(std)))
+    result1 = 0.2*(1 - torch.tanh(torch.abs(angle1)/(std)))+(1 - torch.tanh(torch.abs(distance1-0.15)/(std**2)))
+    result2 = 0.2*(1 - torch.tanh(torch.abs(angle2)/(std)))+(1 - torch.tanh(torch.abs(distance2-0.15)/(std**2)))
 
     # print("distance1:",distance1-0.18)
     # print("angle1:",angle1)

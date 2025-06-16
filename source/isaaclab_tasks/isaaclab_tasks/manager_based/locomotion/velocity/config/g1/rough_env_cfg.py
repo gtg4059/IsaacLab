@@ -28,41 +28,41 @@ class G1Rewards(RewardsCfg):
             "std": 0.4,
             "asset_cfg":SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
         }, 
-        weight=4.0
+        weight=20.0
     )
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=1.0,
+        weight=3.0,
         params={"threshold": 20.0,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*_wrist_yaw_link"]
             )
         }, 
     )
 
-    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.80}, weight=1.0)
+    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.80}, weight=0.5)
 
     object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
         params={"std": 0.4, "minimal_height": 0.80,"command_name": "object_pose", 
                 "object_cfg": SceneEntityCfg("object"),
                 "asset_cfg":SceneEntityCfg("robot")},
-        weight=100.0,
+        weight=5.0,
     )
 
-    # object_goal_tracking_fine_grained = RewTerm(
-    #     func=mdp.object_goal_distance,
-    #     params={"std": 0.05, "minimal_height": 0.80,"command_name": "object_pose", 
-    #             "object_cfg": SceneEntityCfg("object"),
-    #             "asset_cfg":SceneEntityCfg("robot")},
-    #     weight=25.0,
-    # )
+    object_goal_tracking_fine_grained = RewTerm(
+        func=mdp.object_goal_distance,
+        params={"std": 0.05, "minimal_height": 0.80,"command_name": "object_pose", 
+                "object_cfg": SceneEntityCfg("object"),
+                "asset_cfg":SceneEntityCfg("robot")},
+        weight=25.0,
+    )
 
-    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=5.0)
+    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=2.0)
 
     # same motion
     motion_equality_shoulder1 = RewTerm(
         func=mdp.motion_equality_cons,
-        weight=0.5,
+        weight=0.1,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_yaw_joint"),
         },
@@ -70,7 +70,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_shoulder2 = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=0.5,
+        weight=0.1,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_pitch_joint"),
         },
@@ -78,7 +78,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_elbow = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=0.5,
+        weight=0.1,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_elbow_joint"),
         },
@@ -86,7 +86,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_wrist = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=0.5,
+        weight=0.1,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_pitch_joint"),
         },
@@ -100,13 +100,13 @@ class G1Rewards(RewardsCfg):
         },
     )
 
-    # motion_equality_leg2 = RewTerm(
-    #     func=mdp.motion_equality_pros,
-    #     weight=5.0,
-    #     params={
-    #         "std": 0.1,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_ankle_pitch_joint"),
-    #     },
-    # )
+    motion_equality_leg2 = RewTerm(
+        func=mdp.motion_equality_pros,
+        weight=5.0,
+        params={
+            "std": 0.1,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_ankle_pitch_joint"),
+        },
+    )
 
     ## normal reward
 
@@ -145,7 +145,7 @@ class G1Rewards(RewardsCfg):
 
     slide = RewTerm(
         func=mdp.feet_slide,
-        weight=-0.2,
+        weight=-2.0,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*_wrist_yaw_link"]),
             "asset_cfg": SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
@@ -247,7 +247,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
 
         # Randomization
-        self.events.push_robot = None
+        # self.events.push_robot = None
         # self.events.add_base_mass = None
         self.events.reset_robot_joints.params["position_range"] = (1.0, 1.0)
         self.events.base_external_force_torque.params["asset_cfg"].body_names = ["torso_link"]
