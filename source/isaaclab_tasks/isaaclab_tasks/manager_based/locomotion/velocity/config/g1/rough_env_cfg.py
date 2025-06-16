@@ -39,23 +39,23 @@ class G1Rewards(RewardsCfg):
         }, 
     )
 
-    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.80}, weight=0.5)
+    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.80}, weight=1.0)
 
     object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
-        params={"std": 0.4, "minimal_height": 0.80,"command_name": "object_pose", 
+        params={"std": 0.5, "minimal_height": 0.80,"command_name": "object_pose", 
                 "object_cfg": SceneEntityCfg("object"),
                 "asset_cfg":SceneEntityCfg("robot")},
         weight=5.0,
     )
 
-    object_goal_tracking_fine_grained = RewTerm(
-        func=mdp.object_goal_distance,
-        params={"std": 0.05, "minimal_height": 0.80,"command_name": "object_pose", 
-                "object_cfg": SceneEntityCfg("object"),
-                "asset_cfg":SceneEntityCfg("robot")},
-        weight=25.0,
-    )
+    # object_goal_tracking_fine_grained = RewTerm(
+    #     func=mdp.object_goal_distance,
+    #     params={"std": 0.05, "minimal_height": 0.80,"command_name": "object_pose", 
+    #             "object_cfg": SceneEntityCfg("object"),
+    #             "asset_cfg":SceneEntityCfg("robot")},
+    #     weight=25.0,
+    # )
 
     flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=2.0)
 

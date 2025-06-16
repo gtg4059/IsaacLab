@@ -226,7 +226,7 @@ def object_goal_distance(
     angle = euler_xyz_from_quat(object.data.root_quat_w)[0]**2+euler_xyz_from_quat(object.data.root_quat_w)[1]**2+euler_xyz_from_quat(object.data.root_quat_w)[2]**2
     # print("height:",object.data.root_pos_w[:, :2])
     # print("distance:",object.data.root_pos_w-robot.data.root_pos_w)
-    return (1 - torch.tanh(distance / std))*(1 - torch.tanh(angle/std))
+    return 0.2*(1 - torch.tanh(torch.abs(angle)/(std)))+(1 - torch.tanh(torch.abs(distance)/(std**2)))
 
 def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
     """Penalize non-flat base orientation using L2 squared kernel.
