@@ -50,18 +50,19 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab_tasks.manager_based.locomotion.velocity.config.g1.flat_env_cfg import G1FlatEnvCfg_PLAY
 
 
-def print_cb(flag):
-    flag = not flag
+
 
 def main():
     """Main function."""
     # load the trained jit policy
     # policy_path = os.path.abspath(args_cli.checkpoint)
+    # runner
     policy_path1 = "/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/run_for_scenario/exported/policy.pt"
     file_content1 = omni.client.read_file(policy_path1)[2]
     file1 = io.BytesIO(memoryview(file_content1).tobytes())
     policy1 = torch.jit.load(file1)
-    policy_path2 = "/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/run_for_scenario/exported/policy.pt"
+    # pickup
+    policy_path2 = "/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/2025-06-17_20-31-34/exported/policy.pt"
     file_content2 = omni.client.read_file(policy_path2)[2]
     file2 = io.BytesIO(memoryview(file_content2).tobytes())
     policy2 = torch.jit.load(file2)
@@ -74,15 +75,19 @@ def main():
     #     usd_path=f"{ISAAC_NUCLEUS_DIR}/Environments/Simple_Warehouse/warehouse.usd",
     # )
     env_cfg.sim.device = "cpu"
-    flag=True
+
+    flag=False
+    def print_cb():
+        print("pressed")
+        nonlocal flag
+        flag = not flag
     # env_cfg.sim.use_fabric = False
     env = ManagerBasedRLEnv(cfg=env_cfg)
-    env.keyboard.add_callback("a", print_cb(flag))
-    # env.keyboard.add_callback("a", print_cb(flag))
+    env.keyboard.add_callback("A", print_cb)
+    # env.keyboard.add_callback("a", print_cb))
     obs, _ = env.reset()
     while simulation_app.is_running():
         # print(env.keyboard.is_pressed("a"))
-
         if flag:
             action = policy2(obs["policy"])
         else:
