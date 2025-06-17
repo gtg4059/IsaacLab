@@ -39,7 +39,7 @@ class G1Rewards(RewardsCfg):
         }, 
     )
 
-    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.80}, weight=5.0)
+    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.80}, weight=10.0)
 
     object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
