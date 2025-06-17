@@ -229,8 +229,8 @@ def object_goal_distance(
     # print("distance0:",distance)
     # print("distance1:",(1 - torch.tanh(torch.abs(distance)/(std))))
     # print("distance2:",5*(1 - torch.tanh(torch.abs(distance)/(std**2))))
-    # print("height:",object.data.root_pos_w[:, :2])
-    # print("distance:",object.data.root_pos_w-robot.data.root_pos_w)
+    # print("a:",(object.data.root_pos_w-robot.data.root_pos_w))
+    # print("b:",env.command_manager.get_command(command_name)[:,:3])
     return 0.05*(1 - torch.tanh(torch.abs(angle)/(std)))+(1 - torch.tanh(torch.abs(distance)/(std)))+5*(1 - torch.tanh(torch.abs(distance)/(std**2)))
 
 def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:

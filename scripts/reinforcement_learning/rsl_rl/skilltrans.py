@@ -121,6 +121,8 @@ def main():
     # obtain the trained policy for inference
     policy = ppo_runner.get_inference_policy(device=env.unwrapped.device)
 
+    # env.unwrapped.observation_space.shape = 
+    
     # # load previously trained model
     # ppo_runner2 = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
     # ppo_runner2.load(resume_path_next)

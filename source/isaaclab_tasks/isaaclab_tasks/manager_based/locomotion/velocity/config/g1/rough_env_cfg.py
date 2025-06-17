@@ -25,10 +25,10 @@ class G1Rewards(RewardsCfg):
     reaching_object= RewTerm(
         func=mdp.object_ee_distance, 
         params={
-            "std": 0.5,
+            "std": 0.4,
             "asset_cfg":SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
         }, 
-        weight=20.0
+        weight=12.0
     )
  
     object_contact = RewTerm(
@@ -39,14 +39,14 @@ class G1Rewards(RewardsCfg):
         }, 
     )
 
-    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.80}, weight=3.0)
+    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.80}, weight=5.0)
 
     object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
-        params={"std": 0.2, "minimal_height": 0.80,"command_name": "object_pose", 
+        params={"std": 0.1, "minimal_height": 0.80,"command_name": "object_pose", 
                 "object_cfg": SceneEntityCfg("object"),
                 "asset_cfg":SceneEntityCfg("robot")},
-        weight=8.0,
+        weight=30.0,
     )
 
     # object_goal_tracking_fine_grained = RewTerm(
