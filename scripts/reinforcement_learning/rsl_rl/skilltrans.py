@@ -47,6 +47,8 @@ simulation_app = app_launcher.app
 """Rest everything follows."""
 
 import gymnasium as gym
+from gymnasium import spaces
+import numpy as np
 import os
 import time
 import torch
@@ -113,36 +115,17 @@ def main():
     # wrap around environment for rsl-rl
     env = RslRlVecEnvWrapper(env)
 
-    print(f"[INFO]: Loading model checkpoint from: {resume_path}")
-    # load previously trained model
-    ppo_runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
-    ppo_runner.load(resume_path)
-
-    # obtain the trained policy for inference
-    policy = ppo_runner.get_inference_policy(device=env.unwrapped.device)
-
-    # env.unwrapped.observation_space.shape = 
-    
+    # print(f"[INFO]: Loading model checkpoint from: {resume_path}")
     # # load previously trained model
-    # ppo_runner2 = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
-    # ppo_runner2.load(resume_path_next)
+    # ppo_runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
+    # ppo_runner.load(resume_path)
 
     # # obtain the trained policy for inference
-    # policy2 = ppo_runner2.get_inference_policy(device=env.unwrapped.device)
+    # policy = ppo_runner.get_inference_policy(device=env.unwrapped.device)
 
-    # # export policy to onnx/jit
-    # export_model_dir = os.path.join(os.path.dirname(resume_path), "exported")
-    # export_policy_as_jit(
-    #     ppo_runner.alg.actor_critic, ppo_runner.obs_normalizer, path=export_model_dir, filename="policy.pt"
-    # )
-    # export_policy_as_onnx(
-    #     ppo_runner.alg.actor_critic, normalizer=ppo_runner.obs_normalizer, path=export_model_dir, filename="policy.onnx"
-    # )
-    keyboard = Se2Keyboard(
-        v_x_sensitivity=0.8,
-        v_y_sensitivity=0.4,
-        omega_z_sensitivity=1.0
-    )
+    policy_run = torch.jit.load("/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/run_for_scenario/exported/policy.pt")
+    policy_pick = torch.jit.load("/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/2025-06-17_18-33-58/exported/policy.pt")
+    # env.unwrapped.observation_space = spaces.Box(0, 292, [402,], np.int16)
 
     dt = env.unwrapped.physics_dt
 
@@ -154,10 +137,9 @@ def main():
         start_time = time.time()
         # run everything in inference mode
         with torch.inference_mode():
-            cmd = keyboard.advance
             # agent stepping
             # print("torch.norm:",torch.linalg.vector_norm(obs[:,9:11])) #command x,y
-            actions = policy(obs)#(obs[:,:-3])
+            actions = policy_run(obs[:,:-3])#(obs[:,:-3])
             # if torch.linalg.vector_norm(obs[:,9:11])>0.2: # target distance>0.2
             #     # print("run")
             #     actions = policy(obs) #target: velocity

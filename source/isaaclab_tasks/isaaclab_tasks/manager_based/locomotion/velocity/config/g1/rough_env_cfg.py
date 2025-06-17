@@ -43,7 +43,7 @@ class G1Rewards(RewardsCfg):
 
     object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
-        params={"std": 0.1, "minimal_height": 0.80,"command_name": "object_pose", 
+        params={"std": 0.12, "minimal_height": 0.80,"command_name": "object_pose", 
                 "object_cfg": SceneEntityCfg("object"),
                 "asset_cfg":SceneEntityCfg("robot")},
         weight=30.0,
