@@ -43,6 +43,7 @@ def keyboard_commands(env: ManagerBasedEnv) -> torch.Tensor:
         env.keyboard = Se2Keyboard(
             v_x_sensitivity=1.0, v_y_sensitivity=1.0, omega_z_sensitivity=3.0
         )
+        # env.keyboard.add_callback("a", print_cb)
         env.keyboard.reset()
     
     command = env.keyboard.advance()
