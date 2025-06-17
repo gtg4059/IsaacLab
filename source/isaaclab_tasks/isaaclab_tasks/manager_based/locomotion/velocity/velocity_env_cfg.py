@@ -364,8 +364,8 @@ class ObservationsCfg:
                                     )},
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
-        sin_phase = ObsTerm(func=mdp.sin_phase)
-        cos_phase = ObsTerm(func=mdp.cos_phase)
+        # sin_phase = ObsTerm(func=mdp.sin_phase)
+        # cos_phase = ObsTerm(func=mdp.cos_phase)
         # height_scan = ObsTerm(
         #     func=mdp.height_scan,
         #     params={"sensor_cfg": SceneEntityCfg("height_scanner")},
