@@ -61,6 +61,7 @@ from isaaclab.utils.pretrained_checkpoint import get_published_pretrained_checkp
 
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg
+from isaaclab.devices import Se2Keyboard
 
 
 def main():
@@ -120,12 +121,12 @@ def main():
     # obtain the trained policy for inference
     policy = ppo_runner.get_inference_policy(device=env.unwrapped.device)
 
-    # load previously trained model
-    ppo_runner2 = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
-    ppo_runner2.load(resume_path_next)
+    # # load previously trained model
+    # ppo_runner2 = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
+    # ppo_runner2.load(resume_path_next)
 
-    # obtain the trained policy for inference
-    policy2 = ppo_runner2.get_inference_policy(device=env.unwrapped.device)
+    # # obtain the trained policy for inference
+    # policy2 = ppo_runner2.get_inference_policy(device=env.unwrapped.device)
 
     # # export policy to onnx/jit
     # export_model_dir = os.path.join(os.path.dirname(resume_path), "exported")
@@ -135,8 +136,11 @@ def main():
     # export_policy_as_onnx(
     #     ppo_runner.alg.actor_critic, normalizer=ppo_runner.obs_normalizer, path=export_model_dir, filename="policy.onnx"
     # )
-
-
+    keyboard = Se2Keyboard(
+        v_x_sensitivity=0.8,
+        v_y_sensitivity=0.4,
+        omega_z_sensitivity=1.0
+    )
 
     dt = env.unwrapped.physics_dt
 
@@ -148,15 +152,18 @@ def main():
         start_time = time.time()
         # run everything in inference mode
         with torch.inference_mode():
+            cmd = keyboard.advance
+            print(env.unwrapped.scene["object_pose"])
             # agent stepping
-            print("torch.norm:",torch.linalg.vector_norm(obs[:,9:11])) #command x,y
-            actions = policy(obs)
-            if torch.linalg.vector_norm(obs[:,9:11])>0.2: # target distance>0.2
-                # print("run")
-                actions = policy(obs) #target: velocity
-            else:
-                # print("stop")
-                actions = policy2(obs)
+            # print("torch.norm:",torch.linalg.vector_norm(obs[:,9:11])) #command x,y
+            actions = policy(obs)#(obs[:,:-3])
+            # if torch.linalg.vector_norm(obs[:,9:11])>0.2: # target distance>0.2
+            #     # print("run")
+            #     actions = policy(obs) #target: velocity
+            # else:
+            #     # print("stop")
+            #     actions = policy2(obs)
+
             # env stepping
             obs, _, _, _ = env.step(actions)
         if args_cli.video:
