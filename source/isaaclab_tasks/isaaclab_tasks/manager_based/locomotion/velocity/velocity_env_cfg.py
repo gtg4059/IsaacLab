@@ -39,11 +39,13 @@ from isaaclab.devices import Se2Keyboard
 
 def keyboard_commands(env: ManagerBasedEnv) -> torch.Tensor:
     """키보드로부터 명령을 받아옵니다."""
-    controller = Se2Keyboard(
-        v_x_sensitivity=1.0, v_y_sensitivity=1.0, omega_z_sensitivity=3.0
-    )
-    controller.reset()
-    command = controller.advance()
+    if not hasattr(env, "keyboard"):
+        env.keyboard = Se2Keyboard(
+            v_x_sensitivity=1.0, v_y_sensitivity=1.0, omega_z_sensitivity=3.0
+        )
+        env.keyboard.reset()
+    
+    command = env.keyboard.advance()
     return torch.tensor(command, device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
 
 ##
@@ -526,7 +528,7 @@ class RewardsCfg:
     # )
     
     # -- penalties
-    base_position_l2 = RewTerm(func=mdp.base_position_l2, weight=-50.0)
+    # base_position_l2 = RewTerm(func=mdp.base_position_l2, weight=-50.0)
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-2)
@@ -589,9 +591,9 @@ class TerminationsCfg:
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("robot")}
     )
-    bad_position = DoneTerm(
-        func=mdp.bad_position, params={"limit_dist": 0.5, "asset_cfg": SceneEntityCfg("robot")}
-    )
+    # bad_position = DoneTerm(
+    #     func=mdp.bad_position, params={"limit_dist": 0.5, "asset_cfg": SceneEntityCfg("robot")}
+    # )
 
 
 @configclass

@@ -112,6 +112,7 @@ def main():
 
     # wrap around environment for rsl-rl
     env = RslRlVecEnvWrapper(env)
+    env.unwrapped.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(새로운_차원수,), dtype=np.float32)
 
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
     # load previously trained model
@@ -136,11 +137,6 @@ def main():
     # export_policy_as_onnx(
     #     ppo_runner.alg.actor_critic, normalizer=ppo_runner.obs_normalizer, path=export_model_dir, filename="policy.onnx"
     # )
-    keyboard = Se2Keyboard(
-        v_x_sensitivity=0.8,
-        v_y_sensitivity=0.4,
-        omega_z_sensitivity=1.0
-    )
 
     dt = env.unwrapped.physics_dt
 
@@ -152,7 +148,6 @@ def main():
         start_time = time.time()
         # run everything in inference mode
         with torch.inference_mode():
-            cmd = keyboard.advance
             # agent stepping
             # print("torch.norm:",torch.linalg.vector_norm(obs[:,9:11])) #command x,y
             actions = policy(obs)#(obs[:,:-3])
