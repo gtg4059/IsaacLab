@@ -112,12 +112,12 @@ class MySceneCfg(InteractiveSceneCfg):
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/ThorlabsTable/table_instanceable.usd", scale=(0.2, 0.3, 0.04),
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/ThorlabsTable/table_instanceable.usd", scale=(1.0, 1.0, 1.00),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
             ),
         ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.22, 0.0, 0.66)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.32, 0.0, 0.66)),
     )
 
 
@@ -136,7 +136,7 @@ class CommandsCfg:
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.12, 0.2), pos_y=(-0.0, 0.0), pos_z=(0.82, 0.86), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            pos_x=(0.12, 0.2), pos_y=(-0.0, 0.0), pos_z=(0.06, 0.12), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
         ),
     )
 

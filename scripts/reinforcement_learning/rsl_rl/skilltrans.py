@@ -153,7 +153,6 @@ def main():
         # run everything in inference mode
         with torch.inference_mode():
             cmd = keyboard.advance
-            print(env.unwrapped.scene["object_pose"])
             # agent stepping
             # print("torch.norm:",torch.linalg.vector_norm(obs[:,9:11])) #command x,y
             actions = policy(obs)#(obs[:,:-3])
