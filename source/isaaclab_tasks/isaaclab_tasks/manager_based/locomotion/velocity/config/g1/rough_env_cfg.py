@@ -28,7 +28,7 @@ class G1Rewards(RewardsCfg):
             "std": 0.4,
             "asset_cfg":SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
         }, 
-        weight=20.0
+        weight=40.0
     )
  
     object_contact = RewTerm(
@@ -39,14 +39,14 @@ class G1Rewards(RewardsCfg):
         }, 
     )
 
-    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.80}, weight=1.0)
+    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.80}, weight=2.0)
 
     object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
-        params={"std": 0.5, "minimal_height": 0.80,"command_name": "object_pose", 
+        params={"std": 0.3, "minimal_height": 0.80,"command_name": "object_pose", 
                 "object_cfg": SceneEntityCfg("object"),
                 "asset_cfg":SceneEntityCfg("robot")},
-        weight=5.0,
+        weight=80.0,
     )
 
     # object_goal_tracking_fine_grained = RewTerm(
@@ -57,12 +57,12 @@ class G1Rewards(RewardsCfg):
     #     weight=25.0,
     # )
 
-    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=2.0)
+    # flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=2.0)
 
     # same motion
     motion_equality_shoulder1 = RewTerm(
         func=mdp.motion_equality_cons,
-        weight=0.1,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_yaw_joint"),
         },
@@ -70,7 +70,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_shoulder2 = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=0.1,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_pitch_joint"),
         },
@@ -78,7 +78,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_elbow = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=0.1,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_elbow_joint"),
         },
@@ -86,7 +86,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_wrist = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=0.1,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_pitch_joint"),
         },
@@ -143,14 +143,14 @@ class G1Rewards(RewardsCfg):
     #     },
     # )
 
-    slide = RewTerm(
-        func=mdp.feet_slide,
-        weight=-2.0,
-        params={
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*_wrist_yaw_link"]),
-            "asset_cfg": SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
-        },
-    )
+    # slide = RewTerm(
+    #     func=mdp.feet_slide,
+    #     weight=-2.0,
+    #     params={
+    #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*_wrist_yaw_link"]),
+    #         "asset_cfg": SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
+    #     },
+    # )
 
     # Penalize ankle joint limits
     dof_pos_limits = RewTerm(
