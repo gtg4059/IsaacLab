@@ -33,6 +33,19 @@ import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
 from isaaclab.markers.config import FRAME_MARKER_CFG
 
+import torch
+from isaaclab.envs import ManagerBasedEnv, ManagerBasedEnvCfg
+from isaaclab.devices import Se2Keyboard
+
+def keyboard_commands(env: ManagerBasedEnv) -> torch.Tensor:
+    """키보드로부터 명령을 받아옵니다."""
+    controller = Se2Keyboard(
+        v_x_sensitivity=1.0, v_y_sensitivity=1.0, omega_z_sensitivity=3.0
+    )
+    controller.reset()
+    command = controller.advance()
+    return torch.tensor(command, device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
+
 ##
 # Scene definition
 ##
@@ -275,7 +288,7 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
+        velocity_commands = ObsTerm(func=keyboard_commands)
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
 
         def __post_init__(self):
@@ -369,7 +382,7 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
+        velocity_commands = ObsTerm(func=keyboard_commands)
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
 
         def __post_init__(self):
