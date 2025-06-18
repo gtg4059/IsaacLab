@@ -62,15 +62,15 @@ def main():
     file1 = io.BytesIO(memoryview(file_content1).tobytes())
     policy1 = torch.jit.load(file1)
     # stop
-    policy_path2 = "/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/2025-06-17_20-31-34/exported/policy.pt"
+    policy_path2 = "/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/2025-06-18_04-17-38/exported/policy.pt"
     file_content2 = omni.client.read_file(policy_path2)[2]
     file2 = io.BytesIO(memoryview(file_content2).tobytes())
     policy2 = torch.jit.load(file2)
     # pickup
-    policy_path2 = "/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/2025-06-17_20-31-34/exported/policy.pt"
-    file_content2 = omni.client.read_file(policy_path2)[2]
-    file2 = io.BytesIO(memoryview(file_content2).tobytes())
-    policy2 = torch.jit.load(file2)
+    policy_path3 = "/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/2025-06-17_20-31-34/exported/policy.pt"
+    file_content3 = omni.client.read_file(policy_path3)[2]
+    file3 = io.BytesIO(memoryview(file_content3).tobytes())
+    policy3 = torch.jit.load(file3)
     # env
     env_cfg = G1FlatEnvCfg_PLAY()
     env_cfg.scene.num_envs = 1
@@ -94,12 +94,12 @@ def main():
     obs, _ = env.reset()
     while simulation_app.is_running():
         # print(env.keyboard.is_pressed("a"))
-        if flag:
+        if not flag and torch.norm(obs["policy"][:,96:99])>0.1: #run
+            action = policy1(obs["policy"])
+        elif not flag and torch.norm(obs["policy"][:, 96:99])<=0.1: #stop
             action = policy2(obs["policy"])
-        elif obs["policy"][:, :-3]>1:
-
-        else:
-            action = policy1(obs["policy"][:, :-3])
+        elif flag:
+            action = policy3(obs["policy"][:, :-3])
         # run inference
         obs, _, _, _, _ = env.step(action)
 
