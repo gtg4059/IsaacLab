@@ -46,7 +46,7 @@ class G1Rewards(RewardsCfg):
         params={"std": 0.1, "minimal_height": 0.80,"command_name": "object_pose", 
                 "object_cfg": SceneEntityCfg("object"),
                 "asset_cfg":SceneEntityCfg("robot")},
-        weight=60.0,
+        weight=100.0,
     )
 
     # object_goal_tracking_fine_grained = RewTerm(
