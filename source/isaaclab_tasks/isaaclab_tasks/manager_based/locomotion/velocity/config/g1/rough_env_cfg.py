@@ -6,6 +6,7 @@
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
+from isaaclab.sensors import ContactSensorCfg
 
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg, RewardsCfg
@@ -39,14 +40,21 @@ class G1Rewards(RewardsCfg):
         }, 
     )
 
-    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.80}, weight=6.0)
+    table_contact = RewTerm(
+        func=mdp.table_is_contacted, 
+        weight=0.5,
+        params={"threshold": 20.0,"sensor_cfg": SceneEntityCfg("contact_table")
+        }, 
+    )
+
+    # lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.80}, weight=6.0)
 
     object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
-        params={"std": 0.1, "minimal_height": 0.80,"command_name": "object_pose", 
+        params={"std": 0.2, "minimal_height": 0.80,"command_name": "object_pose", 
                 "object_cfg": SceneEntityCfg("object"),
                 "asset_cfg":SceneEntityCfg("robot")},
-        weight=100.0,
+        weight=10.0,
     )
 
     # object_goal_tracking_fine_grained = RewTerm(
@@ -246,6 +254,12 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
 
+        # self.scene.contact_table = ContactSensorCfg(
+        #     prim_path="{ENV_REGEX_NS}/Object",
+        #     debug_vis=False,
+        #     update_period=0.0,
+        #     filter_prim_paths_expr=["{ENV_REGEX_NS}/Table"],
+        # )
         # Randomization
         # self.events.push_robot = None
         # self.events.add_base_mass = None

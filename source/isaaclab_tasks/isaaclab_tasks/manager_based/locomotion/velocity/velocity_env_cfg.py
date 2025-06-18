@@ -78,7 +78,6 @@ class MySceneCfg(InteractiveSceneCfg):
     
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
 
-
     # lights
     sky_light = AssetBaseCfg(
         prim_path="/World/skyLight",
@@ -105,6 +104,7 @@ class MySceneCfg(InteractiveSceneCfg):
                 max_depenetration_velocity=5.0,
                 disable_gravity=False,
             ),
+            activate_contact_sensors=True,
         ),
     )
 
@@ -119,6 +119,14 @@ class MySceneCfg(InteractiveSceneCfg):
         ),
         init_state=AssetBaseCfg.InitialStateCfg(pos=(0.32, 0.0, 0.66)),
     )
+
+    contact_table = ContactSensorCfg(
+            prim_path="{ENV_REGEX_NS}/Object",
+            debug_vis=False,
+            update_period=0.0,
+            filter_prim_paths_expr=["{ENV_REGEX_NS}/Table"],
+            track_air_time=True,
+        )
 
 
 ##

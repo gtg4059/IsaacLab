@@ -169,6 +169,19 @@ def object_is_contacted(
     # print(0.001*double_stance)
     return double_stance*spec#*torch.sum(in_contact.int(), dim=1)
 
+def table_is_contacted(
+    env: ManagerBasedRLEnv,
+    threshold: float,
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_table"),
+) -> torch.Tensor:
+    """Reward the agent for lifting the object above the minimal height."""
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    # compute the reward
+    air_time = contact_sensor.data.current_air_time[:, 0]
+    in_air = air_time > 0.0
+    reward = torch.clamp(in_air, max=threshold)
+    return reward
+
 def object_ee_distance(
     env: ManagerBasedRLEnv,
     std: float,
@@ -231,6 +244,7 @@ def object_goal_distance(
     # print("distance2:",5*(1 - torch.tanh(torch.abs(distance)/(std**2))))
     # print("a:",(object.data.root_pos_w-robot.data.root_pos_w))
     # print("b:",env.command_manager.get_command(command_name)[:,:3])
+    # torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*
     return (1 - torch.tanh(torch.abs(angle)/(std)))*((1 - torch.tanh(torch.abs(distance)/(std)))+5*(1 - torch.tanh(torch.abs(distance)/(std**2))))
 
 def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
