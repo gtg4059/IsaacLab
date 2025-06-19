@@ -169,7 +169,7 @@ def object_is_contacted(
     # print(0.001*double_stance)
     return double_stance*spec#*torch.sum(in_contact.int(), dim=1)
 
-def table_is_contacted(
+def table_not_contacted(
     env: ManagerBasedRLEnv,
     threshold: float,
     sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_table"),
@@ -178,8 +178,8 @@ def table_is_contacted(
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
     # compute the reward
     air_time = contact_sensor.data.current_air_time[:, 0]
-    in_air = air_time > 0.0
-    reward = torch.clamp(in_air, max=threshold)
+    reward = torch.clamp(torch.sqrt(torch.sqrt(air_time)), max=threshold)
+    # reward = torch.clamp(in_air, max=threshold)
     return reward
 
 def object_ee_distance(
@@ -208,8 +208,8 @@ def object_ee_distance(
 
     # result1 = (1 - torch.tanh(torch.abs(angle1)/(std)))*(1 - torch.tanh(torch.abs(distance1-0.18)/(std**2)))
     # result2 = (1 - torch.tanh(torch.abs(angle2)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.18)/(std**2)))
-    dist = (1 - torch.tanh(torch.abs(distance1-0.18)/(std**2)))*(1 - torch.tanh(torch.abs(distance2-0.18)/(std**2)))
-    angle = (1 - torch.tanh(torch.abs(angle1)/(std)))*(1 - torch.tanh(torch.abs(angle2)/(std)))
+    dist = torch.sqrt((1 - torch.tanh(torch.abs(distance1-0.18)/(std**2)))*(1 - torch.tanh(torch.abs(distance2-0.18)/(std**2))))
+    angle = torch.sqrt((1 - torch.tanh(torch.abs(angle1)))*(1 - torch.tanh(torch.abs(angle2))))
 
     # print("distance1:",distance1-0.18)
     # print("angle1:",angle1)
@@ -219,9 +219,10 @@ def object_ee_distance(
     # print("1:",euler_xyz_from_quat(curr_quat_w1))
     # print("2:",euler_xyz_from_quat(curr_quat_w2))
     # print("box:",(des_quat_b))
-    # print("1:",(curr_quat_w1))
-    # print("2:",(curr_quat_w2))
-    return dist+0.1*angle #torch.tanh(object_ee_distance1 / std)-torch.tanh(object_ee_distance2 / std)
+    # print("dist:",(dist))
+    # print("angle:",(0.01*angle))
+    # print(dist+0.1*angle)
+    return torch.sqrt(dist+0.01*angle)
 
 
 def object_goal_distance(

@@ -112,12 +112,12 @@ class MySceneCfg(InteractiveSceneCfg):
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/ThorlabsTable/table_instanceable.usd", scale=(1.0, 1.0, 1.00),
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/ThorlabsTable/table_instanceable.usd", scale=(0.2, 0.2, 0.04),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
             ),
         ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.32, 0.0, 0.66)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.20, 0.0, 0.66)),
     )
 
     contact_table = ContactSensorCfg(
