@@ -57,17 +57,17 @@ def main():
     # load the trained jit policy
     # policy_path = os.path.abspath(args_cli.checkpoint)
     # runner
-    policy_path1 = "/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/run_for_scenario/exported/policy.pt"
+    policy_path1 = "/home/robotics/IsaacLab/logs/rsl_rl/place/run_for_scenario/exported/policy.pt"
     file_content1 = omni.client.read_file(policy_path1)[2]
     file1 = io.BytesIO(memoryview(file_content1).tobytes())
     policy1 = torch.jit.load(file1)
     # stop
-    policy_path2 = "/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/2025-06-18_04-17-38/exported/policy.pt"
+    policy_path2 = "/home/robotics/IsaacLab/logs/rsl_rl/place/stop_for_scenario/exported/policy.pt"
     file_content2 = omni.client.read_file(policy_path2)[2]
     file2 = io.BytesIO(memoryview(file_content2).tobytes())
     policy2 = torch.jit.load(file2)
     # pickup
-    policy_path3 = "/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/2025-06-18_04-13-21/exported/policy.pt"
+    policy_path3 = "/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/2025-06-22_03-36-08/exported/policy.pt"
     file_content3 = omni.client.read_file(policy_path3)[2]
     file3 = io.BytesIO(memoryview(file_content3).tobytes())
     policy3 = torch.jit.load(file3)
