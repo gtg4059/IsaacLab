@@ -26,15 +26,15 @@ class G1Rewards(RewardsCfg):
     reaching_object= RewTerm(
         func=mdp.object_ee_distance, 
         params={
-            "std": 0.4,
+            "std": 0.2,
             "asset_cfg":SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
         }, 
-        weight=1.6
+        weight=6.0
     )
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=1.2,
+        weight=3.0,
         params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*_wrist_yaw_link"]
             )
         }, 
@@ -42,20 +42,20 @@ class G1Rewards(RewardsCfg):
 
     table_contact = RewTerm(
         func=mdp.table_not_contacted, 
-        weight=20.0,
-        params={"threshold": 4.0,"sensor_cfg": SceneEntityCfg("contact_table")
+        weight=5.0,
+        params={"sensor_cfg": SceneEntityCfg("contact_table")
         }, 
     )
 
     # lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.80}, weight=6.0)
 
-    object_goal_tracking = RewTerm(
-        func=mdp.object_goal_distance,
-        params={"std": 0.1, "minimal_height": 0.80,"command_name": "object_pose", 
-                "object_cfg": SceneEntityCfg("object"),
-                "asset_cfg":SceneEntityCfg("robot")},
-        weight=2.0,
-    )
+    # object_goal_tracking = RewTerm(
+    #     func=mdp.object_goal_distance,
+    #     params={"std": 0.2, "minimal_height": 0.80,"command_name": "object_pose", 
+    #             "object_cfg": SceneEntityCfg("object"),
+    #             "asset_cfg":SceneEntityCfg("robot")},
+    #     weight=40.0,
+    # )
 
     # object_goal_tracking_fine_grained = RewTerm(
     #     func=mdp.object_goal_distance,
@@ -65,7 +65,7 @@ class G1Rewards(RewardsCfg):
     #     weight=25.0,
     # )
 
-    # flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=2.0)
+    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=10.0)
 
     # same motion
     motion_equality_shoulder1 = RewTerm(
@@ -181,33 +181,33 @@ class G1Rewards(RewardsCfg):
                 joint_names=[
                     ".*_shoulder_roll_joint",
                     # ".*_shoulder_pitch_joint",
-                    ".*_shoulder_yaw_joint",
+                    # ".*_shoulder_yaw_joint",
                     # ".*_elbow_joint",
                     ".*_wrist_yaw_joint",
                     # ".*_wrist_pitch_joint",
+                    ".*_wrist_roll_joint",
+                ],
+            )
+        },
+    )
+    joint_deviation_arms2 = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-0.1,
+        params={
+            "asset_cfg": SceneEntityCfg(
+                "robot",
+                joint_names=[
+                    # ".*_shoulder_roll_joint",
+                    ".*_shoulder_pitch_joint",
+                    ".*_shoulder_yaw_joint",
+                    ".*_elbow_joint",
+                    # ".*_wrist_yaw_joint",
+                    ".*_wrist_pitch_joint",
                     # ".*_wrist_roll_joint",
                 ],
             )
         },
     )
-    # joint_deviation_arms2 = RewTerm(
-    #     func=mdp.joint_deviation_l1,
-    #     weight=-0.1,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg(
-    #             "robot",
-    #             joint_names=[
-    #                 # ".*_shoulder_roll_joint",
-    #                 ".*_shoulder_pitch_joint",
-    #                 # ".*_shoulder_yaw_joint",
-    #                 ".*_elbow_joint",
-    #                 # ".*_wrist_yaw_joint",
-    #                 ".*_wrist_pitch_joint",
-    #                 # ".*_wrist_roll_joint",
-    #             ],
-    #         )
-    #     },
-    # )
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-0.1,

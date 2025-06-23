@@ -90,7 +90,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.24, 0, 0.74], rot=[1, 0, 0, 0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.30, 0, 0.80], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=(3.10,4.14, 2.84),
@@ -109,16 +109,35 @@ class MySceneCfg(InteractiveSceneCfg):
     )
 
     # mount
-    table = AssetBaseCfg(
+    table = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Table",
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.30, 0, 0.70], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/ThorlabsTable/table_instanceable.usd", scale=(0.2, 0.2, 0.04),
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", scale=(4.0, 10.0, 1.00),
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                kinematic_enabled=True,
+                solver_position_iteration_count=16,
+                solver_velocity_iteration_count=1,
+                max_angular_velocity=1000.0,
+                max_linear_velocity=1000.0,
+                max_depenetration_velocity=5.0,
                 disable_gravity=True,
             ),
         ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.20, 0.0, 0.66)),
     )
+
+    # # mount
+    # table = AssetBaseCfg(
+    #     prim_path="{ENV_REGEX_NS}/Table",
+    #     spawn=sim_utils.UsdFileCfg(
+    #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/ThorlabsTable/table_instanceable.usd", scale=(0.2, 0.2, 0.04),
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
+    #             disable_gravity=True,
+    #         ),
+    #     ),
+    #     init_state=AssetBaseCfg.InitialStateCfg(pos=(0.20, 0.0, 0.66)),
+    # )
 
     contact_table = ContactSensorCfg(
             prim_path="{ENV_REGEX_NS}/Object",
@@ -144,7 +163,7 @@ class CommandsCfg:
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(#0.84, 0.86
-            pos_x=(0.12, 0.2), pos_y=(-0.0, 0.0), pos_z=(0.1, 0.12), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            pos_x=(0.30, 0.30), pos_y=(-0.0, 0.0), pos_z=(0.1, 0.1), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
         ),
     )
 
@@ -483,6 +502,17 @@ class EventCfg:
         params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
     )
 
+    # interval
+    push_object = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="interval",
+        interval_range_s=(10.0, 15.0),
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}
+            },
+    )
+
     reset_box_position = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
@@ -526,7 +556,7 @@ class RewardsCfg:
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.03)
 
     # feet_air_time = RewTerm(
     #     func=mdp.feet_air_time,

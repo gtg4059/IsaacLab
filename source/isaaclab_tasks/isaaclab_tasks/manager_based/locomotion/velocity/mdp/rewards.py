@@ -19,6 +19,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor, FrameTransformer
 from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, subtract_frame_transforms, euler_xyz_from_quat, quat_mul, quat_error_magnitude
 from isaaclab.assets import RigidObject, Articulation
+import isaaclab.utils.math as math_utils
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -167,20 +168,16 @@ def object_is_contacted(
     double_stance = torch.sum(in_contact.int(), dim=1)
     spec = torch.sum(in_contact.int(), dim=1)==2
     # print(0.001*double_stance)
-    return double_stance*spec#*torch.sum(in_contact.int(), dim=1)
+    return torch.sqrt(double_stance)*spec#*torch.sum(in_contact.int(), dim=1)
 
 def table_not_contacted(
     env: ManagerBasedRLEnv,
-    threshold: float,
     sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_table"),
 ) -> torch.Tensor:
     """Reward the agent for lifting the object above the minimal height."""
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
     # compute the reward
-    air_time = contact_sensor.data.current_air_time[:, 0]
-    reward = torch.clamp(torch.sqrt(torch.sqrt(air_time)), max=threshold)
-    # reward = torch.clamp(in_air, max=threshold)
-    return reward
+    return torch.norm(contact_sensor.data.force_matrix_w[:, 0,0],dim=1) < 0.01
 
 def object_ee_distance(
     env: ManagerBasedRLEnv,
@@ -222,7 +219,7 @@ def object_ee_distance(
     # print("dist:",(dist))
     # print("angle:",(0.01*angle))
     # print(dist+0.1*angle)
-    return torch.sqrt(dist+0.01*angle)
+    return torch.sqrt(dist+0.1*angle)
 
 
 def object_goal_distance(
@@ -231,22 +228,25 @@ def object_goal_distance(
     minimal_height: float,
     command_name: str,
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_table"),
 ) -> torch.Tensor:
     """Reward the agent for tracking the goal pose using tanh-kernel."""
     # extract the used quantities (to enable type-hinting)
     object: RigidObject = env.scene[object_cfg.name]
     robot: RigidObject = env.scene[asset_cfg.name]
-    # distance = torch.abs(object.data.root_pos_w[:, 2]-torch.ones_like(object.data.root_pos_w[:, 2])*(height))
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    air_time = contact_sensor.data.current_air_time[:, 0]
+    in_air = air_time > 0.0
+    roll = math_utils.wrap_to_pi(euler_xyz_from_quat(object.data.root_quat_w)[0])
+    pitch = math_utils.wrap_to_pi(euler_xyz_from_quat(object.data.root_quat_w)[1])
+    yaw = math_utils.wrap_to_pi(euler_xyz_from_quat(object.data.root_quat_w)[2])
     distance = torch.norm((object.data.root_pos_w-robot.data.root_pos_w)-env.command_manager.get_command(command_name)[:,:3], dim=1)
-    angle = euler_xyz_from_quat(object.data.root_quat_w)[0]**2+euler_xyz_from_quat(object.data.root_quat_w)[1]**2+euler_xyz_from_quat(object.data.root_quat_w)[2]**2
-    # print("distance0:",distance)
-    # print("distance1:",(1 - torch.tanh(torch.abs(distance)/(std))))
-    # print("distance2:",5*(1 - torch.tanh(torch.abs(distance)/(std**2))))
-    # print("a:",(object.data.root_pos_w-robot.data.root_pos_w))
-    # print("b:",env.command_manager.get_command(command_name)[:,:3])
-    # torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*
-    return (1 - torch.tanh(torch.abs(angle)/(std)))*((1 - torch.tanh(torch.abs(distance)/(std)))+5*(1 - torch.tanh(torch.abs(distance)/(std**2))))
+    angle = torch.sqrt(roll**2+pitch**2+yaw**2)
+    # print((object.data.root_pos_w-robot.data.root_pos_w))
+    # print("distance:",((1 - torch.tanh(torch.abs(distance)/(std)))+5*(1 - torch.tanh(torch.abs(distance)/(std**2)))))
+    # print("angle:",roll,pitch,yaw)
+    return in_air*torch.sqrt(0.2*(1 - torch.tanh(torch.abs(angle)))+((1 - torch.tanh(torch.abs(distance)/(std)))+5*(1 - torch.tanh(torch.abs(distance)/(std**2)))))
 
 def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
     """Penalize non-flat base orientation using L2 squared kernel.
