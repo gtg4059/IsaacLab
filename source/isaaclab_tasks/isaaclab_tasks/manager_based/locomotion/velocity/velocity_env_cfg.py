@@ -90,7 +90,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.30, 0, 0.80], rot=[1, 0, 0, 0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.32, 0, 0.80], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=(3.10,4.14, 2.84),
@@ -163,7 +163,7 @@ class CommandsCfg:
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(#0.84, 0.86
-            pos_x=(0.30, 0.30), pos_y=(-0.0, 0.0), pos_z=(0.1, 0.1), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            pos_x=(0.0, 0.0), pos_y=(-0.0, 0.0), pos_z=(0.0, 0.0), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
         ),
     )
 
@@ -518,7 +518,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "pose_range": {"x": (-0.03, 0.03), "y": (-0.03, 0.03), "yaw": (-0.2, 0.2)},
+            "pose_range": {"x": (-0.2, 0.2), "y": (-0.03, 0.03), "yaw": (-0.2, 0.2)},
             "velocity_range": {
                 "x": (-0.0, 0.0),
                 "y": (-0.0, 0.0),
