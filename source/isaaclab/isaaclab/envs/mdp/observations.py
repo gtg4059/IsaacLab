@@ -234,6 +234,7 @@ def object_position_in_robot_root_frame(
     object_pos_b, _ = subtract_frame_transforms(
         robot.data.root_state_w[:, :3], robot.data.root_state_w[:, 3:7], object_pos_w
     )
+    # print(object_pos_b)
     return object_pos_b
 
 """
