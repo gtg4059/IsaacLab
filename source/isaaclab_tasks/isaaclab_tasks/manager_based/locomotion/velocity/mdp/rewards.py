@@ -177,6 +177,7 @@ def table_not_contacted(
     """Reward the agent for lifting the object above the minimal height."""
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
     # compute the reward
+    # print(contact_sensor.data.force_matrix_w[:, 0,0])
     return torch.norm(contact_sensor.data.force_matrix_w[:, 0,0],dim=1) < 0.01
 
 def object_ee_distance(
@@ -205,7 +206,7 @@ def object_ee_distance(
 
     # result1 = (1 - torch.tanh(torch.abs(angle1)/(std)))*(1 - torch.tanh(torch.abs(distance1-0.18)/(std**2)))
     # result2 = (1 - torch.tanh(torch.abs(angle2)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.18)/(std**2)))
-    dist = torch.sqrt((1 - torch.tanh(torch.abs(distance1-0.18)/(std**2)))*(1 - torch.tanh(torch.abs(distance2-0.18)/(std**2))))
+    dist = torch.sqrt((1 - torch.tanh(torch.abs(distance1-0.16)/(std**2)))*(1 - torch.tanh(torch.abs(distance2-0.16)/(std**2))))
     angle = torch.sqrt((1 - torch.tanh(torch.abs(angle1)))*(1 - torch.tanh(torch.abs(angle2))))
 
     # print("distance1:",distance1-0.18)
@@ -219,7 +220,7 @@ def object_ee_distance(
     # print("dist:",(dist))
     # print("angle:",(0.01*angle))
     # print(dist+0.1*angle)
-    return torch.sqrt(dist+0.1*angle)
+    return torch.sqrt(dist+0.5*angle)
 
 
 def object_goal_distance(
