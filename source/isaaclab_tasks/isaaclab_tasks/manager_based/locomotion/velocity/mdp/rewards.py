@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor, FrameTransformer
-from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, subtract_frame_transforms, euler_xyz_from_quat, quat_mul, quat_error_magnitude
+from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, subtract_frame_transforms, euler_xyz_from_quat, compute_pose_error, quat_error_magnitude
 from isaaclab.assets import RigidObject, Articulation
 import isaaclab.utils.math as math_utils
 
@@ -194,8 +194,8 @@ def object_ee_distance(
     des_pos_b = object.data.root_pos_w
     curr_pos_w1 = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]  # type: ignore
     curr_pos_w2 = asset.data.body_state_w[:, asset_cfg.body_ids[1], :3]  # type: ignore
-    distance1 = torch.norm(curr_pos_w1 - des_pos_b, dim=1)
-    distance2 = torch.norm(curr_pos_w2 - des_pos_b, dim=1)
+    distance1 = torch.norm(curr_pos_w1 - des_pos_b, dim=1, p=2)
+    distance2 = torch.norm(curr_pos_w2 - des_pos_b, dim=1, p=2)
 
     # obtain the desired and current orientations
     des_quat_b = object.data.root_quat_w
@@ -206,21 +206,24 @@ def object_ee_distance(
 
     # result1 = (1 - torch.tanh(torch.abs(angle1)/(std)))*(1 - torch.tanh(torch.abs(distance1-0.18)/(std**2)))
     # result2 = (1 - torch.tanh(torch.abs(angle2)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.18)/(std**2)))
-    dist = torch.sqrt((1 - torch.tanh(torch.abs(distance1-0.16)/(std**2)))*(1 - torch.tanh(torch.abs(distance2-0.16)/(std**2))))
+    dist = torch.sqrt((1 - torch.tanh(torch.abs(distance1-0.16)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.16)/(std))))
     angle = torch.sqrt((1 - torch.tanh(torch.abs(angle1)))*(1 - torch.tanh(torch.abs(angle2))))
 
-    # print("distance1:",distance1-0.18)
+    # print("des_pos_b:",des_pos_b)
+    # print("curr_pos_w1:",curr_pos_w1)
+    # print("curr_pos_w2:",curr_pos_w2)
+    print("distance1:",distance1)
+    print("distance2:",distance2)
     # print("angle1:",angle1)
-    # print("distance2:",distance2-0.18)
     # print("angle2:",angle2)
     # print("box:",euler_xyz_from_quat(des_quat_b))
     # print("1:",euler_xyz_from_quat(curr_quat_w1))
     # print("2:",euler_xyz_from_quat(curr_quat_w2))
     # print("box:",(des_quat_b))
-    # print("dist:",(dist))
+    print("dist:",(dist))
     # print("angle:",(0.01*angle))
     # print(dist+0.1*angle)
-    return torch.sqrt(dist+0.5*angle)
+    return dist+0.2*angle
 
 
 def object_goal_distance(
