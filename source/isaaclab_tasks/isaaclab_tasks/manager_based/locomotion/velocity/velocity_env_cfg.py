@@ -133,7 +133,7 @@ class MySceneCfg(InteractiveSceneCfg):
                 disable_gravity=True,
             ),
         ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.32, 0.0, 0.72)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.32, 0.0, 0.74)),
     )
 
 
