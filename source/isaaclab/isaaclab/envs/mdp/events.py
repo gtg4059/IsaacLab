@@ -27,8 +27,9 @@ from isaaclab.assets import Articulation, DeformableObject, RigidObject
 from isaaclab.managers import EventTermCfg, ManagerTermBase, SceneEntityCfg
 from isaaclab.terrains import TerrainImporter
 
+
 if TYPE_CHECKING:
-    from isaaclab.envs import ManagerBasedEnv
+    from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
 
 
 class randomize_rigid_body_material(ManagerTermBase):
@@ -857,6 +858,57 @@ def reset_joints_by_scale(
     # set into the physics simulation
     asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
 
+# def reset_joints_by_scale(
+#     env: ManagerBasedEnv,
+#     env_ids: torch.Tensor,
+#     position_range: tuple[float, float],
+#     velocity_range: tuple[float, float],
+#     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+# ):
+#     """Reset the robot joints by scaling the default position and velocity by the given ranges.
+
+#     This function samples random values from the given ranges and scales the default joint positions and velocities
+#     by these values. The scaled values are then set into the physics simulation.
+#     """
+#     # extract the used quantities (to enable type-hinting)
+#     asset: Articulation = env.scene[asset_cfg.name]
+#     # get default joint state
+#     joint_pos = asset.data.default_joint_pos[env_ids,asset_cfg.joint_ids].clone()
+#     joint_vel = asset.data.default_joint_vel[env_ids,asset_cfg.joint_ids].clone()
+
+#     # scale these values randomly
+#     joint_pos *= math_utils.sample_uniform(*position_range, joint_pos.shape, joint_pos.device)
+#     joint_vel *= math_utils.sample_uniform(*velocity_range, joint_vel.shape, joint_vel.device)
+
+#     # clamp joint pos to limits
+#     joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids,asset_cfg.joint_ids]
+#     joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
+#     # clamp joint vel to limits
+#     joint_vel_limits = asset.data.soft_joint_vel_limits[env_ids,asset_cfg.joint_ids]
+#     joint_vel = joint_vel.clamp_(-joint_vel_limits, joint_vel_limits)
+
+#     # set into the physics simulation
+#     asset.write_joint_state_to_sim(joint_pos, joint_vel,asset_cfg.joint_ids,env_ids=env_ids)
+
+# def reset_joints_targets(
+#     env: ManagerBasedEnv,
+#     env_ids: torch.Tensor,
+#     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+# ):
+#     """Reset the robot joints by scaling the default position and velocity by the given ranges.
+
+#     This function samples random values from the given ranges and scales the default joint positions and velocities
+#     by these values. The scaled values are then set into the physics simulation.
+#     """
+#     # extract the used quantities (to enable type-hinting)
+#     asset: Articulation = env.scene[asset_cfg.name]
+#     # get default joint state
+#     joint_pos = asset.data.default_joint_pos[env_ids].clone()
+#     joint_vel = asset.data.default_joint_vel[env_ids].clone()
+#     asset.set_joint_position_target(joint_pos, env_ids=env_ids)
+#     asset.set_joint_velocity_target(joint_vel, env_ids=env_ids)
+#     print(joint_pos)
+#     asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
 
 def reset_joints_by_offset(
     env: ManagerBasedEnv,

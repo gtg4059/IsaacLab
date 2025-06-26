@@ -458,6 +458,25 @@ class EventCfg:
         },
     )
 
+    # set_robot_joints_targets = EventTerm(
+    #     func=mdp.reset_joints_targets,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot",
+    #             joint_names=[
+    #                         'L_thumb_proximal_yaw_joint',
+    #                          'R_thumb_proximal_yaw_joint',
+    #                         'L_thumb_proximal_pitch_joint',
+    #                         'R_thumb_proximal_pitch_joint',
+    #                         '.*_proximal_joint',
+    #                         '.*_thumb_intermediate_joint',
+    #                         '.*_thumb_distal_joint',
+    #                         ],
+    #             preserve_order=True,
+    #         )
+    #     },
+    # )
+
     # reset
     base_external_force_torque = EventTerm(
         func=mdp.apply_external_force_torque,
@@ -613,7 +632,7 @@ class TerminationsCfg:
         params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_pitch_link"), "threshold": 20.0},
     )
     object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.7, "asset_cfg": SceneEntityCfg("object")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.6, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("robot")}
@@ -621,6 +640,23 @@ class TerminationsCfg:
     bad_position = DoneTerm(
         func=mdp.bad_position, params={"limit_dist": 0.5, "asset_cfg": SceneEntityCfg("robot")}
     )
+    # set_robot_joints_targets = DoneTerm(
+    #     func=mdp.reset_joints_targets,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot",
+    #             joint_names=[
+    #                         'L_thumb_proximal_yaw_joint',
+    #                          'R_thumb_proximal_yaw_joint',
+    #                         'L_thumb_proximal_pitch_joint',
+    #                         'R_thumb_proximal_pitch_joint',
+    #                         '.*_proximal_joint',
+    #                         '.*_thumb_intermediate_joint',
+    #                         '.*_thumb_distal_joint',
+    #                         ],
+    #             preserve_order=True,
+    #         )
+    #     },
+    # )
 
 
 @configclass

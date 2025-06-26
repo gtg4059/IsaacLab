@@ -27,23 +27,22 @@ class G1Rewards(RewardsCfg):
         func=mdp.object_ee_distance, 
         params={
             "std": 0.1,
-            "asset_cfg":SceneEntityCfg("robot", body_names=["right_wrist_yaw_link/R_hand_base_link/R_middle_proximal",
-                                                            "right_wrist_yaw_link/R_hand_base_link/R_middle_proximal"]),
+            "asset_cfg":SceneEntityCfg("robot", body_names=".*_index_proximal"),
         }, 
-        weight=20.0
+        weight=8.0
     )
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=3.0,
-        params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*_wrist_yaw_link"]
+        weight=2.0,
+        params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*_thumb_proximal"]
             )
         }, 
     )
 
     table_contact = RewTerm(
         func=mdp.table_not_contacted, 
-        weight=6.0,
+        weight=8.0,
         params={"sensor_cfg": SceneEntityCfg("contact_table")
         }, 
     )
@@ -236,6 +235,24 @@ class G1Rewards(RewardsCfg):
     )
 
     
+    set_robot_joints_targets = RewTerm(
+        func=mdp.reset_joints_targets,
+        weight=-0.00001,
+        params={
+            "asset_cfg": SceneEntityCfg("robot",
+                joint_names=[
+                    'L_thumb_proximal_yaw_joint',
+                             'R_thumb_proximal_yaw_joint',
+                            'L_thumb_proximal_pitch_joint',
+                            'R_thumb_proximal_pitch_joint',
+                            '.*_proximal_joint',
+                            '.*_thumb_intermediate_joint',
+                            '.*_thumb_distal_joint',
+                            ],
+                preserve_order=True,
+            )
+        },
+    )
 
     # undesired_contacts = RewTerm(
     #     func=mdp.undesired_contacts,

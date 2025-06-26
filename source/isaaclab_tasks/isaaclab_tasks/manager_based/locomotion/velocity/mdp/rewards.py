@@ -212,18 +212,18 @@ def object_ee_distance(
     # print("des_pos_b:",des_pos_b)
     # print("curr_pos_w1:",curr_pos_w1)
     # print("curr_pos_w2:",curr_pos_w2)
-    print("distance1:",distance1)
-    print("distance2:",distance2)
+    # print("distance1:",distance1)
+    # print("distance2:",distance2)
     # print("angle1:",angle1)
     # print("angle2:",angle2)
     # print("box:",euler_xyz_from_quat(des_quat_b))
     # print("1:",euler_xyz_from_quat(curr_quat_w1))
     # print("2:",euler_xyz_from_quat(curr_quat_w2))
     # print("box:",(des_quat_b))
-    print("dist:",(dist))
+    # print("dist:",(dist))
     # print("angle:",(0.01*angle))
     # print(dist+0.1*angle)
-    return dist+0.2*angle
+    return dist#+0.2*angle
 
 
 def object_goal_distance(

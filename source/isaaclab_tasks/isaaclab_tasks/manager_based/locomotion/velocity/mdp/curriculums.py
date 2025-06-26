@@ -55,47 +55,5 @@ def terrain_levels_vel(
     # return the mean terrain level
     return torch.mean(terrain.terrain_levels.float())
 
-def after_contact(
-    env: ManagerBasedRLEnv, env_ids: Sequence[int], term_name: str, weight: float, num_steps: int,
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-    sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces"),
-):
-
-    
-
-    robot: Articulation = env.scene[asset_cfg.name]
-    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
-    # compute the reward
-    air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]
-    contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
-    in_contact = contact_time > 0.0
-    in_mode_time = torch.where(in_contact, contact_time, air_time)
-    # Contact
-    double_stance = torch.sum(in_contact.int(), dim=1) == 2
-
-    torch.where(double_stance, )
-
-    term_cfg = env.reward_manager.get_term_cfg(term_name)
-    term_cfg.weight = weight
-    env.reward_manager.set_term_cfg(term_name, term_cfg)
-
-    # limits: tensor([[[-5.9314,  5.7980],
-    #          [-5.7428,  5.2457]]]) (1,2,2)
 
 
-# def modify_reward_weight(env: ManagerBasedRLEnv, env_ids: Sequence[int], term_name: str, weight: float, num_steps: int):
-#     """Curriculum that modifies a reward weight a given number of steps.
-
-#     Args:
-#         env: The learning environment.
-#         env_ids: Not used since all environments are affected.
-#         term_name: The name of the reward term.
-#         weight: The weight of the reward term.
-#         num_steps: The number of steps after which the change should be applied.
-#     """
-#     if env.common_step_counter > num_steps:
-#         # obtain term settings
-#         term_cfg = env.reward_manager.get_term_cfg(term_name)
-#         # update term settings
-#         term_cfg.weight = weight
-#         env.reward_manager.set_term_cfg(term_name, term_cfg)
