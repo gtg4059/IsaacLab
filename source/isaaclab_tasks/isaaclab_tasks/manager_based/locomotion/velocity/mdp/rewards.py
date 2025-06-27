@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor, FrameTransformer
-from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, subtract_frame_transforms, euler_xyz_from_quat, compute_pose_error, quat_error_magnitude
+from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, quat_mul, euler_xyz_from_quat, quat_conjugate, quat_error_magnitude
 from isaaclab.assets import RigidObject, Articulation
 import isaaclab.utils.math as math_utils
 
@@ -162,13 +162,21 @@ def object_is_contacted(
     """Reward the agent for lifting the object above the minimal height."""
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
     # compute the reward
-    air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]
-    contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
-    in_contact = contact_time > 0.0
-    double_stance = torch.sum(in_contact.int(), dim=1)
-    spec = torch.sum(in_contact.int(), dim=1)==2
-    # print(0.001*double_stance)
-    return torch.sqrt(double_stance)*spec#*torch.sum(in_contact.int(), dim=1)
+    # air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]
+    # contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
+    contact_force = torch.norm(contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids],dim=2)#N,B,3
+    contact = torch.norm(contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids],dim=2)>0.01
+    # in_contact = contact_time > 0.0
+    # double_stance = torch.sum(in_contact.int(), dim=1)
+    # spec = torch.sum(in_contact.int(), dim=1)>=4
+    # print(torch.norm(contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids],dim=2),contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids].shape)
+    # print("sensor_cfg.body_ids:",sensor_cfg.body_ids)
+    # print("contact:",contact)
+    # print("contact_force:",contact_force)
+    # print(contact_force-0.01*contact_force**2)
+    #return torch.sqrt(double_stance)*spec*torch.sum(in_contact.int(), dim=1)
+    # torch.sum(contact_force-0.01*contact_force**2, dim=1)
+    return torch.sum(contact_force-0.005*contact_force**2, dim=1)
 
 def table_not_contacted(
     env: ManagerBasedRLEnv,
@@ -201,29 +209,42 @@ def object_ee_distance(
     des_quat_b = object.data.root_quat_w
     curr_quat_w1 = asset.data.body_state_w[:, asset_cfg.body_ids[0], 3:7]  # type: ignore
     curr_quat_w2 = asset.data.body_state_w[:, asset_cfg.body_ids[1], 3:7]  # type: ignore
-    angle1 = quat_error_magnitude(curr_quat_w1, des_quat_b)
-    angle2 = quat_error_magnitude(curr_quat_w2, des_quat_b)
-
+    angle1 = quat_error_magnitude(des_quat_b-curr_quat_w1, torch.tensor([0.7073883, 0,0,-0.7068252],device="cuda:0").repeat(env.num_envs,1))#-pi
+    angle2 = quat_error_magnitude(des_quat_b-curr_quat_w2, torch.tensor([0.7073883, 0,0, 0.7068252],device="cuda:0").repeat(env.num_envs,1))#pi
     # result1 = (1 - torch.tanh(torch.abs(angle1)/(std)))*(1 - torch.tanh(torch.abs(distance1-0.18)/(std**2)))
     # result2 = (1 - torch.tanh(torch.abs(angle2)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.18)/(std**2)))
     dist = torch.sqrt((1 - torch.tanh(torch.abs(distance1-0.16)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.16)/(std))))
     angle = torch.sqrt((1 - torch.tanh(torch.abs(angle1)))*(1 - torch.tanh(torch.abs(angle2))))
 
-    # print("des_pos_b:",des_pos_b)
-    # print("curr_pos_w1:",curr_pos_w1)
-    # print("curr_pos_w2:",curr_pos_w2)
+    #z
+    # print("1z:",(quat_error_magnitude(des_quat_b-curr_quat_w1,torch.tensor([0.7073883,0, 0,-0.7068252],device="cuda:0").repeat(env.num_envs,1))))
+    # print("2z:",(quat_error_magnitude(des_quat_b-curr_quat_w2,torch.tensor([0.7073883,0, 0,0.7068252],device="cuda:0").repeat(env.num_envs,1))))
     # print("distance1:",distance1)
     # print("distance2:",distance2)
+
+    # print("angle1:",math_utils.wrap_to_pi(torch.tensor(euler_xyz_from_quat(des_quat_b))))
+    # print("angle2:",math_utils.wrap_to_pi(torch.tensor(euler_xyz_from_quat(curr_quat_w1))))
+    # print("angle3:",math_utils.wrap_to_pi(torch.tensor(euler_xyz_from_quat(curr_quat_w2))))
+
+
+
+    #tuple
+    # print(euler_xyz_from_quat(quat_mul(des_quat_b-curr_quat_w1,quat_conjugate(torch.tensor([0, 0, 0.7068252, 0.7073883],device="cuda:0").repeat(env.num_envs,1)))))
+    # print(euler_xyz_from_quat(quat_mul(des_quat_b-curr_quat_w2,quat_conjugate(torch.tensor([0, 0,-0.7068252, 0.7073883],device="cuda:0").repeat(env.num_envs,1)))))
+
+    # print(math_utils.wrap_to_pi(torch.tensor(euler_xyz_from_quat(des_quat_b)-(euler_xyz_from_quat(curr_quat_w1)+ torch.tensor((1.0, 0.0, 0.0))))))
+
     # print("angle1:",angle1)
-    # print("angle2:",angle2)
+    # print("angle2:",angle1)
+
     # print("box:",euler_xyz_from_quat(des_quat_b))
     # print("1:",euler_xyz_from_quat(curr_quat_w1))
     # print("2:",euler_xyz_from_quat(curr_quat_w2))
     # print("box:",(des_quat_b))
-    # print("dist:",(dist))
-    # print("angle:",(0.01*angle))
+    # print("dist:",dist)
+    # print("angle:",0.5*angle)
     # print(dist+0.1*angle)
-    return dist#+0.2*angle
+    return dist+0.5*angle
 
 
 def object_goal_distance(

@@ -429,9 +429,15 @@ class EventCfg:
         func=mdp.randomize_rigid_body_material,
         mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
-            "static_friction_range": (0.1, 1.25),
-            "dynamic_friction_range": (0.1, 1.25),
+            "asset_cfg": SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link",
+                                                            ".*_thumb_proximal",
+                                                            ".*_index_intermediate",
+                                                            ".*_middle_intermediate",
+                                                            ".*_pinky_intermediate",
+                                                            ".*_ring_intermediate",
+                                                            ]),
+            "static_friction_range": (0.6, 1.25),
+            "dynamic_friction_range": (0.6, 1.25),
             "restitution_range": (0.0, 0.0),
             "make_consistent": True,
             "num_buckets": 64,
@@ -570,7 +576,8 @@ class RewardsCfg:
     # )
     
     # -- penalties
-    base_position_l2 = RewTerm(func=mdp.base_position_l2, weight=-50.0)
+    base_position_l2 = RewTerm(func=mdp.base_position_l2, weight=-200.0)
+    base_angle_l2 = RewTerm(func=mdp.base_angle_l2, weight=-200.0)
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
@@ -627,10 +634,10 @@ class TerminationsCfg:
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_elbow_link"), "threshold": 10.0},
     )
-    base_contact6 = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_pitch_link"), "threshold": 20.0},
-    )
+    # base_contact6 = DoneTerm(
+    #     func=mdp.illegal_contact,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_pitch_link"), "threshold": 20.0},
+    # )
     object_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.6, "asset_cfg": SceneEntityCfg("object")}
     )
