@@ -34,15 +34,15 @@ class G1Rewards(RewardsCfg):
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=0.1,
+        weight=3.0,
         params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
                                                               [
                                                                 #   ".*_wrist_yaw_link",
                                                                   ".*_thumb_intermediate",
                                                                   ".*_index_intermediate",
                                                                 #   ".*_middle_intermediate",
-                                                                #   ".*_pinky_intermediate",
-                                                                  ".*_ring_intermediate",
+                                                                  ".*_pinky_intermediate",
+                                                                #   ".*_ring_intermediate",
                                                                   ]
             )
         }, 
@@ -50,7 +50,7 @@ class G1Rewards(RewardsCfg):
 
     table_contact = RewTerm(
         func=mdp.table_not_contacted, 
-        weight=6.0,
+        weight=12.0,
         params={"sensor_cfg": SceneEntityCfg("contact_table")
         }, 
     )
@@ -253,10 +253,21 @@ class G1Rewards(RewardsCfg):
                              'R_thumb_proximal_yaw_joint',
                             'L_thumb_proximal_pitch_joint',
                             'R_thumb_proximal_pitch_joint',
-                            '.*_proximal_joint',
+                            # '.*_proximal_joint',
                             '.*_thumb_intermediate_joint',
                             '.*_thumb_distal_joint',
                             ],
+                preserve_order=True,
+            )
+        },
+    )
+
+    set_robot_joints_forces = RewTerm(
+        func=mdp.reset_joints_forces,
+        weight=-0.00001,
+        params={
+            "asset_cfg": SceneEntityCfg("robot",
+                joint_names=['.*_proximal_joint'],
                 preserve_order=True,
             )
         },

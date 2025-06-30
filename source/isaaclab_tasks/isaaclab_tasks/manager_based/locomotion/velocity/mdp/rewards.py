@@ -176,7 +176,7 @@ def object_is_contacted(
     # print(contact_force-0.01*contact_force**2)
     #return torch.sqrt(double_stance)*spec*torch.sum(in_contact.int(), dim=1)
     # torch.sum(contact_force-0.01*contact_force**2, dim=1)
-    return torch.sum(contact_force-0.001*contact_force**2, dim=1)
+    return torch.sum(contact.int()-0.00002*contact_force**2, dim=1)
 
 def table_not_contacted(
     env: ManagerBasedRLEnv,
@@ -244,7 +244,7 @@ def object_ee_distance(
     # print("dist:",dist)
     # print("angle:",0.5*angle)
     # print(dist+0.1*angle)
-    return dist+0.2*angle
+    return dist#+0.2*angle
 
 
 def object_goal_distance(
