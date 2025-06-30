@@ -385,3 +385,58 @@ def track_ang_vel_z_exp(
     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_b[:, 2])
     print(torch.exp(-ang_vel_error / std**2))
     return torch.exp(-ang_vel_error / std**2)
+
+def reset_joints_targets(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+)-> torch.Tensor:
+    """Reset the robot joints by scaling the default position and velocity by the given ranges.
+
+    This function samples random values from the given ranges and scales the default joint positions and velocities
+    by these values. The scaled values are then set into the physics simulation.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    # get default joint state
+    joint_pos = asset.data.default_joint_pos[:,asset_cfg.joint_ids].clone()
+    joint_vel = asset.data.default_joint_vel[:,asset_cfg.joint_ids].clone()
+    asset.set_joint_position_target(joint_pos,asset_cfg.joint_ids)
+    asset.set_joint_velocity_target(joint_vel,asset_cfg.joint_ids)
+    # print(joint_pos)
+    asset.write_joint_state_to_sim(joint_pos, joint_vel, asset_cfg.joint_ids)
+
+    out_of_limits = -(
+        asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 0]
+    ).clip(max=0.0)
+    out_of_limits += (
+        asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 1]
+    ).clip(min=0.0)
+    return torch.sum(out_of_limits, dim=1)*0
+
+def reset_joints_forces(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+)-> torch.Tensor:
+    """Reset the robot joints by scaling the default position and velocity by the given ranges.
+
+    This function samples random values from the given ranges and scales the default joint positions and velocities
+    by these values. The scaled values are then set into the physics simulation.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    # get default joint state
+    # joint_pos = asset.data.default_joint_pos[:,asset_cfg.joint_ids].clone()
+    # joint_vel = asset.data.default_joint_vel[:,asset_cfg.joint_ids].clone()
+    # asset.set_joint_position_target(joint_pos,asset_cfg.joint_ids)
+    # asset.set_joint_velocity_target(joint_vel,asset_cfg.joint_ids)
+    # print(joint_pos)
+    # asset.write_joint_state_to_sim(joint_pos, joint_vel, asset_cfg.joint_ids)
+    asset.set_joint_effort_target(torch.ones_like(asset.data.default_joint_pos[:,asset_cfg.joint_ids]),asset_cfg.joint_ids)
+    asset.write_data_to_sim()
+    out_of_limits = -(
+        asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 0]
+    ).clip(max=0.0)
+    out_of_limits += (
+        asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 1]
+    ).clip(min=0.0)
+    return torch.sum(out_of_limits, dim=1)*0
