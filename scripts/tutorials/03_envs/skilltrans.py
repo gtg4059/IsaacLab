@@ -91,6 +91,7 @@ def main():
     env = ManagerBasedRLEnv(cfg=env_cfg)
     env.keyboard.add_callback("A", print_cb)
     # env.keyboard.add_callback("a", print_cb))
+    env.scene
     obs, _ = env.reset()
     while simulation_app.is_running():
         # print(env.keyboard.is_pressed("a"))
@@ -100,6 +101,8 @@ def main():
         elif not flag and torch.norm(obs["policy"][:, 93:96])<=0.1: #stop
             action = policy2(obs["policy"][:, :-3])
         elif flag:
+            robot = env.scene["robot"]
+            joint_name = "slider_to_cart"
             action = policy3(obs["policy"])
         # run inference
         obs, _, _, _, _ = env.step(action)
