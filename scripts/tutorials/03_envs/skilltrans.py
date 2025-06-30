@@ -102,7 +102,14 @@ def main():
             action = policy2(obs["policy"][:, :-3])
         elif flag:
             robot = env.scene["robot"]
-            joint_name = "slider_to_cart"
+            joint_name = '.*_proximal_joint'
+            joint_idx = robot.joint_names.index(joint_name)
+            num_envs = env.num_envs
+            num_joints = robot.num_joints
+            efforts = torch.zeros((num_envs, num_joints), device=env.device)
+            efforts[:, joint_idx] = 1.0
+            robot.set_joint_effort_target(efforts)
+            robot.write_data_to_sim()
             action = policy3(obs["policy"])
         # run inference
         obs, _, _, _, _ = env.step(action)

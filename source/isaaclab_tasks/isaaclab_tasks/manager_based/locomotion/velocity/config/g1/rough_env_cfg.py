@@ -226,6 +226,36 @@ class G1Rewards(RewardsCfg):
         },
     )
 
+    set_robot_joints_targets = RewTerm(
+        func=mdp.reset_joints_targets,
+        weight=-0.00001,
+        params={
+            "asset_cfg": SceneEntityCfg("robot",
+                joint_names=[
+                    'L_thumb_proximal_yaw_joint',
+                             'R_thumb_proximal_yaw_joint',
+                            'L_thumb_proximal_pitch_joint',
+                            'R_thumb_proximal_pitch_joint',
+                            # '.*_proximal_joint',
+                            '.*_thumb_intermediate_joint',
+                            '.*_thumb_distal_joint',
+                            ],
+                preserve_order=True,
+            )
+        },
+    )
+
+    set_robot_joints_forces = RewTerm(
+        func=mdp.reset_joints_forces,
+        weight=-0.00001,
+        params={
+            "asset_cfg": SceneEntityCfg("robot",
+                joint_names=['.*_proximal_joint'],
+                preserve_order=True,
+            )
+        },
+    )
+
     
 
     # undesired_contacts = RewTerm(
