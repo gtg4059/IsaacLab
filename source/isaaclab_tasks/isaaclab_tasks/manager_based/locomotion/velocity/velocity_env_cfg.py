@@ -17,7 +17,7 @@ from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg, ActionTermCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.scene import InteractiveSceneCfg
-from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
+from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns, TiledCameraCfg
 from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
@@ -65,16 +65,6 @@ class MySceneCfg(InteractiveSceneCfg):
     # robots
     robot: ArticulationCfg = MISSING
 
-    # sensors
-    height_scanner = RayCasterCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/base",
-        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
-        attach_yaw_only=True,
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),
-        debug_vis=False,
-        mesh_prim_paths=["/World/ground"],
-    )
-    
     
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
 
@@ -90,7 +80,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.26, 0, 0.70], rot=[1, 0, 0, 0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.36, 0, 0.70], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=(3.10,4.14, 2.84),
@@ -111,7 +101,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # mount
     table = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Table",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.26, 0, 0.60], rot=[1, 0, 0, 0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.36, 0, 0.60], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", scale=(4.0, 4.0, 1.00),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
@@ -127,16 +117,18 @@ class MySceneCfg(InteractiveSceneCfg):
         ),
     )
 
-    # # mount
-    # table = AssetBaseCfg(
-    #     prim_path="{ENV_REGEX_NS}/Table",
-    #     spawn=sim_utils.UsdFileCfg(
-    #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/ThorlabsTable/table_instanceable.usd", scale=(0.2, 0.2, 0.04),
-    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
-    #             disable_gravity=True,
-    #         ),
+    # camera = TiledCameraCfg(
+    #     prim_path="{ENV_REGEX_NS}/Robot/torso_link/d435_link/camera",
+    #     update_period=0.5,
+    #     height=480,
+    #     width=640,
+    #     debug_vis=True,
+    #     data_types=["instance_id_segmentation_fast"],
+    #     colorize_instance_id_segmentation=True,
+    #     spawn=sim_utils.PinholeCameraCfg(
+    #         focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5)
     #     ),
-    #     init_state=AssetBaseCfg.InitialStateCfg(pos=(0.20, 0.0, 0.66)),
+    #     offset=TiledCameraCfg.OffsetCfg(pos=(0.0, 0.0, 0.0), rot=(0.5, -0.5, 0.5, -0.5), convention="ros"),
     # )
 
     contact_table = ContactSensorCfg(
@@ -303,6 +295,7 @@ class ObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
+        # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
 
         def __post_init__(self):
@@ -397,6 +390,7 @@ class ObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
+        # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
 
         def __post_init__(self):
@@ -425,24 +419,24 @@ class EventCfg:
         },
     )
 
-    physics_material_hand = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link",
-                                                            ".*_thumb_proximal",
-                                                            ".*_index_intermediate",
-                                                            ".*_middle_intermediate",
-                                                            ".*_pinky_intermediate",
-                                                            ".*_ring_intermediate",
-                                                            ]),
-            "static_friction_range": (0.6, 1.25),
-            "dynamic_friction_range": (0.6, 1.25),
-            "restitution_range": (0.0, 0.0),
-            "make_consistent": True,
-            "num_buckets": 64,
-        },
-    )
+    # physics_material_hand = EventTerm(
+    #     func=mdp.randomize_rigid_body_material,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link",
+    #                                                         ".*_thumb_proximal",
+    #                                                         ".*_index_intermediate",
+    #                                                         ".*_middle_intermediate",
+    #                                                         ".*_pinky_intermediate",
+    #                                                         ".*_ring_intermediate",
+    #                                                         ]),
+    #         "static_friction_range": (0.6, 1.25),
+    #         "dynamic_friction_range": (0.6, 1.25),
+    #         "restitution_range": (0.0, 0.0),
+    #         "make_consistent": True,
+    #         "num_buckets": 64,
+    #     },
+    # )
 
     add_base_mass = EventTerm(
         func=mdp.randomize_rigid_body_mass,
@@ -707,8 +701,8 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
         # update sensor update periods
         # we tick all the sensors based on the smallest update period (physics update period)
-        if self.scene.height_scanner is not None:
-            self.scene.height_scanner.update_period = self.decimation * self.sim.dt
+        # if self.scene.height_scanner is not None:
+        #     self.scene.height_scanner.update_period = self.decimation * self.sim.dt
         if self.scene.contact_forces is not None:
             self.scene.contact_forces.update_period = self.sim.dt
 

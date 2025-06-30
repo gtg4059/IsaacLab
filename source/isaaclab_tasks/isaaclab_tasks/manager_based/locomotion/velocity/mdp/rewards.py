@@ -176,7 +176,7 @@ def object_is_contacted(
     # print(contact_force-0.01*contact_force**2)
     #return torch.sqrt(double_stance)*spec*torch.sum(in_contact.int(), dim=1)
     # torch.sum(contact_force-0.01*contact_force**2, dim=1)
-    return torch.sum(contact_force-0.005*contact_force**2, dim=1)
+    return torch.sum(contact_force-0.001*contact_force**2, dim=1)
 
 def table_not_contacted(
     env: ManagerBasedRLEnv,
@@ -213,7 +213,7 @@ def object_ee_distance(
     angle2 = quat_error_magnitude(des_quat_b-curr_quat_w2, torch.tensor([0.7073883, 0,0, 0.7068252],device="cuda:0").repeat(env.num_envs,1))#pi
     # result1 = (1 - torch.tanh(torch.abs(angle1)/(std)))*(1 - torch.tanh(torch.abs(distance1-0.18)/(std**2)))
     # result2 = (1 - torch.tanh(torch.abs(angle2)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.18)/(std**2)))
-    dist = torch.sqrt((1 - torch.tanh(torch.abs(distance1-0.16)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.16)/(std))))
+    dist = torch.sqrt((1 - torch.tanh(torch.abs(distance1-0.16)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.16)/(std))))+5*torch.sqrt((1 - torch.tanh(torch.abs(distance1-0.16)/(std**2)))*(1 - torch.tanh(torch.abs(distance2-0.16)/(std**2))))
     angle = torch.sqrt((1 - torch.tanh(torch.abs(angle1)))*(1 - torch.tanh(torch.abs(angle2))))
 
     #z
@@ -244,7 +244,7 @@ def object_ee_distance(
     # print("dist:",dist)
     # print("angle:",0.5*angle)
     # print(dist+0.1*angle)
-    return dist+0.5*angle
+    return dist+0.2*angle
 
 
 def object_goal_distance(

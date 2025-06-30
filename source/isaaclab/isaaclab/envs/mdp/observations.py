@@ -13,19 +13,20 @@ from __future__ import annotations
 
 import torch
 from typing import TYPE_CHECKING
-
+import re
 import isaaclab.utils.math as math_utils
+import isaaclab.sim as sim_utils
 from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers.manager_base import ManagerTermBase
 from isaaclab.managers.manager_term_cfg import ObservationTermCfg
 from isaaclab.sensors import Camera, Imu, RayCaster, RayCasterCamera, TiledCamera
-from isaaclab.utils.math import combine_frame_transforms, quat_error_magnitude, quat_mul, subtract_frame_transforms
+from isaaclab.utils.math import combine_frame_transforms, quat_error_magnitude, quat_mul, subtract_frame_transforms, euler_xyz_from_quat
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
 
-
+import matplotlib.pyplot as plt
 """
 Root state.
 """
@@ -233,7 +234,91 @@ def object_position_in_robot_root_frame(
     object_pos_b, _ = subtract_frame_transforms(
         robot.data.root_state_w[:, :3], robot.data.root_state_w[:, 3:7], object_pos_w
     )
+    # print(robot.data.root_state_w[:, :3])
+    # print("object_pos_w:",object_pos_w)
+    # print("object_pos_b:",object_pos_b)
     return object_pos_b
+
+
+def object_position_in_robot_camera_frame(
+    env: ManagerBasedRLEnv,
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("camera"),
+    object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+) -> torch.Tensor:
+    """The position of the object in the robot's root frame."""
+    sensor: TiledCamera = env.scene[sensor_cfg.name]
+    object: RigidObject = env.scene[object_cfg.name]
+
+    # print(robot_cfg.body_names)
+    # print(robot.prim_path)
+    # print(sensor.data.output["instance_id_segmentation_fast"][0])
+    # print(sensor.data.output["instance_id_segmentation_fast"][0][:,:,0])
+    segmentation_img = sensor.data.output["instance_id_segmentation_fast"] #N,720,1280,4
+    # print(sensor.data.info[0]['instance_id_segmentation_fast'])
+
+    target_color = []
+    
+    # pattern = re.compile(r".*/Object/visuals/visuals.proto_visuals_id0")
+    # id_to_labels_envs = sensor.data.info[0]['instance_id_segmentation_fast']['idToLabels']
+    # # 각 env별로 color tuple 추출
+    # object_color_tuples = [
+    #     next((color for color, path in id_to_labels.items() if pattern.match(path)), None)
+    #     for id_to_labels in id_to_labels_envs
+    # ]
+    # print(sensor.data.info)
+
+    def extract_matching_tuples(data_dict):
+        # 정규표현식 패턴 컴파일: env_<숫자> 형식의 경로 매칭
+        pattern = re.compile(r"/World/envs/env_\d+/Object/visuals/visuals\.proto_visuals_id0")
+        
+        # 결과 저장할 리스트
+        matching_tuples = []
+        
+        # 'idToLabels' 딕셔너리 순회
+        for rgba_tuple, label in data_dict['instance_id_segmentation_fast']['idToLabels'].items():
+            if pattern.fullmatch(label):
+                matching_tuples.append(rgba_tuple)
+        
+        return matching_tuples
+
+    classified_tuples = extract_matching_tuples(sensor.data.info)
+    mask_colors = torch.tensor(classified_tuples, dtype=torch.uint8).cuda()
+    input_data_exp = segmentation_img.unsqueeze(1)
+    mask_colors_exp = mask_colors.unsqueeze(0).unsqueeze(2).unsqueeze(3)
+    matches = (input_data_exp == mask_colors_exp).all(dim=-1)
+    combined_mask = matches.any(dim=1)
+
+    centroids = []
+    for b in range(combined_mask.shape[0]):
+        mask = combined_mask[b]
+        if mask.any():
+            coords = mask.nonzero(as_tuple=False).float()  # [num_masked_pixels, 2] (y, x)
+            centroid = coords.mean(dim=0)  # (y, x)
+        else:
+            centroid = torch.tensor([-1.0, -1.0], device='cuda')  # 마스크 없을 때
+        centroids.append(centroid)
+
+    centroids_tensor = torch.stack(centroids)  # [2, 2] (각 배치별 [y, x])
+    # print(centroids_tensor)
+    # img_np = segmentation_img.detach().cpu().numpy()  # (H, W, 4)
+    # centroids_np = centroids_tensor.cpu().numpy()
+    # plt.imshow(img_np[0,:,:,:3])    # RGB만 사용
+    # plt.scatter(centroids_np[0, 1], centroids_np[0, 0], c='red', s=50, marker='o')
+    # plt.title("Instance ID Segmentation (colorized)")
+    # plt.show()
+    # plt.imshow(img_np[1,:,:,:3])    # RGB만 사용
+    # plt.scatter(centroids_np[1, 1], centroids_np[1, 0], c='red', s=50, marker='o')
+    # plt.title("Instance ID Segmentation (colorized)")
+    # plt.show()
+    object_pos_w = object.data.root_pos_w[:, :3]
+    pos_error, _ = subtract_frame_transforms(
+        sensor.data.pos_w, sensor.data.quat_w_ros, object_pos_w
+    )
+    distance = torch.norm(pos_error,dim=1)
+    object_yaw = math_utils.wrap_to_pi(euler_xyz_from_quat(object.data.root_quat_w)[2])
+    # print(object_yaw)
+    print(torch.cat((centroids_tensor,distance.unsqueeze(1),object_yaw.unsqueeze(1)),dim=1))
+    return torch.cat((centroids_tensor,distance.unsqueeze(1)),dim=1)
 
 """
 Sensors.

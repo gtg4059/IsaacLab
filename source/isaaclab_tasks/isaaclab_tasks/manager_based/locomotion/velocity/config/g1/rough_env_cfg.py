@@ -26,10 +26,10 @@ class G1Rewards(RewardsCfg):
     reaching_object= RewTerm(
         func=mdp.object_ee_distance, 
         params={
-            "std": 0.1,
+            "std": 0.2,
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
         }, 
-        weight=12.0
+        weight=3.0
     )
  
     object_contact = RewTerm(
@@ -50,7 +50,7 @@ class G1Rewards(RewardsCfg):
 
     table_contact = RewTerm(
         func=mdp.table_not_contacted, 
-        weight=4.0,
+        weight=6.0,
         params={"sensor_cfg": SceneEntityCfg("contact_table")
         }, 
     )
@@ -234,7 +234,7 @@ class G1Rewards(RewardsCfg):
                     # ".*_hip_roll_joint",
                     ".*_hip_pitch_joint",
                     ".*_hip_yaw_joint",
-                    ".*_knee_joint",
+                    # ".*_knee_joint",
                     # ".*_ankle_roll_joint",
                     ".*_ankle_pitch_joint",
                 ]
@@ -278,8 +278,9 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
         # Scene
         self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
-
+        # self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
+        # self.scene.camera.prim_path = "{ENV_REGEX_NS}/Robot/torso_link/d435_link"
+        
         # self.scene.contact_table = ContactSensorCfg(
         #     prim_path="{ENV_REGEX_NS}/Object",
         #     debug_vis=False,
