@@ -431,7 +431,7 @@ def reset_joints_forces(
     # asset.set_joint_velocity_target(joint_vel,asset_cfg.joint_ids)
     # print(joint_pos)
     # asset.write_joint_state_to_sim(joint_pos, joint_vel, asset_cfg.joint_ids)
-    asset.set_joint_effort_target(torch.ones_like(asset.data.default_joint_pos[:,asset_cfg.joint_ids]),asset_cfg.joint_ids)
+    asset.set_joint_effort_target(torch.zeros_like(asset.data.default_joint_pos[:,asset_cfg.joint_ids]),asset_cfg.joint_ids)
     asset.write_data_to_sim()
     out_of_limits = -(
         asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 0]
