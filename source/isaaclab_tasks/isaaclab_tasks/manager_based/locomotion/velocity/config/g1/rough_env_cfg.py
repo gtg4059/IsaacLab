@@ -34,12 +34,12 @@ class G1Rewards(RewardsCfg):
             "std": 0.2,
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
         }, 
-        weight=3.0
+        weight=2.0
     )
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=1.0,
+        weight=0.5,
         params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
                                                               [
                                                                 #   ".*_wrist_yaw_link",
@@ -55,17 +55,17 @@ class G1Rewards(RewardsCfg):
 
     table_contact = RewTerm(
         func=mdp.table_not_contacted, 
-        weight=12.0,
+        weight=6.0,
         params={"sensor_cfg": SceneEntityCfg("contact_table")
         }, 
     )
 
-    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=20.0)
+    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=5.0)
 
     # same motion
     motion_equality_shoulder1 = RewTerm(
         func=mdp.motion_equality_cons,
-        weight=0.2,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_yaw_joint"),
         },
@@ -73,7 +73,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_shoulder2 = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=0.2,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_pitch_joint"),
         },
@@ -81,7 +81,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_elbow = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=0.2,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_elbow_joint"),
         },
@@ -89,7 +89,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_wrist = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=0.2,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_pitch_joint"),
         },
