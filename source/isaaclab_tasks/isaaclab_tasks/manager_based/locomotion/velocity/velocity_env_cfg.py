@@ -107,7 +107,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.24, 0, 0.80], rot=[1, 0, 0, 0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.24, 0, 0.70], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=(3.10,4.14, 2.84),
@@ -133,7 +133,7 @@ class MySceneCfg(InteractiveSceneCfg):
                 disable_gravity=True,
             ),
         ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.32, 0.0, 0.71)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.32, 0.0, 0.61)),
     )
 
 

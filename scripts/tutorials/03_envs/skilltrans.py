@@ -102,8 +102,8 @@ def main():
             action = policy2(obs["policy"][:, :-3])
         elif flag:
             robot = env.scene["robot"]
-            joint_name = '.*_proximal_joint'
-            joint_idx = robot.joint_names.index(joint_name)
+            joint_indices, joint_names = robot.find_joints(['.*_proximal_joint'])
+            joint_idx = robot.set_joint_effort_target(torch.zeros_like(robot.data.default_joint_pos[:,joint_indices]),joint_indices)
             num_envs = env.num_envs
             num_joints = robot.num_joints
             efforts = 0.5*torch.ones((num_envs, num_joints), device=env.device)
