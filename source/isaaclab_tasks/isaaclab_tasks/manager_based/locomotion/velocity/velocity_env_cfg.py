@@ -410,7 +410,7 @@ class EventCfg:
         func=mdp.randomize_rigid_body_material,
         mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
             "static_friction_range": (0.1, 1.25),
             "dynamic_friction_range": (0.1, 1.25),
             "restitution_range": (0.0, 0.0),
@@ -419,24 +419,37 @@ class EventCfg:
         },
     )
 
-    # physics_material_hand = EventTerm(
-    #     func=mdp.randomize_rigid_body_material,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link",
-    #                                                         ".*_thumb_proximal",
-    #                                                         ".*_index_intermediate",
-    #                                                         ".*_middle_intermediate",
-    #                                                         ".*_pinky_intermediate",
-    #                                                         ".*_ring_intermediate",
-    #                                                         ]),
-    #         "static_friction_range": (0.6, 1.25),
-    #         "dynamic_friction_range": (0.6, 1.25),
-    #         "restitution_range": (0.0, 0.0),
-    #         "make_consistent": True,
-    #         "num_buckets": 64,
-    #     },
-    # )
+    physics_material_hand = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link",
+                                                            ".*_thumb_proximal",
+                                                            ".*_index_intermediate",
+                                                            ".*_middle_intermediate",
+                                                            ".*_pinky_intermediate",
+                                                            ".*_ring_intermediate",
+                                                            ]),
+            "static_friction_range": (0.9, 1.25),
+            "dynamic_friction_range": (0.9, 1.25),
+            "restitution_range": (0.0, 0.0),
+            "make_consistent": True,
+            "num_buckets": 64,
+        },
+    )
+
+    physics_material_obj = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "static_friction_range": (0.9, 1.25),
+            "dynamic_friction_range": (0.9, 1.25),
+            "restitution_range": (0.0, 0.0),
+            "num_buckets": 64,
+            "make_consistent": True
+        },
+    )
 
     add_base_mass = EventTerm(
         func=mdp.randomize_rigid_body_mass,
@@ -600,7 +613,7 @@ class RewardsCfg:
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-1.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
-    is_alive = RewTerm(func=mdp.is_alive,weight=1.0)
+    # is_alive = RewTerm(func=mdp.is_alive,weight=1.0)
 
 
 @configclass
@@ -608,14 +621,14 @@ class TerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    base_contact = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 40.0},
-    )
-    base_contact2 = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 40.0},
-    )
+    # base_contact = DoneTerm(
+    #     func=mdp.illegal_contact,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 40.0},
+    # )
+    # base_contact2 = DoneTerm(
+    #     func=mdp.illegal_contact,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 40.0},
+    # )
     base_contact3 = DoneTerm(
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 10.0},
@@ -624,10 +637,10 @@ class TerminationsCfg:
     #     func=mdp.illegal_contact,
     #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_pitch_link"), "threshold": 10.0},
     # )
-    base_contact5 = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_elbow_link"), "threshold": 10.0},
-    )
+    # base_contact5 = DoneTerm(
+    #     func=mdp.illegal_contact,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_elbow_link"), "threshold": 10.0},
+    # )
     # base_contact6 = DoneTerm(
     #     func=mdp.illegal_contact,
     #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_pitch_link"), "threshold": 20.0},

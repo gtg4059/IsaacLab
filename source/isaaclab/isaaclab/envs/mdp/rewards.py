@@ -437,13 +437,7 @@ def reset_joints_forces(
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
     # get default joint state
-    # joint_pos = asset.data.default_joint_pos[:,asset_cfg.joint_ids].clone()
-    # joint_vel = asset.data.default_joint_vel[:,asset_cfg.joint_ids].clone()
-    # asset.set_joint_position_target(joint_pos,asset_cfg.joint_ids)
-    # asset.set_joint_velocity_target(joint_vel,asset_cfg.joint_ids)
-    # print(joint_pos)
-    # asset.write_joint_state_to_sim(joint_pos, joint_vel, asset_cfg.joint_ids)
-    asset.set_joint_effort_target(torch.ones_like(asset.data.default_joint_pos[:,asset_cfg.joint_ids]),asset_cfg.joint_ids)
+    asset.set_joint_effort_target(0.5*torch.ones_like(asset.data.default_joint_pos[:,asset_cfg.joint_ids]),asset_cfg.joint_ids)
     asset.write_data_to_sim()
     out_of_limits = -(
         asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 0]
