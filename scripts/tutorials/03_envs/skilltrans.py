@@ -67,7 +67,7 @@ def main():
     file2 = io.BytesIO(memoryview(file_content2).tobytes())
     policy2 = torch.jit.load(file2)
     # pickup
-    policy_path3 = "/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/2025-06-30_20-23-30/exported/policy.pt"
+    policy_path3 = "/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/2025-07-01_16-02-22/exported/policy.pt"
     file_content3 = omni.client.read_file(policy_path3)[2]
     file3 = io.BytesIO(memoryview(file_content3).tobytes())
     policy3 = torch.jit.load(file3)
@@ -106,7 +106,7 @@ def main():
             joint_idx = robot.joint_names.index(joint_name)
             num_envs = env.num_envs
             num_joints = robot.num_joints
-            efforts = torch.zeros((num_envs, num_joints), device=env.device)
+            efforts = 0.5*torch.ones((num_envs, num_joints), device=env.device)
             efforts[:, joint_idx] = 1.0
             robot.set_joint_effort_target(efforts)
             robot.write_data_to_sim()
