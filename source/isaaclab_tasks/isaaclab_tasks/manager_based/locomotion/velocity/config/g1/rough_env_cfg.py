@@ -50,7 +50,7 @@ class G1Rewards(RewardsCfg):
 
     table_contact = RewTerm(
         func=mdp.table_not_contacted, 
-        weight=8.0,
+        weight=12.0,
         params={"sensor_cfg": SceneEntityCfg("contact_table")
         }, 
     )
@@ -108,21 +108,21 @@ class G1Rewards(RewardsCfg):
         },
     )
 
-    motion_equality_leg1 = RewTerm(
-        func=mdp.motion_equality_pros,
-        weight=2.0,
-        params={
-            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_knee_joint"),
-        },
-    )
+    # motion_equality_leg1 = RewTerm(
+    #     func=mdp.motion_equality_pros,
+    #     weight=2.0,
+    #     params={
+    #         "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_knee_joint"),
+    #     },
+    # )
 
-    motion_equality_leg2 = RewTerm(
-        func=mdp.motion_equality_pros,
-        weight=2.0,
-        params={
-            "std": 0.1,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_ankle_pitch_joint"),
-        },
-    )
+    # motion_equality_leg2 = RewTerm(
+    #     func=mdp.motion_equality_pros,
+    #     weight=2.0,
+    #     params={
+    #         "std": 0.1,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_ankle_pitch_joint"),
+    #     },
+    # )
 
     ## normal reward
 
@@ -191,7 +191,7 @@ class G1Rewards(RewardsCfg):
                     # ".*_shoulder_pitch_joint",
                     # ".*_shoulder_yaw_joint",
                     # ".*_elbow_joint",
-                    ".*_wrist_yaw_joint",
+                    # ".*_wrist_yaw_joint",
                     # ".*_wrist_pitch_joint",
                     ".*_wrist_roll_joint",
                 ],
@@ -226,21 +226,21 @@ class G1Rewards(RewardsCfg):
         ])},
     )
 
-    # Penalize deviation from default of the joints that are not essential for Pickup
-    joint_deviation_leg = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-0.1,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
-                    # ".*_hip_roll_joint",
-                    ".*_hip_pitch_joint",
-                    ".*_hip_yaw_joint",
-                    # ".*_knee_joint",
-                    # ".*_ankle_roll_joint",
-                    ".*_ankle_pitch_joint",
-                ]
-            )
-        },
-    )
+    # # Penalize deviation from default of the joints that are not essential for Pickup
+    # joint_deviation_leg = RewTerm(
+    #     func=mdp.joint_deviation_l1,
+    #     weight=-0.1,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
+    #                 # ".*_hip_roll_joint",
+    #                 ".*_hip_pitch_joint",
+    #                 ".*_hip_yaw_joint",
+    #                 # ".*_knee_joint",
+    #                 # ".*_ankle_roll_joint",
+    #                 ".*_ankle_pitch_joint",
+    #             ]
+    #         )
+    #     },
+    # )
 
     
     set_robot_joints_targets = RewTerm(
