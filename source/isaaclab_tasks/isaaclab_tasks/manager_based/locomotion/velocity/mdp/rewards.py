@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor, FrameTransformer
-from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, quat_mul, euler_xyz_from_quat, quat_conjugate, quat_error_magnitude
+from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, subtract_frame_transforms, euler_xyz_from_quat, quat_error_magnitude
 from isaaclab.assets import RigidObject, Articulation
 import isaaclab.utils.math as math_utils
 
@@ -83,6 +83,29 @@ def feet_slide(env, sensor_cfg: SceneEntityCfg, asset_cfg: SceneEntityCfg = Scen
     body_vel = asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2]
     # print("contacts:",contacts)
     # print("body_vel:",body_vel)
+    reward = torch.sum(body_vel.norm(dim=-1) * contacts, dim=1)
+    return reward
+
+def slide(env, sensor_cfg: SceneEntityCfg, asset_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
+    """Penalize feet sliding.
+
+    This function penalizes the agent for sliding its feet on the ground. The reward is computed as the
+    norm of the linear velocity of the feet multiplied by a binary contact sensor. This ensures that the
+    agent is penalized only when the feet are in contact with the ground.
+    """
+    # Penalize feet sliding
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    object: RigidObject = env.scene[asset_cfg.name]
+    contacts = contact_sensor.data.net_forces_w_history[:, :, sensor_cfg.body_ids, :].norm(dim=-1).max(dim=1)[0] > 1.0
+    asset = env.scene[asset_cfg.name]
+
+    # body_vel = asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2]
+    # (N, 3) and (N, 4) 
+    object_pos_b, _ = subtract_frame_transforms(
+        contact_sensor.data.pos_w, contact_sensor.data.quat_w, object.data.root_pos_w
+    )
+    body_vel = asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2]
+    
     reward = torch.sum(body_vel.norm(dim=-1) * contacts, dim=1)
     return reward
 

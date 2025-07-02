@@ -63,12 +63,29 @@ class G1Rewards(RewardsCfg):
     flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=20.0)
 
     object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
-                               weight=10.0,
-                               params={"std": 0.1,
+                               weight=24.0,
+                               params={"std": 0.05,
                                        "minimal_height": 0.74,
                                        "height": 0.79
         }, 
     )
+
+    # slide = RewTerm(
+    #     func=mdp.slide,
+    #     weight=-0.1,
+    #     params={
+    #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=
+    #                                                           [
+    #                                                             #   ".*_wrist_yaw_link",
+    #                                                               ".*_thumb_intermediate",
+    #                                                               ".*_index_intermediate",
+    #                                                             #   ".*_middle_intermediate",
+    #                                                               ".*_pinky_intermediate",
+    #                                                             #   ".*_ring_intermediate",
+    #                                                               ]
+    #         ),
+    #     },
+    # )
 
     # same motion
     motion_equality_shoulder1 = RewTerm(
@@ -198,7 +215,7 @@ class G1Rewards(RewardsCfg):
         },
     )
 
-    set_robot_joints_forces = RewTerm(
+    delete_table = RewTerm(
         func=mdp.delete_table,
         weight=-0.00001,
     )

@@ -414,16 +414,9 @@ def reset_joints_targets(
     joint_vel = asset.data.default_joint_vel[:,asset_cfg.joint_ids].clone()
     asset.set_joint_position_target(joint_pos,asset_cfg.joint_ids)
     asset.set_joint_velocity_target(joint_vel,asset_cfg.joint_ids)
-    # print(joint_pos)
+    # print("joint_pos_target:",asset.data.joint_pos_target)
     asset.write_joint_state_to_sim(joint_pos, joint_vel, asset_cfg.joint_ids)
-
-    out_of_limits = -(
-        asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 0]
-    ).clip(max=0.0)
-    out_of_limits += (
-        asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 1]
-    ).clip(min=0.0)
-    return torch.sum(out_of_limits, dim=1)*0
+    return torch.sum(asset.data.root_pos_w, dim=1)*0
 
 def reset_joints_forces(
     env: ManagerBasedRLEnv,
@@ -438,13 +431,8 @@ def reset_joints_forces(
     asset: Articulation = env.scene[asset_cfg.name]
     # get default joint state
     asset.set_joint_effort_target(torch.ones_like(asset.data.default_joint_pos[:,asset_cfg.joint_ids]),asset_cfg.joint_ids)
+    # print("joint_effort_target:",asset.data.joint_effort_target)
     asset.write_data_to_sim()
-    out_of_limits = -(
-        asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 0]
-    ).clip(max=0.0)
-    out_of_limits += (
-        asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 1]
-    ).clip(min=0.0)
     return torch.sum(asset.data.root_pos_w, dim=1)*0
 
 def delete_table(
@@ -465,5 +453,4 @@ def delete_table(
     asset.data.root_pos_w[:, 2] -= 0.002*torch.ones_like(asset.data.root_pos_w[:, 2],device=asset.device)
     asset.write_root_state_to_sim(asset.data.root_state_w)
     asset.write_data_to_sim()
-
     return torch.sum(asset.data.root_pos_w, dim=1)*0
