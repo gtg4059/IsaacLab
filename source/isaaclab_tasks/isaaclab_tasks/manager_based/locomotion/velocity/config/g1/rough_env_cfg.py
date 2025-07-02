@@ -39,7 +39,7 @@ class G1Rewards(RewardsCfg):
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=0.5,
+        weight=2.0,
         params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
                                                               [
                                                                 #   ".*_wrist_yaw_link",
@@ -60,7 +60,7 @@ class G1Rewards(RewardsCfg):
         }, 
     )
 
-    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=5.0)
+    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=20.0)
 
     object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
                                weight=10.0,
@@ -197,6 +197,12 @@ class G1Rewards(RewardsCfg):
             )
         },
     )
+
+    set_robot_joints_forces = RewTerm(
+        func=mdp.delete_table,
+        weight=-0.00001,
+    )
+    
 
 
 @configclass

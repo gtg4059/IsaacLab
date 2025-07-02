@@ -69,8 +69,9 @@ def terrain_levels_vel(
 #         num_steps: The number of steps after which the change should be applied.
 #     """
 #     asset: RigidObject = env.scene[asset_cfg.name]
-#     if env.common_step_counter < num_steps:
-#         asset.data.root_pos_w[:, 2] += 0.02
-#         asset.write_root_pose_to_sim(asset.data.root_state_w[:, :7])
+#     # if env.common_step_counter < num_steps:
+#     asset.data.root_pos_w[:, 1] += 0.2*torch.ones_like(asset.data.root_pos_w[:, 1],device=asset.device)
+#     asset.write_root_state_to_sim(asset.data.root_state_w)
+#     asset.write_data_to_sim()
 
 
