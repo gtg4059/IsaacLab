@@ -152,7 +152,7 @@ class CommandsCfg:
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.12, 0.2), pos_y=(-0.0, 0.0), pos_z=(0.06, 0.12), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            pos_x=(0.0, 0.0), pos_y=(-0.0, 0.0), pos_z=(0.0, 0.0), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
         ),
     )
 
@@ -405,7 +405,7 @@ class EventCfg:
         func=mdp.randomize_rigid_body_material,
         mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
             "static_friction_range": (0.1, 1.25),
             "dynamic_friction_range": (0.1, 1.25),
             "restitution_range": (0.0, 0.0),
@@ -418,12 +418,31 @@ class EventCfg:
         func=mdp.randomize_rigid_body_material,
         mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
-            "static_friction_range": (0.6, 1.25),
-            "dynamic_friction_range": (0.6, 1.25),
+            "asset_cfg": SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link",
+                                                            ".*_thumb_proximal",
+                                                            ".*_index_intermediate",
+                                                            ".*_middle_intermediate",
+                                                            ".*_pinky_intermediate",
+                                                            ".*_ring_intermediate",
+                                                            ]),
+            "static_friction_range": (1.2, 1.25),
+            "dynamic_friction_range": (1.2, 1.25),
             "restitution_range": (0.0, 0.0),
             "make_consistent": True,
             "num_buckets": 64,
+        },
+    )
+
+    physics_material_obj = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "static_friction_range": (1.2, 1.25),
+            "dynamic_friction_range": (1.2, 1.25),
+            "restitution_range": (0.0, 0.0),
+            "num_buckets": 64,
+            "make_consistent": True
         },
     )
 
@@ -446,6 +465,25 @@ class EventCfg:
             "operation": "add",
         },
     )
+
+    # set_robot_joints_targets = EventTerm(
+    #     func=mdp.reset_joints_targets,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot",
+    #             joint_names=[
+    #                         'L_thumb_proximal_yaw_joint',
+    #                          'R_thumb_proximal_yaw_joint',
+    #                         'L_thumb_proximal_pitch_joint',
+    #                         'R_thumb_proximal_pitch_joint',
+    #                         '.*_proximal_joint',
+    #                         '.*_thumb_intermediate_joint',
+    #                         '.*_thumb_distal_joint',
+    #                         ],
+    #             preserve_order=True,
+    #         )
+    #     },
+    # )
 
     # reset
     base_external_force_torque = EventTerm(
@@ -474,6 +512,22 @@ class EventCfg:
         },
     )
 
+    reset_table = EventTerm(
+        func=mdp.reset_root_state_uniform,
+        mode="reset",
+        params={"asset_cfg": SceneEntityCfg("table"),
+            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
+            "velocity_range": {
+                "x": (-0.0, 0.0),
+                "y": (-0.0, 0.0),
+                "z": (-0.0, 0.0),
+                "roll": (-0.0, 0.0),
+                "pitch": (-0.0, 0.0),
+                "yaw": (-0.0, 0.0),
+            },
+        },
+    )
+
     reset_robot_joints = EventTerm(
         func=mdp.reset_joints_by_scale,
         mode="reset",
@@ -491,12 +545,23 @@ class EventCfg:
         params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
     )
 
+    # interval
+    # push_object = EventTerm(
+    #     func=mdp.push_by_setting_velocity,
+    #     mode="interval",
+    #     interval_range_s=(10.0, 15.0),
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("object"),
+    #         "velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}
+    #         },
+    # )
+
     reset_box_position = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "pose_range": {"x": (-0.03, 0.03), "y": (-0.03, 0.03), "yaw": (-0.2, 0.2)},
+            "pose_range": {"x": (-0.05, 0.05), "y": (-0.03, 0.03), "yaw": (-0.0, 0.0)},
             "velocity_range": {
                 "x": (-0.0, 0.0),
                 "y": (-0.0, 0.0),
