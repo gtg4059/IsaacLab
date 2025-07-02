@@ -157,6 +157,10 @@ class G1Rewards(RewardsCfg):
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
         },
     )
+    robot_log = RewTerm(
+        func=mdp.robot_log,
+        weight=-0.00000001,
+    )
 
 
 @configclass

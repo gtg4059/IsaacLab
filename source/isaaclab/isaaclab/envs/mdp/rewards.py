@@ -20,7 +20,7 @@ from isaaclab.managers.manager_base import ManagerTermBase
 from isaaclab.managers.manager_term_cfg import RewardTermCfg
 from isaaclab.sensors import ContactSensor, RayCaster
 from isaaclab.utils.math import combine_frame_transforms, quat_error_magnitude, quat_mul
-
+from torch.utils.tensorboard import SummaryWriter
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
@@ -239,6 +239,24 @@ def joint_vel_limits(
     out_of_limits = out_of_limits.clip_(min=0.0, max=1.0)
     return torch.sum(out_of_limits, dim=1)
 
+def robot_log(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Penalize joint positions if they cross the soft limits.
+
+    This is computed as a sum of the absolute value of the difference between the joint position and the soft limits.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    # compute out of limits constraints
+    writer = SummaryWriter(log_dir='./logs/rsl_rl/g1_flat/log')
+    asset.find_bodies(".*_ankle_roll_link")
+    joint_pos = asset.data.joint_pos  # 첫 번째 환경/로봇의 관절
+    joint_vel = asset.data.joint_vel
+    # 각 관절별로 기록
+    writer.add_scalar(f'left_ankle_roll_link_pos', joint_pos[0,0].item(),env.episode_length_buf)
+    writer.add_scalar(f'right_ankle_roll_link_pos', joint_pos[0,1].item(),env.episode_length_buf)
+    writer.add_scalar(f'left_ankle_roll_link_vel', joint_vel[0,0].item(),env.episode_length_buf)
+    writer.add_scalar(f'right_ankle_roll_link_vel', joint_vel[0,1].item(),env.episode_length_buf)
+    return torch.sum(asset.data.joint_pos, dim=1)*0
 
 """
 Action penalties.
