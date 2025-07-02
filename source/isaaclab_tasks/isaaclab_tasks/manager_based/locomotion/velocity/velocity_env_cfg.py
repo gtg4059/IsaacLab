@@ -111,7 +111,7 @@ class MySceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=(3.10,4.14, 2.84),
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.4),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 # kinematic_enabled=True,
                 solver_position_iteration_count=16,
@@ -442,7 +442,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "mass_distribution_params": (-0.4, 0.4),
+            "mass_distribution_params": (-0.2, 0.2),
             "operation": "add",
         },
     )
