@@ -646,6 +646,7 @@ class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
+    # table_delete = CurrTerm(func=mdp.delete_table)
 
 
 ##

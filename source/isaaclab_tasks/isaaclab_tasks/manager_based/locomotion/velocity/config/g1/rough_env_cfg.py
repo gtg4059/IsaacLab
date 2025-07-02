@@ -62,6 +62,14 @@ class G1Rewards(RewardsCfg):
 
     flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=5.0)
 
+    object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
+                               weight=10.0,
+                               params={"std": 0.1,
+                                       "minimal_height": 0.74,
+                                       "height": 0.79
+        }, 
+    )
+
     # same motion
     motion_equality_shoulder1 = RewTerm(
         func=mdp.motion_equality_cons,
@@ -112,10 +120,25 @@ class G1Rewards(RewardsCfg):
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"])},
     )
     # Penalize deviation from default of the joints that are not essential for locomotion
-    joint_deviation_hip = RewTerm(
+    # joint_deviation_hip = RewTerm(
+    #     func=mdp.joint_deviation_l1,
+    #     weight=-0.1,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint"])},
+    # )
+    # Penalize deviation from default of the joints that are not essential for Pickup
+    joint_deviation_leg = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-0.1,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint"])},
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
+                    ".*_hip_roll_joint",
+                    ".*_hip_pitch_joint",
+                    ".*_hip_yaw_joint",
+                    ".*_knee_joint",
+                    ".*_ankle_roll_joint",
+                    ".*_ankle_pitch_joint",
+                ]
+            )
+        },
     )
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
@@ -125,10 +148,10 @@ class G1Rewards(RewardsCfg):
                 "robot",
                 joint_names=[
                     ".*_shoulder_roll_joint",
-                    # ".*_shoulder_pitch_joint",
-                    # ".*_shoulder_yaw_joint",
+                    ".*_shoulder_pitch_joint",
+                    ".*_shoulder_yaw_joint",
                     # ".*_elbow_joint",
-                    # ".*_wrist_yaw_joint",
+                    ".*_wrist_yaw_joint",
                     # ".*_wrist_pitch_joint",
                     ".*_wrist_roll_joint",
                 ],

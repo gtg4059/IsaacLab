@@ -15,7 +15,7 @@ import torch
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from isaaclab.assets import Articulation
+from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import SceneEntityCfg, ActionTerm, ActionTermCfg
 from isaaclab.terrains import TerrainImporter
 from isaaclab.sensors import ContactSensor
@@ -55,5 +55,22 @@ def terrain_levels_vel(
     # return the mean terrain level
     return torch.mean(terrain.terrain_levels.float())
 
+# def delete_table(
+        
+# def delete_table(env: ManagerBasedRLEnv, env_ids: Sequence[int], num_steps: int = 1000,
+#                  asset_cfg: SceneEntityCfg = SceneEntityCfg("table")):
+#     """Curriculum that modifies a reward weight a given number of steps.
+
+#     Args:
+#         env: The learning environment.
+#         env_ids: Not used since all environments are affected.
+#         term_name: The name of the reward term.
+#         weight: The weight of the reward term.
+#         num_steps: The number of steps after which the change should be applied.
+#     """
+#     asset: RigidObject = env.scene[asset_cfg.name]
+#     if env.common_step_counter < num_steps:
+#         asset.data.root_pos_w[:, 2] += 0.02
+#         asset.write_root_pose_to_sim(asset.data.root_state_w[:, :7])
 
 

@@ -146,13 +146,16 @@ def track_world_exp(
 lift
 """
 def object_is_lifted(
-    env: ManagerBasedRLEnv, minimal_height: float, 
+    env: ManagerBasedRLEnv,std:str,minimal_height: float, height: float, 
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
 ) -> torch.Tensor:
     """Reward the agent for lifting the object above the minimal height."""
     object: RigidObject = env.scene[object_cfg.name]
     # print(object.data.root_pos_w[:, 2])
-    return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
+    distance = torch.abs(object.data.root_pos_w[:,2]-height*torch.ones_like((object.data.root_pos_w[:,2])))
+    # return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
+    # print(object.data.root_pos_w[:,2])
+    return (1 - torch.tanh(torch.abs(distance)/(std)))*torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
 
 def object_is_contacted(
     env: ManagerBasedRLEnv,
