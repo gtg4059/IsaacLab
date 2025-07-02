@@ -430,8 +430,8 @@ class EventCfg:
                                                             ".*_pinky_intermediate",
                                                             ".*_ring_intermediate",
                                                             ]),
-            "static_friction_range": (0.9, 1.25),
-            "dynamic_friction_range": (0.9, 1.25),
+            "static_friction_range": (1.2, 1.25),
+            "dynamic_friction_range": (1.2, 1.25),
             "restitution_range": (0.0, 0.0),
             "make_consistent": True,
             "num_buckets": 64,
@@ -443,8 +443,8 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "static_friction_range": (0.9, 1.25),
-            "dynamic_friction_range": (0.9, 1.25),
+            "static_friction_range": (1.2, 1.25),
+            "dynamic_friction_range": (1.2, 1.25),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
             "make_consistent": True
@@ -551,15 +551,15 @@ class EventCfg:
     )
 
     # interval
-    push_object = EventTerm(
-        func=mdp.push_by_setting_velocity,
-        mode="interval",
-        interval_range_s=(10.0, 15.0),
-        params={
-            "asset_cfg": SceneEntityCfg("object"),
-            "velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}
-            },
-    )
+    # push_object = EventTerm(
+    #     func=mdp.push_by_setting_velocity,
+    #     mode="interval",
+    #     interval_range_s=(10.0, 15.0),
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("object"),
+    #         "velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}
+    #         },
+    # )
 
     reset_box_position = EventTerm(
         func=mdp.reset_root_state_uniform,
@@ -597,7 +597,7 @@ class RewardsCfg:
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
-    # is_alive = RewTerm(func=mdp.is_alive,weight=1.0)
+    is_alive = RewTerm(func=mdp.is_alive,weight=10.0)
 
 
 @configclass

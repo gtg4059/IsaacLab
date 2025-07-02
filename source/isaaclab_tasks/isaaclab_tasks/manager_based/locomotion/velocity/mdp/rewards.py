@@ -169,7 +169,7 @@ def track_world_exp(
 lift
 """
 def object_is_lifted(
-    env: ManagerBasedRLEnv,std:str,minimal_height: float, height: float, 
+    env: ManagerBasedRLEnv,std:float,minimal_height: float, height: float, 
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
 ) -> torch.Tensor:
     """Reward the agent for lifting the object above the minimal height."""
@@ -178,8 +178,7 @@ def object_is_lifted(
     distance = torch.abs(object.data.root_pos_w[:,2]-height*torch.ones_like((object.data.root_pos_w[:,2])))
     # return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
     # print(object.data.root_pos_w[:,2])
-    return (1 - torch.tanh(torch.abs(distance)/(std)))*torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
-
+    return ((1 - torch.tanh(torch.abs(distance)/std))+5*(1 - torch.tanh(torch.abs(distance)/std**2)))*torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
 def object_is_contacted(
     env: ManagerBasedRLEnv,
     threshold: float,
@@ -188,23 +187,10 @@ def object_is_contacted(
     """Reward the agent for lifting the object above the minimal height."""
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
     # compute the reward
-    # air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]
-    # contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
     contact_force = torch.norm(contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids],dim=2)#N,B,3
     contact = torch.norm(contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids],dim=2)>0.01
-    # in_contact = contact_time > 0.0
-    # double_stance = torch.sum(in_contact.int(), dim=1)
-    # spec = torch.sum(in_contact.int(), dim=1)>=4
-    # print(torch.norm(contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids],dim=2),contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids].shape)
-    # print("sensor_cfg.body_ids:",sensor_cfg.body_ids)
-    # print("contact:",contact)
-    # print("contact_force:",contact_force)
-    # print(contact_force-0.01*contact_force**2)
-    #return torch.sqrt(double_stance)*spec*torch.sum(in_contact.int(), dim=1)
-    # torch.sum(contact_force-0.01*contact_force**2, dim=1)
-    # print(contact.int())
-    # print(0.00002*contact_force**2)
-    return torch.sum(contact.int()-0.00002*contact_force**2, dim=1)
+    # return torch.sum(contact.int()-0.00002*contact_force**2, dim=1)
+    return torch.sum(-0.00002*contact_force**2, dim=1)
 
 def table_not_contacted(
     env: ManagerBasedRLEnv,

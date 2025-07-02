@@ -395,7 +395,7 @@ def track_ang_vel_z_exp(
     asset: RigidObject = env.scene[asset_cfg.name]
     # compute the error
     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_b[:, 2])
-    print(torch.exp(-ang_vel_error / std**2))
+    # print(torch.exp(-ang_vel_error / std**2))
     return torch.exp(-ang_vel_error / std**2)
 
 def reset_joints_targets(
@@ -430,7 +430,7 @@ def reset_joints_forces(
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
     # get default joint state
-    asset.set_joint_effort_target(0.2*torch.ones_like(asset.data.default_joint_pos[:,asset_cfg.joint_ids]),asset_cfg.joint_ids)
+    asset.set_joint_effort_target(0.05*torch.ones_like(asset.data.default_joint_pos[:,asset_cfg.joint_ids]),asset_cfg.joint_ids)
     # print("joint_effort_target:",asset.data.joint_effort_target)
     asset.write_data_to_sim()
     return torch.sum(asset.data.root_pos_w, dim=1)*0
