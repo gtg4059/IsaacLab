@@ -60,13 +60,20 @@ class G1Rewards(RewardsCfg):
     #     }, 
     # )
 
-    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=40.0)
+    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=10.0)
 
     object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
                                weight=1.0,
                                params={"std": 0.2,
                                        "minimal_height": 0.72,
                                        "height": 0.76
+        }, 
+    )
+
+    object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
+                               weight=20.0,
+                               params={"std": 0.2,
+                                       "minimal_height": 0.72,
         }, 
     )
 
