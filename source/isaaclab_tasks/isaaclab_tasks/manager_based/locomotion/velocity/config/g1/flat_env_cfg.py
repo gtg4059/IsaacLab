@@ -84,3 +84,4 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         # remove random pushing
         self.events.base_external_force_torque = None
         self.events.push_robot = None
+        self.events.add_base_mass = None

@@ -67,7 +67,7 @@ def main():
     file2 = io.BytesIO(memoryview(file_content2).tobytes())
     policy2 = torch.jit.load(file2)
     # pickup
-    policy_path3 = "/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/2025-07-02_21-35-35/exported/policy.pt"
+    policy_path3 = "/home/robotics/IsaacLab/logs/rsl_rl/g1_flat/2025-07-03_10-00-57/exported/policy.pt"
     file_content3 = omni.client.read_file(policy_path3)[2]
     file3 = io.BytesIO(memoryview(file_content3).tobytes())
     policy3 = torch.jit.load(file3)
