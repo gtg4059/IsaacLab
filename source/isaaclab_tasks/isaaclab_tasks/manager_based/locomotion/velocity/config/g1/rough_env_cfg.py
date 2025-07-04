@@ -34,24 +34,27 @@ class G1Rewards(RewardsCfg):
             "std": 0.2,
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
         }, 
-        weight=1.0
+        weight=2.0
     )
  
-    # object_contact = RewTerm(
-    #     func=mdp.object_is_contacted, 
-    #     weight=2.0,
-    #     params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
-    #                                                           [
-    #                                                             #   ".*_wrist_yaw_link",
-    #                                                               ".*_thumb_intermediate",
-    #                                                               ".*_index_intermediate",
-    #                                                             #   ".*_middle_intermediate",
-    #                                                               ".*_pinky_intermediate",
-    #                                                             #   ".*_ring_intermediate",
-    #                                                               ]
-    #         )
-    #     }, 
-    # )
+    object_contact = RewTerm(
+        func=mdp.object_is_contacted, 
+        weight=-1.0,
+        params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
+                                                              [
+                                                                  "left_wrist_yaw_link",
+                                                                  "right_wrist_yaw_link",
+                                                                #   "L_thumb_proximal",
+                                                                #   "R_thumb_proximal",
+                                                                #   ".*_thumb_intermediate",
+                                                                  ".*_index_intermediate",
+                                                                  ".*_middle_intermediate",
+                                                                  ".*_pinky_intermediate",
+                                                                  ".*_ring_intermediate",
+                                                                  ],preserve_order=True,
+            )
+        }, 
+    )
 
     # table_contact = RewTerm(
     #     func=mdp.table_not_contacted, 
@@ -63,7 +66,7 @@ class G1Rewards(RewardsCfg):
     flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=10.0)
 
     object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
-                               weight=1.0,
+                               weight=2.0,
                                params={"std": 0.2,
                                        "minimal_height": 0.72,
                                        "height": 0.76
@@ -71,7 +74,7 @@ class G1Rewards(RewardsCfg):
     )
 
     object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
-                               weight=20.0,
+                               weight=24.0,
                                params={"std": 0.2,
                                        "minimal_height": 0.72,
         }, 
@@ -166,7 +169,7 @@ class G1Rewards(RewardsCfg):
     )
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-1.0,
+        weight=-5.0,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -199,13 +202,13 @@ class G1Rewards(RewardsCfg):
         params={
             "asset_cfg": SceneEntityCfg("robot",
                 joint_names=[
-                    'L_thumb_proximal_yaw_joint',
-                             'R_thumb_proximal_yaw_joint',
-                            'L_thumb_proximal_pitch_joint',
-                            'R_thumb_proximal_pitch_joint',
+                    # 'L_thumb_proximal_yaw_joint',
+                    #          'R_thumb_proximal_yaw_joint',
+                    #         'L_thumb_proximal_pitch_joint',
+                    #         'R_thumb_proximal_pitch_joint',
                             '.*_proximal_joint',
-                            '.*_thumb_intermediate_joint',
-                            '.*_thumb_distal_joint',
+                    #         '.*_thumb_intermediate_joint',
+                    #         '.*_thumb_distal_joint',
                             ],
                 preserve_order=True,
             )

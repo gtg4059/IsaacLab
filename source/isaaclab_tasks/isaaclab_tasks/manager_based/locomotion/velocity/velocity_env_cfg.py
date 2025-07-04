@@ -82,7 +82,7 @@ class MySceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Object",
         init_state=RigidObjectCfg.InitialStateCfg(pos=[0.36, 0, 0.70], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+            usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
             scale=(3.10,4.14, 2.84),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.4),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
@@ -103,7 +103,7 @@ class MySceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Table",
         init_state=RigidObjectCfg.InitialStateCfg(pos=[0.36, 0, 0.60], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", scale=(4.0, 4.0, 1.00),
+            usd_path="/home/robotics/Downloads/DexCube.usd", scale=(4.0, 4.0, 1.00),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 kinematic_enabled=True,
@@ -131,13 +131,13 @@ class MySceneCfg(InteractiveSceneCfg):
     #     offset=TiledCameraCfg.OffsetCfg(pos=(0.0, 0.0, 0.0), rot=(0.5, -0.5, 0.5, -0.5), convention="ros"),
     # )
 
-    contact_table = ContactSensorCfg(
-            prim_path="{ENV_REGEX_NS}/Object",
-            debug_vis=False,
-            update_period=0.0,
-            filter_prim_paths_expr=["{ENV_REGEX_NS}/Table"],
-            track_air_time=True,
-        )
+    # contact_table = ContactSensorCfg(
+    #         prim_path="{ENV_REGEX_NS}/Object",
+    #         debug_vis=False,
+    #         update_period=0.0,
+    #         filter_prim_paths_expr=["{ENV_REGEX_NS}/Table"],
+    #         track_air_time=True,
+    #     )
 
 
 ##
@@ -581,7 +581,7 @@ class RewardsCfg:
     """Reward terms for the MDP."""
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
-    lin_vel_xy_l2 = RewTerm(func=mdp.lin_vel_xy_l2, weight=-2.0)
+    lin_vel_xy_l2 = RewTerm(func=mdp.lin_vel_xy_l2, weight=-10.0)
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
@@ -625,7 +625,13 @@ class TerminationsCfg:
     # )
     # base_contact6 = DoneTerm(
     #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_pitch_link"), "threshold": 20.0},
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=[
+    #                                                               ".*_thumb_intermediate",
+    #                                                               ".*_index_intermediate",
+    #                                                               ".*_middle_intermediate",
+    #                                                               ".*_pinky_intermediate",
+    #                                                               ".*_ring_intermediate",
+    #                                                               ]), "threshold": 20.0},
     # )
     object_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.6, "asset_cfg": SceneEntityCfg("object")}
