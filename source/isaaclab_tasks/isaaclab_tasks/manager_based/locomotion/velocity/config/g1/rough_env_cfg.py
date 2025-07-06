@@ -76,7 +76,7 @@ class G1Rewards(RewardsCfg):
     # )
 
     object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
-                               weight=20.0,
+                               weight=16.0,
                                params={"std": 0.3,
                                        "minimal_height": 0.72,
         }, 
