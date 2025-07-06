@@ -106,7 +106,7 @@ def main():
             joint_idx = robot.set_joint_effort_target(torch.zeros_like(robot.data.default_joint_pos[:,joint_indices]),joint_indices)
             num_envs = env.num_envs
             num_joints = robot.num_joints
-            efforts = 0.2*torch.ones((num_envs, num_joints), device=env.device)
+            efforts = 0.02*torch.ones((num_envs, num_joints), device=env.device)
             efforts[:, joint_idx] = 0.2
             robot.set_joint_effort_target(efforts)
             robot.write_data_to_sim()

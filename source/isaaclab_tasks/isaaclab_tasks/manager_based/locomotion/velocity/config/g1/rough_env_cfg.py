@@ -245,16 +245,16 @@ class G1Rewards(RewardsCfg):
     #     },
     # )
 
-    # set_robot_joints_forces = RewTerm(
-    #     func=mdp.reset_joints_forces,
-    #     weight=-0.00001,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot",
-    #             joint_names=['.*_proximal_joint'],
-    #             preserve_order=True,
-    #         )
-    #     },
-    # )
+    set_robot_joints_forces = RewTerm(
+        func=mdp.reset_joints_forces,
+        weight=-0.00001,
+        params={
+            "asset_cfg": SceneEntityCfg("robot",
+                joint_names=['.*_proximal_joint'],
+                preserve_order=True,
+            )
+        },
+    )
 
     
 

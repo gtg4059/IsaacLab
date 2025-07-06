@@ -53,7 +53,8 @@ This model is taken from: https://github.com/Improbable-AI/walk-these-ways
 
 G1_DEX_FIX = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_DFQ/g1_29dof_rev_1_0_with_inspire_hand_DFQ.usd",
+        # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_DFQ/g1_29dof_rev_1_0_with_inspire_hand_DFQ.usd",
+        usd_path="/home/robotics/git/unitree_ros/robots/g1_description/g1_29dof_rev_1_0_with_inspire_hand_th/g1_29dof_rev_1_0_with_inspire_hand_th.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -91,9 +92,13 @@ G1_DEX_FIX = ArticulationCfg(
             'right_shoulder_roll_joint': -0.1,
             'left_shoulder_yaw_joint': 0.2,
             'right_shoulder_yaw_joint': -0.2,
-            'left_elbow_joint': 0.4,
-            'right_elbow_joint': 0.4,
-
+            # 'left_elbow_joint': -0.4,
+            # 'right_elbow_joint': -0.4,
+            'left_elbow_joint': -0.4,
+            'right_elbow_joint': -0.4,
+            'left_shoulder_pitch_joint': 0.4,
+            'right_shoulder_pitch_joint': 0.4,
+            
             # 'left_shoulder_pitch_joint': -0.8,
             # 'left_shoulder_roll_joint': 0.3,
             # 'left_shoulder_yaw_joint': 0.4,
@@ -108,11 +113,12 @@ G1_DEX_FIX = ArticulationCfg(
             # 'right_wrist_roll_joint': 0.0,
             # # 'right_wrist_pitch_joint': -0.9,
             # 'right_wrist_yaw_joint': -0.0,
-            '.*_thumb_proximal_yaw_joint': -0.099,
-            '.*_thumb_proximal_pitch_joint': 0.6,
-            '.*_thumb_intermediate_joint': 0.8,
-            '.*_thumb_distal_joint': 1.2,
-            '.*_proximal_joint': 0.4, 
+
+            # '.*_thumb_proximal_yaw_joint': -0.099,
+            # '.*_thumb_proximal_pitch_joint': 0.0,
+            # '.*_thumb_intermediate_joint': 0.8,
+            # '.*_thumb_distal_joint': 1.2,
+            # '.*_proximal_joint': 0.3, 
         },
         joint_vel={".*": 0.0},
     ),
@@ -234,9 +240,9 @@ G1_DEX_FIX = ArticulationCfg(
         #     joint_names_expr=[
         #         # '.*_thumb_proximal_yaw_joint',
         #         # '.*_thumb_proximal_pitch_joint',
-        #         '.*_proximal_joint'
-        #         # "R_.*",
-        #         # "L_.*",
+        #         # '.*_proximal_joint'
+        #         "R_.*",
+        #         "L_.*",
         #     ],
         #     effort_limit=1,
         #     velocity_limit=0.5,
