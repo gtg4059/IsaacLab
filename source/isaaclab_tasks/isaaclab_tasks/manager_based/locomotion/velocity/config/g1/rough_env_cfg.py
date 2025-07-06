@@ -31,15 +31,15 @@ class G1Rewards(RewardsCfg):
     reaching_object= RewTerm(
         func=mdp.object_ee_distance, 
         params={
-            "std": 0.2,
+            "std": 0.3,
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
         }, 
-        weight=2.0
+        weight=1.0
     )
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=-1.0,
+        weight=4.0,
         params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
                                                               [
                                                                   "left_wrist_yaw_link",
@@ -47,10 +47,12 @@ class G1Rewards(RewardsCfg):
                                                                 #   "L_thumb_proximal",
                                                                 #   "R_thumb_proximal",
                                                                 #   ".*_thumb_intermediate",
-                                                                  ".*_index_intermediate",
-                                                                  ".*_middle_intermediate",
-                                                                  ".*_pinky_intermediate",
-                                                                  ".*_ring_intermediate",
+                                                                #   ".*_index_intermediate",
+                                                                #   ".*_middle_intermediate",
+                                                                #   ".*_pinky_intermediate",
+                                                                #   ".*_ring_intermediate",
+                                                                #   "left_ankle_roll_link",
+                                                                #   "right_ankle_roll_link"
                                                                   ],preserve_order=True,
             )
         }, 
@@ -65,17 +67,17 @@ class G1Rewards(RewardsCfg):
 
     flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=10.0)
 
-    object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
-                               weight=2.0,
-                               params={"std": 0.2,
-                                       "minimal_height": 0.72,
-                                       "height": 0.76
-        }, 
-    )
+    # object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
+    #                            weight=1.0,
+    #                            params={"std": 0.2,
+    #                                    "minimal_height": 0.72,
+    #                                    "height": 0.76
+    #     }, 
+    # )
 
     object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
-                               weight=24.0,
-                               params={"std": 0.2,
+                               weight=20.0,
+                               params={"std": 0.3,
                                        "minimal_height": 0.72,
         }, 
     )
@@ -185,6 +187,25 @@ class G1Rewards(RewardsCfg):
             )
         },
     )
+
+    joint_deviation_arms2 = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-1.0,
+        params={
+            "asset_cfg": SceneEntityCfg(
+                "robot",
+                joint_names=[
+                    # ".*_shoulder_roll_joint",
+                    ".*_shoulder_pitch_joint",
+                    ".*_shoulder_yaw_joint",
+                    ".*_elbow_joint",
+                    # ".*_wrist_yaw_joint",
+                    ".*_wrist_pitch_joint",
+                    # ".*_wrist_roll_joint",
+                ],
+            )
+        },
+    )
    
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
@@ -196,34 +217,34 @@ class G1Rewards(RewardsCfg):
         ])},
     )
     
-    set_robot_joints_targets = RewTerm(
-        func=mdp.reset_joints_targets,
-        weight=-0.00001,
-        params={
-            "asset_cfg": SceneEntityCfg("robot",
-                joint_names=[
-                    # 'L_thumb_proximal_yaw_joint',
-                    #          'R_thumb_proximal_yaw_joint',
-                    #         'L_thumb_proximal_pitch_joint',
-                    #         'R_thumb_proximal_pitch_joint',
-                            '.*_proximal_joint',
-                    #         '.*_thumb_intermediate_joint',
-                    #         '.*_thumb_distal_joint',
-                            ],
-                preserve_order=True,
-            )
-        },
-    )
-    # set_robot_joints_forces = RewTerm(
-    #     func=mdp.reset_joints_forces,
+    # set_robot_joints_targets = RewTerm(
+    #     func=mdp.reset_joints_targets,
     #     weight=-0.00001,
     #     params={
     #         "asset_cfg": SceneEntityCfg("robot",
-    #             joint_names=['.*_proximal_joint'],
+    #             joint_names=[
+    #                 # 'L_thumb_proximal_yaw_joint',
+    #                 #          'R_thumb_proximal_yaw_joint',
+    #                 #         'L_thumb_proximal_pitch_joint',
+    #                 #         'R_thumb_proximal_pitch_joint',
+    #                         '.*_proximal_joint',
+    #                 #         '.*_thumb_intermediate_joint',
+    #                 #         '.*_thumb_distal_joint',
+    #                         ],
     #             preserve_order=True,
     #         )
     #     },
     # )
+    set_robot_joints_forces = RewTerm(
+        func=mdp.reset_joints_forces,
+        weight=-0.00001,
+        params={
+            "asset_cfg": SceneEntityCfg("robot",
+                joint_names=['.*_proximal_joint'],
+                preserve_order=True,
+            )
+        },
+    )
 
     delete_table = RewTerm(
         func=mdp.delete_table,

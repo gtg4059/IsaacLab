@@ -435,7 +435,7 @@ def reset_joints_forces(
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
     # get default joint state
-    asset.set_joint_effort_target(0.05*torch.ones_like(asset.data.default_joint_pos[:,asset_cfg.joint_ids]),asset_cfg.joint_ids)
+    asset.set_joint_effort_target(0.2*torch.ones_like(asset.data.default_joint_pos[:,asset_cfg.joint_ids]),asset_cfg.joint_ids)
     # print("joint_effort_target:",asset.data.joint_effort_target)
     asset.write_data_to_sim()
     return torch.sum(asset.data.root_pos_w, dim=1)*0
@@ -456,6 +456,7 @@ def delete_table(
     asset: RigidObject = env.scene[asset_cfg.name]
     # if env.common_step_counter < num_steps:
     asset.data.root_pos_w[:, 2] -= 0.002*torch.ones_like(asset.data.root_pos_w[:, 2],device=asset.device)
+    # asset.data.root_pos_w[:, 1] -= 0.002*torch.ones_like(asset.data.root_pos_w[:, 2],device=asset.device)
     asset.write_root_state_to_sim(asset.data.root_state_w)
     asset.write_data_to_sim()
     return torch.sum(asset.data.root_pos_w, dim=1)*0

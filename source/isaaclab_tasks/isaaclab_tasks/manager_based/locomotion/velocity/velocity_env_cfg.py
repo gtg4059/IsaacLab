@@ -94,7 +94,7 @@ class MySceneCfg(InteractiveSceneCfg):
                 max_depenetration_velocity=5.0,
                 disable_gravity=False,
             ),
-            activate_contact_sensors=True,
+            # activate_contact_sensors=True,
         ),
     )
 
@@ -607,13 +607,13 @@ class TerminationsCfg:
     #     func=mdp.illegal_contact,
     #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 40.0},
     # )
-    # base_contact2 = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 40.0},
-    # )
+    base_contact2 = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 40.0},
+    )
     base_contact3 = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 10.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 3.0},
     )
     # base_contact4 = DoneTerm(
     #     func=mdp.illegal_contact,
