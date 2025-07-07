@@ -89,7 +89,7 @@ class G1Rewards(RewardsCfg):
     # same motion
     motion_equality_shoulder1 = RewTerm(
         func=mdp.motion_equality_cons,
-        weight=3.0,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_yaw_joint"),
         },
@@ -97,7 +97,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_shoulder2 = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=3.0,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_pitch_joint"),
         },
@@ -105,7 +105,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_elbow = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=3.0,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_elbow_joint"),
         },
@@ -113,7 +113,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_wrist = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=3.0,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_pitch_joint"),
         },
@@ -121,7 +121,7 @@ class G1Rewards(RewardsCfg):
 
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-5.0,
+        weight=-0.5,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -129,18 +129,6 @@ class G1Rewards(RewardsCfg):
                     ".*_shoulder_roll_joint",
                     ".*_wrist_yaw_joint",
                     ".*_wrist_roll_joint",
-                ],
-            )
-        },
-    )
-
-    joint_deviation_arms2 = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-1.0,
-        params={
-            "asset_cfg": SceneEntityCfg(
-                "robot",
-                joint_names=[
                     ".*_shoulder_pitch_joint",
                     ".*_shoulder_yaw_joint",
                     ".*_elbow_joint",
@@ -148,6 +136,21 @@ class G1Rewards(RewardsCfg):
             )
         },
     )
+
+    # joint_deviation_arms2 = RewTerm(
+    #     func=mdp.joint_deviation_l1,
+    #     weight=-0.2,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg(
+    #             "robot",
+    #             joint_names=[
+    #                 ".*_shoulder_pitch_joint",
+    #                 ".*_shoulder_yaw_joint",
+    #                 ".*_elbow_joint",
+    #             ],
+    #         )
+    #     },
+    # )
    
     # joint_deviation_torso = RewTerm(
     #     func=mdp.joint_deviation_l1,
