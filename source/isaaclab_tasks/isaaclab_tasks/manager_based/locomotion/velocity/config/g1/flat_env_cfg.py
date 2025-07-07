@@ -26,12 +26,6 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
 
 
         # New Rewards
-        self.rewards.track_ang_vel_z_exp.weight = 1.0
-        self.rewards.lin_vel_z_l2.weight = -0.2
-        self.rewards.action_rate_l2.weight = -0.005
-        self.rewards.dof_acc_l2.weight = -1.0e-7
-        # self.rewards.feet_air_time.weight = 1.0
-        # self.rewards.feet_air_time.params["threshold"] = 0.4
         self.rewards.foot_clearance.weight = 0.2
         self.rewards.foot_clearance.params["asset_cfg"] = SceneEntityCfg(
             "robot", body_names=[".*_ankle_roll_link"]
@@ -41,7 +35,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
         # Rewards
-        self.rewards.lin_vel_z_l2.weight = -0.2
+        # self.rewards.lin_vel_z_l2.weight = -0.2
         self.rewards.action_rate_l2.weight = -0.005
         self.rewards.dof_acc_l2.weight = -1.0e-7
         self.rewards.action_rate_l2.weight = -0.005
@@ -74,5 +68,5 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         # disable randomization for play
         self.observations.policy.enable_corruption = False
         # remove random pushing
-        self.events.base_external_force_torque = None
-        self.events.push_robot = None
+        # self.events.base_external_force_torque = None
+        # self.events.push_robot = None

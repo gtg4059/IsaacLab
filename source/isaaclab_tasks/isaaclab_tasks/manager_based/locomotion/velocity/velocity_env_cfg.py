@@ -258,7 +258,6 @@ class ObservationsCfg:
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
         # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
-        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -353,7 +352,6 @@ class ObservationsCfg:
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
         # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
-        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -526,8 +524,8 @@ class EventCfg:
 class RewardsCfg:
     """Reward terms for the MDP."""
     # -- penalties
-    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
-    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
+    # lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
+    # ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
@@ -540,7 +538,7 @@ class RewardsCfg:
     # -- optional penalties
     base_height = RewTerm(func=mdp.base_height_l2, weight=-10.0, params={"target_height": 0.78})
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
-    is_alive = RewTerm(func=mdp.is_alive,weight=10.0)
+    # is_alive = RewTerm(func=mdp.is_alive,weight=10.0)
 
 
 @configclass
