@@ -81,8 +81,6 @@ def feet_slide(env, sensor_cfg: SceneEntityCfg, asset_cfg: SceneEntityCfg = Scen
     asset = env.scene[asset_cfg.name]
 
     body_vel = asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2]
-    # print("contacts:",contacts)
-    # print("body_vel:",body_vel)
     reward = torch.sum(body_vel.norm(dim=-1) * contacts, dim=1)
     return reward
 
@@ -116,7 +114,6 @@ def track_lin_vel_xy_yaw_frame_exp(
     """Reward tracking of linear velocity commands (xy axes) in the gravity aligned robot frame using exponential kernel."""
     # extract the used quantities (to enable type-hinting)
     asset = env.scene[asset_cfg.name]
-    # vel_yaw = quat_rotate_inverse(yaw_quat(asset.data.root_quat_w), asset.data.root_pos_w[:, :3])
     vel_yaw = quat_rotate_inverse(yaw_quat(asset.data.root_quat_w), asset.data.root_lin_vel_w[:, :3])
     lin_vel_error = torch.sum(
         torch.square(env.command_manager.get_command(command_name)[:, :2] - vel_yaw[:, :2]), dim=1
@@ -129,14 +126,8 @@ def track_ang_vel_z_world_exp(
     """Reward tracking of angular velocity commands (yaw) in world frame using exponential kernel."""
     # extract the used quantities (to enable type-hinting)
     asset = env.scene[asset_cfg.name]
-    # euler_w = euler_xyz_from_quat(asset.data.root_quat_w)[2]
-    # ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2]-euler_w)
-
-    # lin_vel_error = torch.sum(
-    #     torch.square(env.command_manager.get_command(command_name)[:, :2] - asset.data.root_pos_w[:, :2]), dim=1
-    # )
     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_w[:, 2])
-    return torch.exp(-ang_vel_error / std**2)# torch.where(lin_vel_error<0.1,torch.exp(-ang_vel_error / std**2),0)
+    return torch.exp(-ang_vel_error / std**2)
 
 def track_pos_exp(
     env, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
@@ -163,6 +154,25 @@ def track_world_exp(
     )
     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_w[:, 2])
     return 100*torch.exp(-ang_vel_error / std**2)/(1+2*torch.exp(lin_vel_error))
+
+def foot_clearance_reward(
+    env: ManagerBasedRLEnv, 
+    asset_cfg: SceneEntityCfg,
+    sensor_cfg: SceneEntityCfg,
+    target_height: float, std: float
+) -> torch.Tensor:
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    # compute the reward
+    air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]
+    contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
+    in_contact = contact_time > 0.0
+    in_mode_time = torch.where(in_contact, contact_time, air_time)
+    single_stance = torch.sum(in_contact.int(), dim=1) == 1
+    """Reward the swinging feet for clearing a specified height off the ground"""
+    asset = env.scene[asset_cfg.name]
+    reward = torch.square(asset.data.body_pos_w[:, asset_cfg.body_ids, 2] - target_height)
+    # print(single_stance)
+    return torch.exp(-torch.sum(reward, dim=1) / std)*single_stance
 
 
 """

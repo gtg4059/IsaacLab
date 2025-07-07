@@ -63,25 +63,20 @@ class UniformVelocityCommandCfg(CommandTermCfg):
     class Ranges:
         """Uniform distribution ranges for the velocity commands."""
 
-        x: tuple[float, float] = MISSING
-        y: tuple[float, float] = MISSING
-        # ang_z: tuple[float, float] = MISSING
-        # heading: bool = MISSING
+        lin_vel_x: tuple[float, float] = MISSING
+        """Range for the linear-x velocity command (in m/s)."""
 
-        # lin_vel_x: tuple[float, float] = MISSING
-        # """Range for the linear-x velocity command (in m/s)."""
-
-        # lin_vel_y: tuple[float, float] = MISSING
-        # """Range for the linear-y velocity command (in m/s)."""
+        lin_vel_y: tuple[float, float] = MISSING
+        """Range for the linear-y velocity command (in m/s)."""
 
         ang_vel_z: tuple[float, float] = MISSING
-        # """Range for the angular-z velocity command (in rad/s)."""
+        """Range for the angular-z velocity command (in rad/s)."""
 
-        heading: tuple[float, float] = MISSING
-        # """Range for the heading command (in rad). Defaults to None.
+        heading: tuple[float, float] | None = None
+        """Range for the heading command (in rad). Defaults to None.
 
-        # This parameter is only used if :attr:`~UniformVelocityCommandCfg.heading_command` is True.
-        # """
+        This parameter is only used if :attr:`~UniformVelocityCommandCfg.heading_command` is True.
+        """
 
     ranges: Ranges = MISSING
     """Distribution ranges for the velocity commands."""

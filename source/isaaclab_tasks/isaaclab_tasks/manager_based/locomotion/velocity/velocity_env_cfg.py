@@ -98,47 +98,6 @@ class MySceneCfg(InteractiveSceneCfg):
         ),
     )
 
-    # mount
-    table = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/Table",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.36, 0, 0.60], rot=[1, 0, 0, 0]),
-        spawn=sim_utils.UsdFileCfg(
-            usd_path="/home/robotics/Downloads/DexCube.usd", scale=(4.0, 4.0, 1.00),
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                kinematic_enabled=True,
-                solver_position_iteration_count=16,
-                solver_velocity_iteration_count=1,
-                max_angular_velocity=1000.0,
-                max_linear_velocity=1000.0,
-                max_depenetration_velocity=5.0,
-                disable_gravity=True,
-            ),
-        ),
-    )
-
-    # camera = TiledCameraCfg(
-    #     prim_path="{ENV_REGEX_NS}/Robot/torso_link/d435_link/camera",
-    #     update_period=0.5,
-    #     height=480,
-    #     width=640,
-    #     debug_vis=True,
-    #     data_types=["instance_id_segmentation_fast"],
-    #     colorize_instance_id_segmentation=True,
-    #     spawn=sim_utils.PinholeCameraCfg(
-    #         focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5)
-    #     ),
-    #     offset=TiledCameraCfg.OffsetCfg(pos=(0.0, 0.0, 0.0), rot=(0.5, -0.5, 0.5, -0.5), convention="ros"),
-    # )
-
-    # contact_table = ContactSensorCfg(
-    #         prim_path="{ENV_REGEX_NS}/Object",
-    #         debug_vis=False,
-    #         update_period=0.0,
-    #         filter_prim_paths_expr=["{ENV_REGEX_NS}/Table"],
-    #         track_air_time=True,
-    #     )
-
 
 ##
 # MDP settings
@@ -149,13 +108,16 @@ class MySceneCfg(InteractiveSceneCfg):
 class CommandsCfg:
     """Command specifications for the MDP."""
 
-    object_pose = mdp.UniformPoseCommandCfg(
+    base_velocity = mdp.UniformVelocityCommandCfg(
         asset_name="robot",
-        body_name=MISSING,  # will be set by agent env cfg
-        resampling_time_range=(5.0, 5.0),
+        resampling_time_range=(10.0, 10.0),
+        rel_standing_envs=0.02,
+        rel_heading_envs=1.0,
+        heading_command=True,
+        heading_control_stiffness=0.5,
         debug_vis=True,
-        ranges=mdp.UniformPoseCommandCfg.Ranges(#0.84, 0.86
-            pos_x=(0.0, 0.0), pos_y=(-0.0, 0.0), pos_z=(0.0, 0.0), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+        ranges=mdp.UniformVelocityCommandCfg.Ranges(
+            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
         ),
     )
 
@@ -294,7 +256,7 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
         # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
 
@@ -389,7 +351,7 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
         # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
 
@@ -514,22 +476,6 @@ class EventCfg:
         },
     )
 
-    reset_table = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={"asset_cfg": SceneEntityCfg("table"),
-            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
-            "velocity_range": {
-                "x": (-0.0, 0.0),
-                "y": (-0.0, 0.0),
-                "z": (-0.0, 0.0),
-                "roll": (-0.0, 0.0),
-                "pitch": (-0.0, 0.0),
-                "yaw": (-0.0, 0.0),
-            },
-        },
-    )
-
     reset_robot_joints = EventTerm(
         func=mdp.reset_joints_by_scale,
         mode="reset",
@@ -563,7 +509,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "pose_range": {"x": (-0.05, 0.05), "y": (-0.03, 0.03), "yaw": (-0.0, 0.0)},
+            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
             "velocity_range": {
                 "x": (-0.0, 0.0),
                 "y": (-0.0, 0.0),
@@ -581,7 +527,6 @@ class RewardsCfg:
     """Reward terms for the MDP."""
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
-    lin_vel_xy_l2 = RewTerm(func=mdp.lin_vel_xy_l2, weight=-10.0)
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
@@ -593,8 +538,8 @@ class RewardsCfg:
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
     )
     # -- optional penalties
+    base_height = RewTerm(func=mdp.base_height_l2, weight=-10.0, params={"target_height": 0.78})
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
-    dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
     is_alive = RewTerm(func=mdp.is_alive,weight=10.0)
 
 
@@ -603,10 +548,6 @@ class TerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    # base_contact = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 40.0},
-    # )
     base_contact2 = DoneTerm(
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 40.0},
@@ -615,58 +556,18 @@ class TerminationsCfg:
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 3.0},
     )
-    # base_contact4 = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_pitch_link"), "threshold": 10.0},
-    # )
-    # base_contact5 = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_elbow_link"), "threshold": 10.0},
-    # )
-    # base_contact6 = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=[
-    #                                                               ".*_thumb_intermediate",
-    #                                                               ".*_index_intermediate",
-    #                                                               ".*_middle_intermediate",
-    #                                                               ".*_pinky_intermediate",
-    #                                                               ".*_ring_intermediate",
-    #                                                               ]), "threshold": 20.0},
-    # )
     object_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.6, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("robot")}
     )
-    bad_position = DoneTerm(
-        func=mdp.bad_position, params={"limit_dist": 0.5, "asset_cfg": SceneEntityCfg("robot")}
-    )
-    # set_robot_joints_targets = DoneTerm(
-    #     func=mdp.reset_joints_targets,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot",
-    #             joint_names=[
-    #                         'L_thumb_proximal_yaw_joint',
-    #                          'R_thumb_proximal_yaw_joint',
-    #                         'L_thumb_proximal_pitch_joint',
-    #                         'R_thumb_proximal_pitch_joint',
-    #                         '.*_proximal_joint',
-    #                         '.*_thumb_intermediate_joint',
-    #                         '.*_thumb_distal_joint',
-    #                         ],
-    #             preserve_order=True,
-    #         )
-    #     },
-    # )
 
 
 @configclass
 class CurriculumCfg:
     """Curriculum terms for the MDP."""
-
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
-    # table_delete = CurrTerm(func=mdp.delete_table)
 
 
 ##
