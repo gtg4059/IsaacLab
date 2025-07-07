@@ -25,11 +25,11 @@ class G1Rewards(RewardsCfg):
 
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=5.0,
+        weight=20.0,
         params={"command_name": "base_velocity", "std": 0.5},
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=5.0, params={"command_name": "base_velocity", "std": 0.5}
+        func=mdp.track_ang_vel_z_world_exp, weight=20.0, params={"command_name": "base_velocity", "std": 0.5}
     )
     foot_clearance = RewTerm(
         func=mdp.foot_clearance_reward,
@@ -43,7 +43,7 @@ class G1Rewards(RewardsCfg):
     )
     feet_slide = RewTerm(
         func=mdp.feet_slide,
-        weight=-0.1,
+        weight=-2.0,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
