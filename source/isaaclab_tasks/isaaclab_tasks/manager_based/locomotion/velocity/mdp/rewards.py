@@ -238,45 +238,7 @@ def object_ee_distance(
     # result1 = (1 - torch.tanh(torch.abs(angle1)/(std)))*(1 - torch.tanh(torch.abs(distance1-0.18)/(std**2)))
     # result2 = (1 - torch.tanh(torch.abs(angle2)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.18)/(std**2)))
     dist = torch.sqrt((1 - torch.tanh(torch.abs(distance1-0.16)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.16)/(std))))+5*torch.sqrt((1 - torch.tanh(torch.abs(distance1-0.16)/(std**2)))*(1 - torch.tanh(torch.abs(distance2-0.16)/(std**2))))
-    angle = torch.sqrt((1 - torch.tanh(torch.abs(angle1/(std*2))))*(1 - torch.tanh(torch.abs(angle2/(std*2)))))
-    # print(asset.data.joint_names)
-    # print(asset.data.joint_pos)
-    # print(object.data.root_pos_w)
-    #z
-    # print("1z:",(quat_error_magnitude(des_quat_b-curr_quat_w1,torch.tensor([0.7073883,0, 0,-0.7068252],device="cuda:0").repeat(env.num_envs,1))))
-    # print("2z:",(quat_error_magnitude(des_quat_b-curr_quat_w2,torch.tensor([0.7073883,0, 0,0.7068252],device="cuda:0").repeat(env.num_envs,1))))
-    # print("1z:",(quat_error_magnitude(des_quat_b-curr_quat_w1,torch.tensor([0.7073883,-0.7068252, 0,0],device="cuda:0").repeat(env.num_envs,1))))
-    # print("2z:",(quat_error_magnitude(des_quat_b-curr_quat_w2,torch.tensor([0.7073883,0.7068252, 0,0],device="cuda:0").repeat(env.num_envs,1))))
-    # print("1z:",(quat_error_magnitude(des_quat_b-curr_quat_w1,torch.tensor([0.7073883,0,-0.7068252,0],device="cuda:0").repeat(env.num_envs,1))))
-    # print("2z:",(quat_error_magnitude(des_quat_b-curr_quat_w2,torch.tensor([0.7073883,0, 0.7068252,0],device="cuda:0").repeat(env.num_envs,1))))
-    
-    # print("distance1:",distance1)
-    # print("distance2:",distance2)
-
-    # print("angle1:",math_utils.wrap_to_pi(torch.tensor(euler_xyz_from_quat(des_quat_b))))
-    # print("angle2:",math_utils.wrap_to_pi(torch.tensor(euler_xyz_from_quat(curr_quat_w1))))
-    # print("angle3:",math_utils.wrap_to_pi(torch.tensor(euler_xyz_from_quat(curr_quat_w2))))
-
-    print()
-
-    #tuple
-    # print(euler_xyz_from_quat(quat_mul(des_quat_b-curr_quat_w1,quat_conjugate(torch.tensor([0, 0, 0.7068252, 0.7073883],device="cuda:0").repeat(env.num_envs,1)))))
-    # print(euler_xyz_from_quat(quat_mul(des_quat_b-curr_quat_w2,quat_conjugate(torch.tensor([0, 0,-0.7068252, 0.7073883],device="cuda:0").repeat(env.num_envs,1)))))
-
-    # print(math_utils.wrap_to_pi(torch.tensor(euler_xyz_from_quat(des_quat_b)-(euler_xyz_from_quat(curr_quat_w1)+ torch.tensor((1.0, 0.0, 0.0))))))
-
-    # print("angle:",angle)
-    # print("angle1:",angle1)
-    # print("angle2:",angle2)
-
-    # print("box:",euler_xyz_from_quat(des_quat_b))
-    # print("1:",euler_xyz_from_quat(curr_quat_w1))
-    # print("2:",euler_xyz_from_quat(curr_quat_w2))
-    # print("box:",(des_quat_b))
-    # print("dist:",dist)
-    # print("angle:",0.5*angle)
-    # print(dist+0.1*angle)
-    return dist#+0.2*angle
+    return dist
 
 
 def object_goal_distance(
