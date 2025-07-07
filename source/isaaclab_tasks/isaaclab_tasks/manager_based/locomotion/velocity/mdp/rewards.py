@@ -221,7 +221,7 @@ def object_ee_distance(
     """Reward the agent for reaching the object using tanh-kernel."""
     # extract the used quantities (to enable type-hinting)
     object: RigidObject = env.scene[object_cfg.name]
-    asset = env.scene[asset_cfg.name]
+    asset: Articulation = env.scene[asset_cfg.name]
 
     des_pos_b = object.data.root_pos_w
     curr_pos_w1 = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]  # type: ignore
@@ -239,7 +239,9 @@ def object_ee_distance(
     # result2 = (1 - torch.tanh(torch.abs(angle2)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.18)/(std**2)))
     dist = torch.sqrt((1 - torch.tanh(torch.abs(distance1-0.16)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.16)/(std))))+5*torch.sqrt((1 - torch.tanh(torch.abs(distance1-0.16)/(std**2)))*(1 - torch.tanh(torch.abs(distance2-0.16)/(std**2))))
     angle = torch.sqrt((1 - torch.tanh(torch.abs(angle1/(std*2))))*(1 - torch.tanh(torch.abs(angle2/(std*2)))))
-
+    # print(asset.data.joint_names)
+    # print(asset.data.joint_pos)
+    # print(object.data.root_pos_w)
     #z
     # print("1z:",(quat_error_magnitude(des_quat_b-curr_quat_w1,torch.tensor([0.7073883,0, 0,-0.7068252],device="cuda:0").repeat(env.num_envs,1))))
     # print("2z:",(quat_error_magnitude(des_quat_b-curr_quat_w2,torch.tensor([0.7073883,0, 0,0.7068252],device="cuda:0").repeat(env.num_envs,1))))
@@ -255,7 +257,7 @@ def object_ee_distance(
     # print("angle2:",math_utils.wrap_to_pi(torch.tensor(euler_xyz_from_quat(curr_quat_w1))))
     # print("angle3:",math_utils.wrap_to_pi(torch.tensor(euler_xyz_from_quat(curr_quat_w2))))
 
-
+    print()
 
     #tuple
     # print(euler_xyz_from_quat(quat_mul(des_quat_b-curr_quat_w1,quat_conjugate(torch.tensor([0, 0, 0.7068252, 0.7073883],device="cuda:0").repeat(env.num_envs,1)))))
