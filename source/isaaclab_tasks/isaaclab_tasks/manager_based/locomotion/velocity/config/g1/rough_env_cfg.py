@@ -33,7 +33,7 @@ class G1Rewards(RewardsCfg):
     )
     foot_clearance = RewTerm(
         func=mdp.foot_clearance_reward,
-        weight=0.5,
+        weight=2.0,
         params={
             "std": 0.05,
             "target_height": 0.08,
@@ -79,7 +79,7 @@ class G1Rewards(RewardsCfg):
             )
         }, 
     )
-    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=1.0)
+    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=5.0)
     object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
                                weight=1.0,
                                params={"std": 0.3,
