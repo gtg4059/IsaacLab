@@ -107,7 +107,7 @@ def main():
             num_envs = env.num_envs
             num_joints = robot.num_joints
             efforts = 0.02*torch.ones((num_envs, num_joints), device=env.device)
-            efforts[:, joint_idx] = 0.2
+            efforts[:, joint_idx] = 0.02
             robot.set_joint_effort_target(efforts)
             robot.write_data_to_sim()
             action = policy3(obs["policy"])
