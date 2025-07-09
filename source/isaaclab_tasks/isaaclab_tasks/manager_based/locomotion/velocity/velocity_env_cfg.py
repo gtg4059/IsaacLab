@@ -103,7 +103,7 @@ class MySceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Table",
         init_state=RigidObjectCfg.InitialStateCfg(pos=[0.36, 0, 0.60], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
-            usd_path="/home/robotics/Downloads/DexCube.usd", scale=(4.0, 4.0, 1.00),
+            usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd", scale=(4.0, 4.0, 1.00),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 kinematic_enabled=True,
