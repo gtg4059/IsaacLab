@@ -538,7 +538,7 @@ class RewardsCfg:
     # -- optional penalties
     base_height = RewTerm(func=mdp.base_height_l2, weight=-10.0, params={"target_height": 0.78})
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
-    is_alive = RewTerm(func=mdp.is_alive,weight=-1.0)
+    is_alive = RewTerm(func=mdp.is_alive,weight=5.0)
 
 
 @configclass
