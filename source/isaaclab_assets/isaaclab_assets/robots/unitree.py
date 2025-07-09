@@ -206,7 +206,7 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_shoulder_pitch_joint": 25.0,
                 ".*_shoulder_roll_joint": 25.0,
                 ".*_shoulder_yaw_joint": 25.0,
-                ".*_elbow_joint": 50.0,
+                ".*_elbow_joint": 25.0,
                 ".*_wrist_roll_joint": 25.0,
                 ".*_wrist_pitch_joint": 5.0,
                 ".*_wrist_yaw_joint": 5.0,
@@ -226,7 +226,7 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_shoulder_yaw_joint": 50.0,
                 ".*_elbow_joint": 50.0,
                 ".*_wrist_roll_joint": 30.0,
-                ".*_wrist_pitch_joint": 60.0,
+                ".*_wrist_pitch_joint": 30.0,
                 ".*_wrist_yaw_joint": 30.0,
             },
             damping={

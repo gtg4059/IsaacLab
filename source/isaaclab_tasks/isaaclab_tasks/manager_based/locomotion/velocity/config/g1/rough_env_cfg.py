@@ -25,11 +25,11 @@ class G1Rewards(RewardsCfg):
 
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=2.0,
+        weight=4.0,
         params={"command_name": "base_velocity", "std": 0.5},
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "base_velocity", "std": 0.5}
+        func=mdp.track_ang_vel_z_world_exp, weight=4.0, params={"command_name": "base_velocity", "std": 0.5}
     )
     foot_clearance = RewTerm(
         func=mdp.foot_clearance_reward,
@@ -79,7 +79,7 @@ class G1Rewards(RewardsCfg):
             )
         }, 
     )
-    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=5.0)
+    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=-1.0)
     object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
                                weight=1.0,
                                params={"std": 0.3,

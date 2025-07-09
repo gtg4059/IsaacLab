@@ -287,7 +287,7 @@ def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = Sc
     """
     # extract the used quantities (to enable type-hinting)
     object: RigidObject = env.scene[object_cfg.name]
-    return -torch.sum(torch.square(object.data.projected_gravity_b[:, :2]), dim=1)#*torch.where(object.data.root_pos_w[:, 2] > 0.83, 1.0, 0.0)
+    return torch.sum(torch.square(object.data.projected_gravity_b[:, :2]), dim=1)#*torch.where(object.data.root_pos_w[:, 2] > 0.83, 1.0, 0.0)
 
 def object_state_in_robot_root_frame(
     env: ManagerBasedRLEnv,
