@@ -98,6 +98,10 @@ class MySceneCfg(InteractiveSceneCfg):
         ),
     )
 
+    obj_init = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/Object_init",
+    )
+
     # mount
     table = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Table",
@@ -499,7 +503,7 @@ class EventCfg:
     )
 
     reset_base = EventTerm(
-        func=mdp.reset_root_state_uniform,
+        func=mdp.reset_root_state_uniform_init,
         mode="reset",
         params={
             "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
