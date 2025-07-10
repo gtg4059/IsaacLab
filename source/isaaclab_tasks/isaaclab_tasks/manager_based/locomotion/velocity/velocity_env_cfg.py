@@ -100,6 +100,7 @@ class MySceneCfg(InteractiveSceneCfg):
 
     obj_init = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Object_init",
+        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.36, 0, 0.70], rot=[1, 0, 0, 0]),
     )
 
     # mount
