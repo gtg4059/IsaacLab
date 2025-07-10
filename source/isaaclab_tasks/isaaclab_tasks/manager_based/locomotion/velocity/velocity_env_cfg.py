@@ -385,17 +385,17 @@ class EventCfg:
         },
     )
 
-    # robot_joint_stiffness_and_damping = EventTerm(
-    #     func=mdp.randomize_actuator_gains,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-    #         "stiffness_distribution_params": (0.75, 1.5),
-    #         "damping_distribution_params": (0.3, 3.0),
-    #         "operation": "scale",
-    #         "distribution": "log_uniform",
-    #     },
-    # )
+    robot_joint_stiffness_and_damping = EventTerm(
+        func=mdp.randomize_actuator_gains,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "stiffness_distribution_params": (0.75, 1.5),
+            "damping_distribution_params": (0.3, 3.0),
+            "operation": "scale",
+            "distribution": "log_uniform",
+        },
+    )
 
     add_base_mass = EventTerm(
         func=mdp.randomize_rigid_body_mass,
