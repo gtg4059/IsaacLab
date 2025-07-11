@@ -295,7 +295,7 @@ def object_goal_distance(
     object_pos_b, object_quat_b = subtract_frame_transforms(
         robot.data.root_state_w[:, :3], robot.data.root_state_w[:, 3:7], object.data.root_pos_w[:, :3]
     )
-    distance = torch.norm(object_pos_b[:, :2],dim=1)
+    distance = torch.norm(torch.abs(object_pos_b[:, :3]-torch.tensor([0.25, 0.0, 0.08],device="cuda:0").repeat(env.num_envs,1)),dim=1)
     # roll = math_utils.wrap_to_pi(euler_xyz_from_quat(object.data.root_quat_w)[0])
     # pitch = math_utils.wrap_to_pi(euler_xyz_from_quat(object.data.root_quat_w)[1])
     # yaw = math_utils.wrap_to_pi(euler_xyz_from_quat(object.data.root_quat_w)[2])
@@ -304,6 +304,7 @@ def object_goal_distance(
     # print((object.data.root_pos_w-robot.data.root_pos_w))
     # print("distance:",((1 - torch.tanh(torch.abs(distance)/(std)))+5*(1 - torch.tanh(torch.abs(distance)/(std**2)))))
     # print("angle:",roll,pitch,yaw)
+    # print(object_pos_b[:, :3]-torch.tensor([0.25, 0.0, 0.08],device="cuda:0").repeat(env.num_envs,1))
     return ((1 - torch.tanh(torch.abs(distance)/std)))*torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
 
 def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = SceneEntityCfg("object")) -> torch.Tensor:
