@@ -112,11 +112,13 @@ class MySceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/object_init",
         init_state=RigidObjectCfg.InitialStateCfg(pos=[0.36, 0, 0.70], rot=[1, 0, 0, 0]),
         spawn=sim_utils.CuboidCfg(
-            size=(0.01, 0.01, 0.01),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(max_depenetration_velocity=1.0, disable_gravity=True),
-            mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
-            physics_material=sim_utils.RigidBodyMaterialCfg(),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.0, 0.0)),
+            size=(0.1,0.1,0.1),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(max_depenetration_velocity=1.0, 
+                                                         disable_gravity=True,
+                                                         kinematic_enabled=True),
+            # mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+            # physics_material=sim_utils.RigidBodyMaterialCfg(),
+            # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.0, 0.0)),
         ),
     )
 
@@ -521,7 +523,7 @@ class EventCfg:
     )
 
     reset_base = EventTerm(
-        func=mdp.reset_root_state_uniform_init,
+        func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
             "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
@@ -581,11 +583,11 @@ class EventCfg:
     # )
 
     reset_box_position = EventTerm(
-        func=mdp.reset_root_state_uniform,
+        func=mdp.reset_root_state_uniform_init,
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "pose_range": {"x": (-0.05, 0.05), "y": (-0.03, 0.03), "yaw": (-0.0, 0.0)},
+            "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.02, 0.02)},
             "velocity_range": {
                 "x": (-0.0, 0.0),
                 "y": (-0.0, 0.0),
