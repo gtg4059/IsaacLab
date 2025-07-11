@@ -686,7 +686,7 @@ def reset_root_state_uniform_init(
     pose_range: dict[str, tuple[float, float]],
     velocity_range: dict[str, tuple[float, float]],
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-    init_cfg: SceneEntityCfg = SceneEntityCfg("obj_init"),
+    init_cfg: SceneEntityCfg = SceneEntityCfg("object_init"),
 ):
     """Reset the asset root state to a random position and velocity uniformly within the given ranges.
 
@@ -703,7 +703,7 @@ def reset_root_state_uniform_init(
     """
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject | Articulation = env.scene[asset_cfg.name]
-    init: AssetBase = env.scene[init_cfg.name]
+    init: RigidObject | Articulation = env.scene[init_cfg.name]
     # get default root state
     root_states = asset.data.default_root_state[env_ids].clone()
 
@@ -726,7 +726,6 @@ def reset_root_state_uniform_init(
     asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
     asset.write_root_velocity_to_sim(velocities, env_ids=env_ids)
     init.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
-    init.write_root_velocity_to_sim(velocities, env_ids=env_ids)
 
 def reset_root_state_with_random_orientation(
     env: ManagerBasedEnv,

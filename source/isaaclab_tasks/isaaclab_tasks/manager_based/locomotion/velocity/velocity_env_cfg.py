@@ -98,9 +98,26 @@ class MySceneCfg(InteractiveSceneCfg):
         ),
     )
 
-    obj_init = AssetBaseCfg(
-        prim_path="{ENV_REGEX_NS}/Object_init",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.36, 0, 0.70], rot=[1, 0, 0, 0]),
+    # obj_init = AssetBaseCfg(
+    #     prim_path="{ENV_REGEX_NS}/Object_init",
+    #     init_state=AssetBaseCfg.InitialStateCfg(pos=[0.36, 0, 0.70], rot=[1, 0, 0, 0]),
+    #     spawn=sim_utils.DomeLightCfg(
+    #         intensity=0.0,
+    #         texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+    #     ),
+    # )
+
+    # add cube
+    object_init: RigidObjectCfg = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/object_init",
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.36, 0, 0.70], rot=[1, 0, 0, 0]),
+        spawn=sim_utils.CuboidCfg(
+            size=(0.01, 0.01, 0.01),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(max_depenetration_velocity=1.0, disable_gravity=True),
+            mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+            physics_material=sim_utils.RigidBodyMaterialCfg(),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.0, 0.0)),
+        ),
     )
 
     # mount
@@ -301,7 +318,7 @@ class ObservationsCfg:
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
         # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
-        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
+        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"object_cfg": SceneEntityCfg("object_init")})
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -396,7 +413,7 @@ class ObservationsCfg:
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
         # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
-        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
+        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"object_cfg": SceneEntityCfg("object_init")})
 
         def __post_init__(self):
             self.enable_corruption = True
