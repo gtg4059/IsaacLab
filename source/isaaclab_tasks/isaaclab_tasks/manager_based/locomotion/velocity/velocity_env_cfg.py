@@ -253,8 +253,6 @@ class ObservationsCfg:
                                     )},
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
-        # sin_phase = ObsTerm(func=mdp.sin_phase)
-        # cos_phase = ObsTerm(func=mdp.cos_phase)
         #########################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, 
                                     params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))
@@ -346,21 +344,9 @@ class ObservationsCfg:
                                     )},
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
-        # sin_phase = ObsTerm(func=mdp.sin_phase)
-        # cos_phase = ObsTerm(func=mdp.cos_phase)
-        # height_scan = ObsTerm(
-        #     func=mdp.height_scan,
-        #     params={"sensor_cfg": SceneEntityCfg("height_scanner")},
-        #     noise=Unoise(n_min=-0.1, n_max=0.1),
-        #     clip=(-1.0, 1.0),
-        # )  asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
         #########################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, 
                                     params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))
-
-        def __post_init__(self):
-            self.enable_corruption = True
-            self.concatenate_terms = True
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
