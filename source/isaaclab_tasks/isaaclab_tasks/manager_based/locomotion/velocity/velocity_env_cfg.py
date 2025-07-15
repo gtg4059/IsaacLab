@@ -127,7 +127,7 @@ class MySceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Table",
         init_state=RigidObjectCfg.InitialStateCfg(pos=[0.36, 0, 0.60], rot=[1, 0, 0, 0]),
         spawn=sim_utils.UsdFileCfg(
-            usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd", scale=(4.0, 4.0, 1.00),
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", scale=(4.0, 4.0, 1.00),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 kinematic_enabled=True,
@@ -138,6 +138,7 @@ class MySceneCfg(InteractiveSceneCfg):
                 max_depenetration_velocity=5.0,
                 disable_gravity=True,
             ),
+            activate_contact_sensors=True,
         ),
     )
 
@@ -155,13 +156,13 @@ class MySceneCfg(InteractiveSceneCfg):
     #     offset=TiledCameraCfg.OffsetCfg(pos=(0.0, 0.0, 0.0), rot=(0.5, -0.5, 0.5, -0.5), convention="ros"),
     # )
 
-    # contact_table = ContactSensorCfg(
-    #         prim_path="{ENV_REGEX_NS}/Object",
-    #         debug_vis=False,
-    #         update_period=0.0,
-    #         filter_prim_paths_expr=["{ENV_REGEX_NS}/Table"],
-    #         track_air_time=True,
-    #     )
+    contact_table = ContactSensorCfg(
+            prim_path="{ENV_REGEX_NS}/Table",
+            debug_vis=False,
+            history_length=3,
+            update_period=0.0,
+            track_air_time=True,
+        )
 
 
 ##

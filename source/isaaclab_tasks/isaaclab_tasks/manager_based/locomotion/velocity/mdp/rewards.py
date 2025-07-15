@@ -205,12 +205,12 @@ def table_not_contacted(
     """Reward the agent for lifting the object above the minimal height."""
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
     # compute the reward
-    # print(contact_sensor.data.force_matrix_w[:, 0,0])
+    # print(contact_sensor.data.net_forces_w.shape)
     # return torch.norm(contact_sensor.data.force_matrix_w[:, 0,0],dim=1) < 0.01
-    contact_force = torch.norm(contact_sensor.data.force_matrix_w[:, 0,0],dim=1)#N,B,M,3
-    discontact = torch.norm(contact_sensor.data.force_matrix_w[:, 0,0],dim=1) < 1e-8
+    # contact_force = torch.norm(contact_sensor.data.force_matrix_w[:, 0,0],dim=1)#N,B,M,3
+    discontact = torch.norm(contact_sensor.data.net_forces_w[:,0,:],dim=1) < 1e-8
     # print(0.00002*contact_force**2)
-    return discontact.int()-0.00005*contact_force**2
+    return discontact.int()#-0.00005*contact_force**2
 
 def object_ee_distance(
     env: ManagerBasedRLEnv,
