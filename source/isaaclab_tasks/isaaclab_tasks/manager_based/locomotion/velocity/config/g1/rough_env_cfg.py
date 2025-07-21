@@ -34,7 +34,7 @@ class G1Rewards(RewardsCfg):
             "std": 0.3,
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
         }, 
-        weight=1.0
+        weight=2.0
     )
  
     object_contact = RewTerm(
@@ -60,7 +60,7 @@ class G1Rewards(RewardsCfg):
 
     table_contact = RewTerm(
         func=mdp.table_not_contacted, 
-        weight=6.0,
+        weight=30.0,
         params={"sensor_cfg": SceneEntityCfg("contact_table")
         }, 
     )
@@ -190,7 +190,7 @@ class G1Rewards(RewardsCfg):
 
     joint_deviation_arms2 = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-1.0,
+        weight=-0.5,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -246,10 +246,10 @@ class G1Rewards(RewardsCfg):
         },
     )
 
-    # delete_table = RewTerm(
-    #     func=mdp.delete_table,
-    #     weight=-0.00001,
-    # )
+    delete_table = RewTerm(
+        func=mdp.delete_table,
+        weight=-0.00001,
+    )
     
 
 
