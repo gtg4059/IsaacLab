@@ -124,11 +124,27 @@ class G1Rewards(RewardsCfg):
         },
     )
 
-    motion_equality_wrist = RewTerm(
+    motion_equality_wrist1 = RewTerm(
+        func=mdp.motion_equality_pros,
+        weight=3.0,
+        params={
+            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_roll_joint"),
+        },
+    )
+
+    motion_equality_wrist2 = RewTerm(
         func=mdp.motion_equality_pros,
         weight=3.0,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_pitch_joint"),
+        },
+    )
+
+    motion_equality_wrist3 = RewTerm(
+        func=mdp.motion_equality_pros,
+        weight=3.0,
+        params={
+            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_yaw_joint"),
         },
     )
 
