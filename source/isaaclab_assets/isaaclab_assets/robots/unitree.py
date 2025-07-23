@@ -98,6 +98,8 @@ G1_DEX_FIX = ArticulationCfg(
             'right_elbow_joint': 0.3,
             'left_shoulder_pitch_joint': 0.1,
             'right_shoulder_pitch_joint': 0.1,
+            "right_wrist_roll_joint": 0.3,
+            "left_wrist_roll_joint": -0.3,
         },
         joint_vel={".*": 0.0},
     ),
