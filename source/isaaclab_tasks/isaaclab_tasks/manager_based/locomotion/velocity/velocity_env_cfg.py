@@ -444,16 +444,29 @@ class EventCfg:
         },
     )
 
-    physics_material_hand = EventTerm(
+    physics_material_palm = EventTerm(
         func=mdp.randomize_rigid_body_material,
         mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link",
+            "asset_cfg": SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
+            "static_friction_range": (1.25, 1.25),
+            "dynamic_friction_range": (1.25, 1.25),
+            "restitution_range": (0.0, 0.0),
+            "num_buckets": 64,
+            "make_consistent": True,
+        },
+    )
+
+    physics_material_finger = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=[
                                                             "R_.*",
                                                             "L_.*",
                                                             ]),
-            "static_friction_range": (1.25, 1.25),
-            "dynamic_friction_range": (1.25, 1.25),
+            "static_friction_range": (0.1, 1.25),
+            "dynamic_friction_range": (0.1, 1.25),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
             "make_consistent": True,
@@ -465,8 +478,8 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "static_friction_range": (1.25, 1.25),
-            "dynamic_friction_range": (1.25, 1.25),
+            "static_friction_range": (0.1, 1.25),
+            "dynamic_friction_range": (0.1, 1.25),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
             "make_consistent": True,

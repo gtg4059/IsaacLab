@@ -39,7 +39,7 @@ class G1Rewards(RewardsCfg):
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=1.0,
+        weight=3.0,
         params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
                                                               [
                                                                   "left_wrist_yaw_link",
@@ -77,7 +77,7 @@ class G1Rewards(RewardsCfg):
 
     object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
                                weight=8.0,
-                               params={"std": 0.3,
+                               params={"std": 0.5,
                                        "minimal_height": 0.72,
         }, 
     )
@@ -141,7 +141,7 @@ class G1Rewards(RewardsCfg):
     )
 
     motion_equality_wrist3 = RewTerm(
-        func=mdp.motion_equality_pros,
+        func=mdp.motion_equality_cons,
         weight=1.0,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_yaw_joint"),
