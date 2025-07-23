@@ -76,8 +76,8 @@ class G1Rewards(RewardsCfg):
     # )
 
     object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
-                               weight=8.0,
-                               params={"std": 0.5,
+                               weight=4.0,
+                               params={"std": 0.3,
                                        "minimal_height": 0.72,
         }, 
     )
@@ -125,7 +125,7 @@ class G1Rewards(RewardsCfg):
     )
 
     motion_equality_wrist1 = RewTerm(
-        func=mdp.motion_equality_pros,
+        func=mdp.motion_equality_cons,
         weight=1.0,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_roll_joint"),
@@ -192,7 +192,7 @@ class G1Rewards(RewardsCfg):
             "asset_cfg": SceneEntityCfg(
                 "robot",
                 joint_names=[
-                    ".*_shoulder_roll_joint",
+                    # ".*_shoulder_roll_joint",
                     # ".*_shoulder_pitch_joint",
                     # ".*_shoulder_yaw_joint",
                     # ".*_elbow_joint",
@@ -293,7 +293,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.events.reset_robot_joints.params["position_range"] = (1.0, 1.0)
         self.events.base_external_force_torque.params["asset_cfg"].body_names = ["torso_link"]
         self.events.reset_base.params = {
-            "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
+            "pose_range": {"x": (-0.02, 0.02), "y": (-0.02, 0.02), "yaw": (-0.0, 0.0)},
             "velocity_range": {
                 "x": (0.0, 0.0),
                 "y": (0.0, 0.0),
