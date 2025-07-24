@@ -32,7 +32,8 @@ class G1Rewards(RewardsCfg):
         func=mdp.object_ee_distance, 
         params={
             "std": 0.3,
-            "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
+            # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
+            "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_pitch_link"]),
         }, 
         weight=2.0
     )
@@ -44,6 +45,8 @@ class G1Rewards(RewardsCfg):
                                                               [
                                                                   "left_wrist_yaw_link",
                                                                   "right_wrist_yaw_link",
+                                                                  "left_wrist_pitch_link",
+                                                                  "right_wrist_pitch_link",
                                                                 #   "L_thumb_proximal",
                                                                 #   "R_thumb_proximal",
                                                                 #   ".*_thumb_intermediate",

@@ -275,7 +275,7 @@ def object_ee_distance(
     # print("dist:",dist)
     # print("angle:",0.5*angle)
     # print(dist+0.1*angle)
-    return dist+0.3*angle
+    return dist#+0.3*angle
 
 
 def object_goal_distance(
