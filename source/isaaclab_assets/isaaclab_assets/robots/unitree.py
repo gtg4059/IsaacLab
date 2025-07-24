@@ -217,35 +217,35 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_wrist_.*": 0.01,
             },
         ),
-        # "hands": IdealPDActuatorCfg(
-        #     joint_names_expr=[
-        #         # '.*_thumb_proximal_yaw_joint',
-        #         # '.*_thumb_proximal_pitch_joint',
-        #         # '.*_proximal_joint'
-        #         "R_.*",
-        #         "L_.*",
-        #     ],
-        #     effort_limit=1,
-        #     velocity_limit=0.5,
-        #     stiffness=10.0,
-        #     damping=0.5,
-        #     armature={
-        #         "R_.*": 0.001,
-        #         "L_.*": 0.001,
-        #     },
-        # ),
-        "finger": IdealPDActuatorCfg(
+        "hands": IdealPDActuatorCfg(
             joint_names_expr=[
-                '.*_proximal_joint'
+                # '.*_thumb_proximal_yaw_joint',
+                # '.*_thumb_proximal_pitch_joint',
+                # '.*_proximal_joint'
+                "R_.*",
+                "L_.*",
             ],
             effort_limit=1,
             velocity_limit=0.5,
-            stiffness=0.0,
-            damping=0.0,
+            stiffness=10.0,
+            damping=0.5,
             armature={
-                '.*_proximal_joint': 0.001,
+                "R_.*": 0.001,
+                "L_.*": 0.001,
             },
         ),
+        # "finger": IdealPDActuatorCfg(
+        #     joint_names_expr=[
+        #         '.*_proximal_joint'
+        #     ],
+        #     effort_limit=1,
+        #     velocity_limit=0.5,
+        #     stiffness=0.0,
+        #     damping=0.0,
+        #     armature={
+        #         '.*_proximal_joint': 0.001,
+        #     },
+        # ),
     },
 )
 

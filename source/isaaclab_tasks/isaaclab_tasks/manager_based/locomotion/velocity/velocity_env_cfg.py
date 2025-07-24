@@ -462,9 +462,10 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=[
-                                                            "R_.*",
-                                                            "L_.*",
-                                                            ]),
+                ".*_wrist_yaw_link",
+                ".*_wrist_pitch_link",
+                "R_.*","L_.*",
+            ]),
             "static_friction_range": (0.3, 1.25),
             "dynamic_friction_range": (0.3, 1.25),
             "restitution_range": (0.0, 0.0),
