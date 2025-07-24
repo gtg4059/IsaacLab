@@ -43,8 +43,8 @@ class G1Rewards(RewardsCfg):
         weight=3.0,
         params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
                                                               [
-                                                                  "left_wrist_yaw_link",
-                                                                  "right_wrist_yaw_link",
+                                                                #   "left_wrist_yaw_link",
+                                                                #   "right_wrist_yaw_link",
                                                                   "left_wrist_pitch_link",
                                                                   "right_wrist_pitch_link",
                                                                 #   "L_thumb_proximal",
