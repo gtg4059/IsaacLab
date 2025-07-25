@@ -648,11 +648,11 @@ class TerminationsCfg:
     # )
     base_contact2 = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 40.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 20.0},
     )
     base_contact3 = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 3.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 20.0},
     )
     # base_contact4 = DoneTerm(
     #     func=mdp.illegal_contact,

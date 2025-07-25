@@ -179,11 +179,11 @@ class G1Rewards(RewardsCfg):
         weight=-5.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
                     ".*_hip_roll_joint",
-                    ".*_hip_pitch_joint",
+                    # ".*_hip_pitch_joint",
                     ".*_hip_yaw_joint",
-                    ".*_knee_joint",
+                    # ".*_knee_joint",
                     ".*_ankle_roll_joint",
-                    ".*_ankle_pitch_joint",
+                    # ".*_ankle_pitch_joint",
                 ]
             )
         },
@@ -231,7 +231,7 @@ class G1Rewards(RewardsCfg):
         weight=-10.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
             "waist_roll_joint",
-            "waist_pitch_joint",
+            # "waist_pitch_joint",
             "waist_yaw_joint",
         ])},
     )
