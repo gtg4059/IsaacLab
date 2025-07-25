@@ -235,6 +235,24 @@ class G1Rewards(RewardsCfg):
             "waist_yaw_joint",
         ])},
     )
+
+    joint_deviation_elbow = RewTerm(
+        func=mdp.joint_pos,
+        weight=-5.0,
+        params={
+            "target": -0.8,
+            "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_elbow_joint"])
+        },
+    )
+
+    joint_deviation_wrist_pitch = RewTerm(
+        func=mdp.joint_pos,
+        weight=-5.0,
+        params={
+            "target": 1.0,
+            "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_wrist_pitch_joint"])
+        },
+    )
     
     # set_robot_joints_targets = RewTerm(
     #     func=mdp.reset_joints_targets,
