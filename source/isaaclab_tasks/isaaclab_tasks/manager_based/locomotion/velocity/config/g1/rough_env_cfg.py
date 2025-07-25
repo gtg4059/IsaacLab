@@ -199,9 +199,9 @@ class G1Rewards(RewardsCfg):
                     ".*_shoulder_pitch_joint",
                     # ".*_shoulder_yaw_joint",
                     # ".*_elbow_joint",
-                    ".*_wrist_yaw_joint",
+                    # ".*_wrist_yaw_joint",
                     # ".*_wrist_pitch_joint",
-                    ".*_wrist_roll_joint",
+                    # ".*_wrist_roll_joint",
                 ],
             )
         },
