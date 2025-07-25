@@ -24,7 +24,7 @@ class G1Rewards(RewardsCfg):
     base_position_l2 = RewTerm(func=mdp.base_position_l2, weight=-200.0)
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-200.0, params={
-            "target_height": 0.78, 
+            "target_height": 0.74, 
         }
     )
     # pickup reward
@@ -165,7 +165,7 @@ class G1Rewards(RewardsCfg):
     dof_pos_limits = RewTerm(
         func=mdp.joint_pos_limits,
         weight=-1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"])},
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_ankle_pitch_joint", ".*_knee_joint",".*_ankle_roll_joint"])},
     )
     # Penalize deviation from default of the joints that are not essential for locomotion
     # joint_deviation_hip = RewTerm(
@@ -272,7 +272,7 @@ class G1Rewards(RewardsCfg):
     #         )
     #     },
     # )
-    
+
     set_robot_joints_forces = RewTerm(
         func=mdp.reset_joints_forces,
         weight=-0.00001,
