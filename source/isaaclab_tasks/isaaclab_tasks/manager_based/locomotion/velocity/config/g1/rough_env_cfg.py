@@ -240,7 +240,7 @@ class G1Rewards(RewardsCfg):
         func=mdp.joint_pos,
         weight=-2.0,
         params={
-            "target": -0.8,
+            "target": -1.0,
             "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_elbow_joint"])
         },
     )
@@ -249,7 +249,7 @@ class G1Rewards(RewardsCfg):
         func=mdp.joint_pos,
         weight=-2.0,
         params={
-            "target": 1.0,
+            "target": 1.5,
             "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_wrist_pitch_joint"])
         },
     )
