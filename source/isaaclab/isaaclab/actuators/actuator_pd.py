@@ -17,6 +17,7 @@ from .actuator_base import ActuatorBase
 if TYPE_CHECKING:
     from .actuator_cfg import (
         DCMotorCfg,
+        JointFrictionPDActuatorCfg,
         DelayedPDActuatorCfg,
         IdealPDActuatorCfg,
         ImplicitActuatorCfg,
@@ -360,4 +361,80 @@ class RemotizedPDActuator(DelayedPDActuator):
             control_action.joint_efforts, min=-abs_torque_limits, max=abs_torque_limits
         )
         self.applied_effort = control_action.joint_efforts
+        return control_action
+
+class JointFrictionPDActuator(ActuatorBase):
+    r"""Ideal torque-controlled actuator model with a simple saturation model.
+
+    It employs the following model for computing torques for the actuated joint :math:`j`:
+
+    .. math::
+
+        I_j \ddot{\theta}_j(t)+B_j \dot{\theta}_j(t)=\tau_j(t)+f_j(t)
+
+    """
+    cfg: JointFrictionPDActuatorCfg
+    """The configuration for the actuator model."""
+
+    # def __init__(
+    #     self,
+    #     cfg: IdealPDActuatorCfg,
+    #     joint_names: list[str],
+    #     joint_ids: Sequence[int],
+    #     num_envs: int,
+    #     device: str,
+    #     stiffness: torch.Tensor | float = 0.0,
+    #     damping: torch.Tensor | float = 0.0,
+    #     armature: torch.Tensor | float = 0.0,
+    #     friction: torch.Tensor | float = 0.0,
+    #     joint_friction: torch.Tensor | float = 0.0,
+    # ):
+    #     super().__init__(
+    #         cfg, joint_names, joint_ids, num_envs, device, stiffness, damping, armature, friction, torch.inf,
+    #     )
+    #     cfg.Joint_friction = torch.empty_like(self.computed_effort).uniform_(*self.cfg.Joint_friction)
+    #     # remove effort and velocity box constraints from the base class
+    #     cfg.effort_limit = torch.inf
+    #     cfg.velocity_limit = torch.inf
+    #     # call the base method and set default effort_limit and velocity_limit to inf
+        
+    #     self._joint_parameter_lookup = torch.tensor(cfg.joint_parameter_lookup, device=device)
+    #     # define remotized joint torque limit
+    #     self._torque_limit = LinearInterpolation(self.angle_samples, self.max_torque_samples, device=device)
+
+    def __init__(self, cfg: JointFrictionPDActuatorCfg, *args, **kwargs):
+        super().__init__(cfg, *args, **kwargs)
+
+        self._joint_vel = torch.zeros_like(self.computed_effort)
+        # prepare joint friction buffer
+        self._joint_friction = torch.empty_like(self.computed_effort).uniform_(*self.cfg.Joint_friction)
+        # create buffer for zeros effort
+        self._zeros_effort = torch.zeros_like(self.computed_effort)
+        # check that quantities are provided
+        if self.cfg.velocity_limit is None:
+            raise ValueError("The velocity limit must be provided for the DC motor actuator model.")
+        
+
+    """
+    Operations.
+    """
+    def reset(self, env_ids: Sequence[int]):
+        pass
+
+    def compute(
+        self, control_action: ArticulationActions, joint_pos: torch.Tensor, joint_vel: torch.Tensor
+    ) -> ArticulationActions:
+        # compute errors
+        error_pos = control_action.joint_positions - joint_pos
+        error_vel = control_action.joint_velocities - joint_vel
+        # static friction
+        self._joint_friction = torch.where(joint_vel>0,-1*self._joint_friction,self._joint_friction)
+        # calculate the desired joint torques
+        self.computed_effort = self.stiffness * error_pos + self.damping * error_vel + control_action.joint_efforts - self._joint_friction
+        # clip the torques based on the motor limits
+        self.applied_effort = self._clip_effort(self.computed_effort)
+        # set the computed actions back into the control action
+        control_action.joint_efforts = self.applied_effort
+        control_action.joint_positions = None
+        control_action.joint_velocities = None
         return control_action

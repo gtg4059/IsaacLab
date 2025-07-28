@@ -27,6 +27,7 @@ from .actuator_cfg import (
     ActuatorBaseCfg,
     ActuatorNetLSTMCfg,
     ActuatorNetMLPCfg,
+    JointFrictionPDActuatorCfg,
     DCMotorCfg,
     DelayedPDActuatorCfg,
     IdealPDActuatorCfg,
@@ -34,4 +35,4 @@ from .actuator_cfg import (
     RemotizedPDActuatorCfg,
 )
 from .actuator_net import ActuatorNetLSTM, ActuatorNetMLP
-from .actuator_pd import DCMotor, DelayedPDActuator, IdealPDActuator, ImplicitActuator, RemotizedPDActuator
+from .actuator_pd import DCMotor, DelayedPDActuator, IdealPDActuator, ImplicitActuator, RemotizedPDActuator, JointFrictionPDActuator

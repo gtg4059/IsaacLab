@@ -94,6 +94,15 @@ class IdealPDActuatorCfg(ActuatorBaseCfg):
 
     class_type: type = actuator_pd.IdealPDActuator
 
+@configclass
+class JointFrictionPDActuatorCfg(ActuatorBaseCfg):
+    """Configuration for direct control (DC) motor actuator model."""
+
+    class_type: type = actuator_pd.JointFrictionPDActuator
+
+    Joint_friction: tuple[float, float] = MISSING
+    """Peak motor force/torque of the electric DC motor (in N-m)."""
+
 
 @configclass
 class DCMotorCfg(IdealPDActuatorCfg):
