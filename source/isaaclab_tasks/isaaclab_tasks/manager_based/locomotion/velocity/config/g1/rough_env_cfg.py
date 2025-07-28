@@ -24,7 +24,7 @@ class G1Rewards(RewardsCfg):
     base_position_l2 = RewTerm(func=mdp.base_position_l2, weight=-200.0)
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-200.0, params={
-            "target_height": 0.74, 
+            "target_height": 0.76, 
         }
     )
     # pickup reward
@@ -176,7 +176,7 @@ class G1Rewards(RewardsCfg):
     # Penalize deviation from default of the joints that are not essential for Pickup
     joint_deviation_leg = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-5.0,
+        weight=-20.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
                     ".*_hip_roll_joint",
                     # ".*_hip_pitch_joint",
@@ -190,7 +190,7 @@ class G1Rewards(RewardsCfg):
     )
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-10.0,
+        weight=-20.0,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -236,23 +236,23 @@ class G1Rewards(RewardsCfg):
         ])},
     )
 
-    joint_deviation_elbow = RewTerm(
-        func=mdp.joint_pos,
-        weight=-2.0,
-        params={
-            "target": -1.0,
-            "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_elbow_joint"])
-        },
-    )
+    # joint_deviation_elbow = RewTerm(
+    #     func=mdp.joint_pos,
+    #     weight=-2.0,
+    #     params={
+    #         "target": -1.0,
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_elbow_joint"])
+    #     },
+    # )
 
-    joint_deviation_wrist_pitch = RewTerm(
-        func=mdp.joint_pos,
-        weight=-2.0,
-        params={
-            "target": 1.5,
-            "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_wrist_pitch_joint"])
-        },
-    )
+    # joint_deviation_wrist_pitch = RewTerm(
+    #     func=mdp.joint_pos,
+    #     weight=-2.0,
+    #     params={
+    #         "target": 1.5,
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_wrist_pitch_joint"])
+    #     },
+    # )
     
     # set_robot_joints_targets = RewTerm(
     #     func=mdp.reset_joints_targets,
