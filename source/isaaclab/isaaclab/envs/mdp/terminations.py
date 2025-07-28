@@ -82,7 +82,7 @@ def root_height_below_minimum(
     """
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
-    return asset.data.root_pos_w[:, 2] < minimum_height and asset.data.root_pos_w[:, 2] > (minimum_height+0.3)
+    return torch.logical_or(asset.data.root_pos_w[:, 2] < minimum_height,asset.data.root_pos_w[:, 2] > (minimum_height+0.3))
 
 
 """
