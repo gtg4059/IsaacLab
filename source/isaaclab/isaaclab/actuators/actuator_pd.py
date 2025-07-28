@@ -376,32 +376,6 @@ class JointFrictionPDActuator(ActuatorBase):
     cfg: JointFrictionPDActuatorCfg
     """The configuration for the actuator model."""
 
-    # def __init__(
-    #     self,
-    #     cfg: IdealPDActuatorCfg,
-    #     joint_names: list[str],
-    #     joint_ids: Sequence[int],
-    #     num_envs: int,
-    #     device: str,
-    #     stiffness: torch.Tensor | float = 0.0,
-    #     damping: torch.Tensor | float = 0.0,
-    #     armature: torch.Tensor | float = 0.0,
-    #     friction: torch.Tensor | float = 0.0,
-    #     joint_friction: torch.Tensor | float = 0.0,
-    # ):
-    #     super().__init__(
-    #         cfg, joint_names, joint_ids, num_envs, device, stiffness, damping, armature, friction, torch.inf,
-    #     )
-    #     cfg.Joint_friction = torch.empty_like(self.computed_effort).uniform_(*self.cfg.Joint_friction)
-    #     # remove effort and velocity box constraints from the base class
-    #     cfg.effort_limit = torch.inf
-    #     cfg.velocity_limit = torch.inf
-    #     # call the base method and set default effort_limit and velocity_limit to inf
-        
-    #     self._joint_parameter_lookup = torch.tensor(cfg.joint_parameter_lookup, device=device)
-    #     # define remotized joint torque limit
-    #     self._torque_limit = LinearInterpolation(self.angle_samples, self.max_torque_samples, device=device)
-
     def __init__(self, cfg: JointFrictionPDActuatorCfg, *args, **kwargs):
         super().__init__(cfg, *args, **kwargs)
 
