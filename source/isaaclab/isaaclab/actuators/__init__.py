@@ -30,6 +30,7 @@ from .actuator_cfg import (
     DCMotorCfg,
     DelayedPDActuatorCfg,
     IdealPDActuatorCfg,
+    JointFrictionPDActuatorCfg,
     ImplicitActuatorCfg,
     RemotizedPDActuatorCfg,
 )
