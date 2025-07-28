@@ -236,7 +236,7 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_knee_joint": 0.01,
                 "waist_.*": 0.01,
             },
-            Joint_friction=(0.0,0.1)
+            Joint_friction=(0.0,0.06)
         ),
         "feet": JointFrictionPDActuatorCfg(
             effort_limit=50,
@@ -245,7 +245,7 @@ G1_DEX_FIX = ArticulationCfg(
             stiffness=40.0,
             damping=2.0,
             armature=0.01,
-            Joint_friction=(0.0,0.1)
+            Joint_friction=(0.0,0.06)
         ),
         "arms": JointFrictionPDActuatorCfg(
             joint_names_expr=[
@@ -298,7 +298,7 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_elbow_.*": 0.01,
                 ".*_wrist_.*": 0.01,
             },
-            Joint_friction=(0.0,0.1)
+            Joint_friction=(0.0,0.06)
         ),
         # "hands": IdealPDActuatorCfg(
         #     joint_names_expr=[
