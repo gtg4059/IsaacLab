@@ -14,7 +14,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import G1_DEX_FIX, G1_DEX # isort: skip
+from isaaclab_assets import G1_DEX_FIX, G1_DEX, G1_DEX_29 # isort: skip
 
 
 @configclass
@@ -35,7 +35,7 @@ class G1Rewards(RewardsCfg):
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
-        weight=6.0
+        weight=3.0
     )
  
     object_contact = RewTerm(
