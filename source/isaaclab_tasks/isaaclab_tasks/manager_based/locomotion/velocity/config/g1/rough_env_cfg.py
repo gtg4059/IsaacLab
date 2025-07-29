@@ -33,14 +33,14 @@ class G1Rewards(RewardsCfg):
         params={
             "std": 0.3,
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
-            "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_pitch_link"]),
+            "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
-        weight=2.0
+        weight=3.0
     )
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=6.0,
+        weight=3.0,
         params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
                                                               [
                                                                   "left_wrist_yaw_link",
@@ -190,7 +190,7 @@ class G1Rewards(RewardsCfg):
     )
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-20.0,
+        weight=-5.0,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
