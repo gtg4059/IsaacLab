@@ -263,7 +263,7 @@ def object_goal_distance(
     object_pos_b, object_quat_b = subtract_frame_transforms(
         robot.data.root_state_w[:, :3], robot.data.root_state_w[:, 3:7], object.data.root_pos_w[:, :3]
     )
-    distance = torch.norm(torch.abs(object_pos_b[:, :3]-torch.tensor([0.35, 0.0, 0.08],device="cuda:0").repeat(env.num_envs,1)),dim=1)
+    distance = torch.norm(torch.abs(object_pos_b[:, :3]-torch.tensor([0.43, 0.0, 0.1],device="cuda:0").repeat(env.num_envs,1)),dim=1)
     # roll = math_utils.wrap_to_pi(euler_xyz_from_quat(object.data.root_quat_w)[0])
     # pitch = math_utils.wrap_to_pi(euler_xyz_from_quat(object.data.root_quat_w)[1])
     # yaw = math_utils.wrap_to_pi(euler_xyz_from_quat(object.data.root_quat_w)[2])
