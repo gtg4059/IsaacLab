@@ -271,6 +271,8 @@ def object_goal_distance(
     # angle = torch.sqrt(roll**2+pitch**2+yaw**2)
     # print((object.data.root_pos_w-robot.data.root_pos_w))
     # print("distance:",((1 - torch.tanh(torch.abs(distance)/(std)))+5*(1 - torch.tanh(torch.abs(distance)/(std**2)))))
+    # print("object_pos_b:",object_pos_b)
+    # print("distance:",distance)
     # print("angle:",roll,pitch,yaw)
     # print(object_pos_b[:, :3]-torch.tensor([0.25, 0.0, 0.08],device="cuda:0").repeat(env.num_envs,1))
     return ((1 - torch.tanh(torch.abs(distance)/std)))*torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
