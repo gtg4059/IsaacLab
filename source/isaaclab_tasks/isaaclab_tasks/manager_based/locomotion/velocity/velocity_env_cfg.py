@@ -146,7 +146,7 @@ class MySceneCfg(InteractiveSceneCfg):
 
     # camera = TiledCameraCfg(
     #     prim_path="{ENV_REGEX_NS}/Robot/torso_link/d435_link/camera",
-    #     update_period=0.5,
+    #     update_period=1000.0,
     #     height=480,
     #     width=640,
     #     debug_vis=True,
@@ -322,7 +322,8 @@ class ObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
-        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
+        # object_position = ObsTerm(func=mdp.object_position_in_robot_camera_frame)
+        object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame,params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
         # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"object_cfg": SceneEntityCfg("object_init")})
 
         def __post_init__(self):
@@ -417,7 +418,8 @@ class ObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
-        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
+        object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame,params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
+        # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
         # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"object_cfg": SceneEntityCfg("object_init")})
 
         def __post_init__(self):

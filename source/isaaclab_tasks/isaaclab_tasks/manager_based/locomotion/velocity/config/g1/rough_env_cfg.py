@@ -31,11 +31,11 @@ class G1Rewards(RewardsCfg):
     reaching_object= RewTerm(
         func=mdp.object_ee_distance, 
         params={
-            "std": 0.5,
+            "std": 0.3,
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
-        weight=5.0
+        weight=4.0
     )
  
     object_contact = RewTerm(
