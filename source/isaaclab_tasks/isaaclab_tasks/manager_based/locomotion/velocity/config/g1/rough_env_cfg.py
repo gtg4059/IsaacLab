@@ -24,7 +24,7 @@ class G1Rewards(RewardsCfg):
     base_position_l2 = RewTerm(func=mdp.base_position_l2, weight=-200.0)
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-200.0, params={
-            "target_height": 0.76, 
+            "target_height": 0.78, 
         }
     )
     # pickup reward
@@ -32,8 +32,8 @@ class G1Rewards(RewardsCfg):
         func=mdp.object_ee_distance, 
         params={
             "std": 0.3,
-            # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
-            "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
+            "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
+            # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
         weight=4.0
     )
@@ -80,7 +80,7 @@ class G1Rewards(RewardsCfg):
 
     object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
                                weight=6.0,
-                               params={"std": 0.4,
+                               params={"std": 0.5,
                                        "minimal_height": 0.65,
         }, 
     )
@@ -164,7 +164,7 @@ class G1Rewards(RewardsCfg):
     # Penalize ankle joint limits
     dof_pos_limits = RewTerm(
         func=mdp.joint_pos_limits,
-        weight=-1.0,
+        weight=-5.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_ankle_pitch_joint", ".*_knee_joint",".*_ankle_roll_joint"])},
     )
     # Penalize deviation from default of the joints that are not essential for locomotion
@@ -188,24 +188,25 @@ class G1Rewards(RewardsCfg):
             )
         },
     )
-    joint_deviation_arms = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-5.0,
-        params={
-            "asset_cfg": SceneEntityCfg(
-                "robot",
-                joint_names=[
-                    # ".*_shoulder_roll_joint",
-                    ".*_shoulder_pitch_joint",
-                    # ".*_shoulder_yaw_joint",
-                    # ".*_elbow_joint",
-                    # ".*_wrist_yaw_joint",
-                    # ".*_wrist_pitch_joint",
-                    # ".*_wrist_roll_joint",
-                ],
-            )
-        },
-    )
+
+    # joint_deviation_arms = RewTerm(
+    #     func=mdp.joint_deviation_l1,
+    #     weight=-1.0,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg(
+    #             "robot",
+    #             joint_names=[
+    #                 # ".*_shoulder_roll_joint",
+    #                 ".*_shoulder_pitch_joint",
+    #                 # ".*_shoulder_yaw_joint",
+    #                 # ".*_elbow_joint",
+    #                 # ".*_wrist_yaw_joint",
+    #                 # ".*_wrist_pitch_joint",
+    #                 # ".*_wrist_roll_joint",
+    #             ],
+    #         )
+    #     },
+    # )
 
     # joint_deviation_arms2 = RewTerm(
     #     func=mdp.joint_deviation_l1,
