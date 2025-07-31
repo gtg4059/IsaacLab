@@ -182,7 +182,7 @@ class CommandsCfg:
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(#0.84, 0.86
-            pos_x=(0.0, 0.0), pos_y=(-0.0, 0.0), pos_z=(0.0, 0.0), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            pos_x=(0.2, 0.2), pos_y=(-0.0, 0.0), pos_z=(0.2, 0.2), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
         ),
     )
 
@@ -440,8 +440,8 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
-            "static_friction_range": (0.1, 1.25),
-            "dynamic_friction_range": (0.1, 1.25),
+            "static_friction_range": (0.8, 1.25),
+            "dynamic_friction_range": (0.8, 1.25),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
             "make_consistent": True
@@ -470,8 +470,8 @@ class EventCfg:
                 ".*_wrist_pitch_link",
                 "R_.*","L_.*",
             ]),
-            "static_friction_range": (0.2, 1.25),
-            "dynamic_friction_range": (0.2, 1.25),
+            "static_friction_range": (0.4, 1.25),
+            "dynamic_friction_range": (0.4, 1.25),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
             "make_consistent": True,
@@ -483,8 +483,8 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "static_friction_range": (0.1, 1.25),
-            "dynamic_friction_range": (0.1, 1.25),
+            "static_friction_range": (0.4, 1.25),
+            "dynamic_friction_range": (0.4, 1.25),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
             "make_consistent": True,
@@ -579,6 +579,15 @@ class EventCfg:
         params={
             "position_range": (0.5, 1.5),
             "velocity_range": (0.0, 0.0),
+            # "asset_cfg": SceneEntityCfg("robot", joint_names=[
+            #         ".*_hip_roll_joint",
+            #         # ".*_hip_pitch_joint",
+            #         ".*_hip_yaw_joint",
+            #         # ".*_knee_joint",
+            #         ".*_ankle_roll_joint",
+            #         # ".*_ankle_pitch_joint",
+            #     ]
+            # ),
         },
     )
 

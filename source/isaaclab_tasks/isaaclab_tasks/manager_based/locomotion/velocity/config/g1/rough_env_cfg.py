@@ -68,7 +68,7 @@ class G1Rewards(RewardsCfg):
         }, 
     )
 
-    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=5.0)
+    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=10.0)
 
     # object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
     #                            weight=1.0,
@@ -79,9 +79,10 @@ class G1Rewards(RewardsCfg):
     # )
 
     object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
-                               weight=6.0,
+                               weight=10.0,
                                params={"std": 0.5,
                                        "minimal_height": 0.65,
+                                       "asset_cfg":SceneEntityCfg("robot", body_names=["camera"]),
         }, 
     )
 
