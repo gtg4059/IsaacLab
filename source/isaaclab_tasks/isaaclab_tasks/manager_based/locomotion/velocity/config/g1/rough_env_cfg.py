@@ -23,8 +23,8 @@ class G1Rewards(RewardsCfg):
 
     base_position_l2 = RewTerm(func=mdp.base_position_l2, weight=-200.0)
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
-    base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-200.0, params={
-            "target_height": 0.78, 
+    base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-50.0, params={
+            "target_height": 0.75, 
         }
     )
     # pickup reward
@@ -81,7 +81,7 @@ class G1Rewards(RewardsCfg):
     object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
                                weight=10.0,
                                params={"std": 0.5,
-                                       "minimal_height": 0.65,
+                                       "minimal_height": 0.70,
                                        "asset_cfg":SceneEntityCfg("robot", body_names=["camera"]),
         }, 
     )

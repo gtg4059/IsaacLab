@@ -80,7 +80,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.43, 0, 0.70], rot=[0.96593, 0.0 ,-0.25882, 0.0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.43, 0, 0.84], rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
             scale=(4.37,5.9,3.0),#(5.17,6.83,4.67),(4.37,5.9,3.0)
@@ -112,7 +112,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # add cube
     object_init: RigidObjectCfg = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/object_init",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.45, 0, 0.70], rot=[0.96593, 0.0 ,-0.25882, 0.0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.45, 0, 0.84], rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.CuboidCfg(
             size=(0.1,0.1,0.1),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(max_depenetration_velocity=1.0, 
@@ -127,7 +127,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # mount
     table = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Table",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.45, 0, 0.60], rot=[0.96593, 0.0 ,-0.25882, 0.0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.45, 0, 0.74], rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", scale=(4.0, 8.0, 1.00),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
@@ -687,7 +687,7 @@ class TerminationsCfg:
     #                                                               ]), "threshold": 20.0},
     # )
     object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.6, "asset_cfg": SceneEntityCfg("object")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.7, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.6, "asset_cfg": SceneEntityCfg("robot")}
