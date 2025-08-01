@@ -224,13 +224,19 @@ def object_ee_distance(
     # extract the used quantities (to enable type-hinting)
     object: RigidObject = env.scene[object_cfg.name]
     asset = env.scene[asset_cfg.name]
-
-    des_pos_b = object.data.root_pos_w
+    # -1.2359
+    des_pos_b = object.data.root_pos_w 
+    # -0.9818
     curr_pos_w1 = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]  # type: ignore
+    # -1.5668
     curr_pos_w2 = asset.data.body_state_w[:, asset_cfg.body_ids[1], :3]  # type: ignore
-    distance1 = torch.norm(curr_pos_w1 - des_pos_b, dim=1, p=2)
-    distance2 = torch.norm(curr_pos_w2 - des_pos_b, dim=1, p=2)
-
+    #-0.9818-(-1.2359+0.18) = 
+    distance1 = torch.norm(curr_pos_w1 - (des_pos_b+torch.tensor([0.0,0.20,0.0],device="cuda:0").repeat(env.num_envs,1)), dim=1, p=2)# 0.
+    #-1.5668-(-1.2359-0.18) = 
+    distance2 = torch.norm(curr_pos_w2 - (des_pos_b-torch.tensor([0.0,0.20,0.0],device="cuda:0").repeat(env.num_envs,1)), dim=1, p=2)
+    # print("curr_pos_w1:",curr_pos_w1)
+    # print("curr_pos_w2:",curr_pos_w2)
+    # print("des_pos_b:",des_pos_b)
     # obtain the desired and current orientations
     des_quat_b = object.data.root_quat_w
     curr_quat_w1 = asset.data.body_state_w[:, asset_cfg.body_ids[0], 3:7]  # type: ignore
