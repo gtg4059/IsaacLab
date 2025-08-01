@@ -31,7 +31,7 @@ class G1Rewards(RewardsCfg):
     reaching_object= RewTerm(
         func=mdp.object_ee_distance, 
         params={
-            "std": 0.3,
+            "std": 0.2,
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
@@ -79,7 +79,7 @@ class G1Rewards(RewardsCfg):
     # )
 
     object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
-                               weight=10.0,
+                               weight=6.0,
                                params={"std": 0.5,
                                        "minimal_height": 0.70,
                                        "asset_cfg":SceneEntityCfg("robot", body_names=["camera"]),
@@ -190,24 +190,24 @@ class G1Rewards(RewardsCfg):
         },
     )
 
-    # joint_deviation_arms = RewTerm(
-    #     func=mdp.joint_deviation_l1,
-    #     weight=-1.0,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg(
-    #             "robot",
-    #             joint_names=[
-    #                 # ".*_shoulder_roll_joint",
-    #                 ".*_shoulder_pitch_joint",
-    #                 # ".*_shoulder_yaw_joint",
-    #                 # ".*_elbow_joint",
-    #                 # ".*_wrist_yaw_joint",
-    #                 # ".*_wrist_pitch_joint",
-    #                 # ".*_wrist_roll_joint",
-    #             ],
-    #         )
-    #     },
-    # )
+    joint_deviation_arms = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-2.0,
+        params={
+            "asset_cfg": SceneEntityCfg(
+                "robot",
+                joint_names=[
+                    ".*_shoulder_roll_joint",
+                    # ".*_shoulder_pitch_joint",
+                    # ".*_shoulder_yaw_joint",
+                    # ".*_elbow_joint",
+                    ".*_wrist_yaw_joint",
+                    # ".*_wrist_pitch_joint",
+                    ".*_wrist_roll_joint",
+                ],
+            )
+        },
+    )
 
     # joint_deviation_arms2 = RewTerm(
     #     func=mdp.joint_deviation_l1,
