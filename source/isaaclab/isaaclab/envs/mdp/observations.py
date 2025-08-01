@@ -318,7 +318,6 @@ def object_position_in_robot_camera_frame(
     )
     # print(robot.data.root_state_w[:, :3])
     # print("object_pos_w:",object_pos_w)
-    print("object_pos_b:",object_pos_b)
     return object_pos_b
 
 """
