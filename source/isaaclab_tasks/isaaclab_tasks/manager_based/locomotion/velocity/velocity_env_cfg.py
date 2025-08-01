@@ -80,7 +80,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.43, 0, 0.84], rot=[1.0, 0.0 ,0.0, 0.0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.43, 0, 0.86], rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
             scale=(4.37,5.9,3.0),#(5.17,6.83,4.67),(4.37,5.9,3.0)
@@ -112,7 +112,7 @@ class MySceneCfg(InteractiveSceneCfg):
     # add cube
     object_init: RigidObjectCfg = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/object_init",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.45, 0, 0.84], rot=[1.0, 0.0 ,0.0, 0.0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.43, 0, 0.86], rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.CuboidCfg(
             size=(0.1,0.1,0.1),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(max_depenetration_velocity=1.0, 
@@ -322,8 +322,10 @@ class ObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
-        object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame,params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
-        # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"object_cfg": SceneEntityCfg("object_init")})
+        # object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame,params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
+        object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, params={
+            "robot_cfg": SceneEntityCfg("robot",body_names="camera"),
+            "object_cfg": SceneEntityCfg("object_init")})
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -614,7 +616,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
+            "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
             # "pose_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1), "yaw": (-0.03, 0.03)},
             "velocity_range": {
                 "x": (-0.0, 0.0),
