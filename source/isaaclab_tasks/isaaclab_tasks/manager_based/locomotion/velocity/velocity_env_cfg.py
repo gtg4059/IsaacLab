@@ -80,14 +80,19 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.43, 0, 0.86], rot=[1.0, 0.0 ,0.0, 0.0]),
+        init_state=RigidObjectCfg.InitialStateCfg(
+            # # white-box
+            # pos=[0.43, 0, 0.86], 
+            # 4-box
+            pos=[0.43, 0, 0.93], 
+            rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
             # # white box
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
-            # scale=(4.37,5.9,3.0),
+            # scale=(4.37,5.9,3.0), # 262,350,180
             # 4-box
             usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
-            scale=((5.17,6.83,4.67)),
+            scale=((5.17,6.83,4.67)), # 310,410,280
             # white wing-box
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Assets/box.usd",
             # scale=(8.73,11.7,6.0),
@@ -117,7 +122,12 @@ class MySceneCfg(InteractiveSceneCfg):
     # add cube
     object_init: RigidObjectCfg = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/object_init",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.43, 0, 0.86], rot=[1.0, 0.0 ,0.0, 0.0]),
+        init_state=RigidObjectCfg.InitialStateCfg(
+            # # white-box
+            # pos=[0.43, 0, 0.86], 
+            # 4-box
+            pos=[0.43, 0, 0.93], 
+            rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.CuboidCfg(
             size=(0.1,0.1,0.1),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(max_depenetration_velocity=1.0, 
@@ -132,7 +142,9 @@ class MySceneCfg(InteractiveSceneCfg):
     # mount
     table = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Table",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.45, 0, 0.74], rot=[1.0, 0.0 ,0.0, 0.0]),
+        init_state=RigidObjectCfg.InitialStateCfg(
+            pos=[0.45, 0, 0.74], 
+            rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", scale=(4.0, 8.0, 1.00),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
@@ -621,8 +633,10 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
-            # "pose_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1), "yaw": (-0.03, 0.03)},
+            # 4-box
+            "pose_range": {"x": (-0.02, 0.02), "y": (-0.02, 0.02), "yaw": (-0.0, 0.0)},
+            # # white box
+            # "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
             "velocity_range": {
                 "x": (-0.0, 0.0),
                 "y": (-0.0, 0.0),
