@@ -322,7 +322,6 @@ class ObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
-        # object_position = ObsTerm(func=mdp.object_position_in_robot_camera_frame)
         object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame,params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
         # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"object_cfg": SceneEntityCfg("object_init")})
 

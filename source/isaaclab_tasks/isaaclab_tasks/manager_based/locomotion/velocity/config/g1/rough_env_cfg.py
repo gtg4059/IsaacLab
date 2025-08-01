@@ -79,7 +79,7 @@ class G1Rewards(RewardsCfg):
     # )
 
     object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
-                               weight=6.0,
+                               weight=8.0,
                                params={"std": 0.5,
                                        "minimal_height": 0.70,
                                        "asset_cfg":SceneEntityCfg("robot", body_names=["camera"]),
