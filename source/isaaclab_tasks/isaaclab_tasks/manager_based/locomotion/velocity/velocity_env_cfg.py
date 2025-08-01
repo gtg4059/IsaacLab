@@ -82,10 +82,15 @@ class MySceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Object",
         init_state=RigidObjectCfg.InitialStateCfg(pos=[0.43, 0, 0.86], rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
+            # # white box
+            # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
+            # scale=(4.37,5.9,3.0),
+            # 4-box
             usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
-            scale=(4.37,5.9,3.0),#(5.17,6.83,4.67),(4.37,5.9,3.0)
+            scale=((5.17,6.83,4.67)),
+            # white wing-box
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Assets/box.usd",
-            # scale=(8.73,11.7,6.0),#(5.17,6.83,4.67)
+            # scale=(8.73,11.7,6.0),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 # kinematic_enabled=True,
