@@ -259,6 +259,7 @@ def object_position_in_robot_body_frame(
     # print("object_pos_b2:",object_pos_b2)
     # print("robot.data.body_link_pos_w:",robot.data.body_link_pos_w[:, robot_cfg.body_ids[0]])
     # print("object_pos_w:",object_pos_w)
+    # print(object.data.root_pos_w)
     return object_pos_b
 
 def object_position_in_robot_camera_frame(
