@@ -339,10 +339,10 @@ class ObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
-        # object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame,params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
-        object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, params={
-            "robot_cfg": SceneEntityCfg("robot",body_names="camera"),
-            "object_cfg": SceneEntityCfg("object_init")})
+        object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame,params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
+        # object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, params={
+        #     "robot_cfg": SceneEntityCfg("robot",body_names="camera"),
+        #     "object_cfg": SceneEntityCfg("object_init")})
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -458,8 +458,8 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
-            "static_friction_range": (0.8, 1.25),
-            "dynamic_friction_range": (0.8, 1.25),
+            "static_friction_range": (1.25, 2.25),
+            "dynamic_friction_range": (1.25, 2.25),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
             "make_consistent": True
@@ -471,8 +471,8 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("table"),
-            "static_friction_range": (0.9, 1.25),
-            "dynamic_friction_range": (0.9, 1.25),
+            "static_friction_range": (1.25, 2.25),
+            "dynamic_friction_range": (1.25, 2.25),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
             "make_consistent": True,
@@ -485,11 +485,11 @@ class EventCfg:
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=[
                 ".*_wrist_yaw_link",
-                ".*_wrist_pitch_link",
+                # ".*_wrist_pitch_link",
                 "R_.*","L_.*",
             ]),
-            "static_friction_range": (0.8, 1.25),
-            "dynamic_friction_range": (0.8, 1.25),
+            "static_friction_range": (1.25, 2.25),
+            "dynamic_friction_range": (1.25, 2.25),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
             "make_consistent": True,
@@ -501,8 +501,8 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "static_friction_range": (0.4, 1.25),
-            "dynamic_friction_range": (0.4, 1.25),
+            "static_friction_range": (1.25, 2.25),
+            "dynamic_friction_range": (1.25, 2.25),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
             "make_consistent": True,
@@ -634,7 +634,7 @@ class EventCfg:
         params={
             "asset_cfg": SceneEntityCfg("object"),
             # 4-box
-            "pose_range": {"x": (-0.02, 0.02), "y": (-0.02, 0.02), "yaw": (-0.0, 0.0)},
+            "pose_range": {"x": (-0.03, 0.03), "y": (-0.03, 0.03), "yaw": (-0.0, 0.0)},
             # # white box
             # "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
             "velocity_range": {
@@ -707,10 +707,10 @@ class TerminationsCfg:
     #                                                               ]), "threshold": 20.0},
     # )
     object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.7, "asset_cfg": SceneEntityCfg("object")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.86, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.6, "asset_cfg": SceneEntityCfg("robot")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.72, "asset_cfg": SceneEntityCfg("robot")}
     )
     bad_position = DoneTerm(
         func=mdp.bad_position, params={"limit_dist": 0.5, "asset_cfg": SceneEntityCfg("robot")}

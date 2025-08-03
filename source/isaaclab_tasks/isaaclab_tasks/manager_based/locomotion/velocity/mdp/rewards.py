@@ -231,9 +231,9 @@ def object_ee_distance(
     # -1.5668
     curr_pos_w2 = asset.data.body_state_w[:, asset_cfg.body_ids[1], :3]  # type: ignore
     #-0.9818-(-1.2359+0.18) = 
-    distance1 = torch.norm(curr_pos_w1 - (des_pos_b+torch.tensor([0.0,0.20,0.0],device="cuda:0").repeat(env.num_envs,1)), dim=1, p=2)# 0.
+    distance1 = torch.norm(curr_pos_w1 - (des_pos_b+torch.tensor([0.0,0.205,0.0],device="cuda:0").repeat(env.num_envs,1)), dim=1, p=2)# 0.
     #-1.5668-(-1.2359-0.18) = 
-    distance2 = torch.norm(curr_pos_w2 - (des_pos_b-torch.tensor([0.0,0.20,0.0],device="cuda:0").repeat(env.num_envs,1)), dim=1, p=2)
+    distance2 = torch.norm(curr_pos_w2 - (des_pos_b-torch.tensor([0.0,0.205,0.0],device="cuda:0").repeat(env.num_envs,1)), dim=1, p=2)
     # print("curr_pos_w1:",curr_pos_w1)
     # print("curr_pos_w2:",curr_pos_w2)
     # print("des_pos_b:",des_pos_b)
@@ -245,9 +245,10 @@ def object_ee_distance(
     angle2 = quat_error_magnitude(des_quat_b-curr_quat_w2, torch.tensor([0.7073883, 0,0, 0.7068252],device="cuda:0").repeat(env.num_envs,1))#pi
     # result1 = (1 - torch.tanh(torch.abs(angle1)/(std)))*(1 - torch.tanh(torch.abs(distance1-0.18)/(std**2)))
     # result2 = (1 - torch.tanh(torch.abs(angle2)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.18)/(std**2)))
-    dist = torch.sqrt((1 - torch.tanh(torch.abs(distance1-0.20)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.20)/(std))))+5*torch.sqrt((1 - torch.tanh(torch.abs(distance1-0.3)/(std**2)))*(1 - torch.tanh(torch.abs(distance2-0.16)/(std**2))))
+    dist = torch.sqrt((1 - torch.tanh(torch.abs(distance1)/(std)))*(1 - torch.tanh(torch.abs(distance2)/(std))))+5*torch.sqrt((1 - torch.tanh(torch.abs(distance1)/(std**2)))*(1 - torch.tanh(torch.abs(distance2)/(std**2))))
     angle = torch.sqrt((1 - torch.tanh(torch.abs(angle1/(std*2))))*(1 - torch.tanh(torch.abs(angle2/(std*2)))))
-    # print(distance1)
+    # print("distance1:",distance1)
+    # print("distance2:",distance2)
     return dist#+0.3*angle
 
 
@@ -269,7 +270,7 @@ def object_goal_distance(
     object_pos_b, object_quat_b = subtract_frame_transforms(
         robot.data.body_pos_w[:,asset_cfg.body_ids[0]], robot.data.body_quat_w[:, asset_cfg.body_ids[0]], object.data.root_pos_w[:, :3]
     )
-    distance = torch.norm(torch.abs(object_pos_b[:, :3]-torch.tensor([0.0, 0.0, 0.45],device="cuda:0").repeat(env.num_envs,1)),dim=1)
+    distance = torch.norm(torch.abs(object_pos_b[:, :3]-torch.tensor([0.0, 0.0, 0.5],device="cuda:0").repeat(env.num_envs,1)),dim=1)
     # roll = math_utils.wrap_to_pi(euler_xyz_from_quat(object.data.root_quat_w)[0])
     # pitch = math_utils.wrap_to_pi(euler_xyz_from_quat(object.data.root_quat_w)[1])
     # yaw = math_utils.wrap_to_pi(euler_xyz_from_quat(object.data.root_quat_w)[2])
