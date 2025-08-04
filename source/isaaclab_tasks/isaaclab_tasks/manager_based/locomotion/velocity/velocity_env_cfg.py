@@ -83,16 +83,26 @@ class MySceneCfg(InteractiveSceneCfg):
         init_state=RigidObjectCfg.InitialStateCfg(
             # # white-box
             # pos=[0.43, 0, 0.86], 
-            # 4-box
-            pos=[0.43, 0, 0.93], 
+            # 2-box
+            pos=[0.37, 0, 0.82], 
+            # # 3-box
+            # pos=[0.39, 0, 0.86], 
+            # # 4-box
+            # pos=[0.43, 0, 0.93], 
             rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
             # # white box
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
             # scale=(4.37,5.9,3.0), # 262,350,180
-            # 4-box
+            # 2-box
             usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
-            scale=((5.17,6.83,4.67)), # 310,410,280
+            scale=((3.0,4.0,2.5)), # 180,240,150
+            # # 3-box
+            # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
+            # scale=((4.17,5.67,3.5)), # 250,340,210
+            # # 4-box
+            # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
+            # scale=((5.17,6.83,4.67)), # 310,410,280
             # white wing-box
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Assets/box.usd",
             # scale=(8.73,11.7,6.0),
@@ -126,7 +136,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # # white-box
             # pos=[0.43, 0, 0.86], 
             # 4-box
-            pos=[0.43, 0, 0.93], 
+            pos=[0.37, 0, 0.93], 
             rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.CuboidCfg(
             size=(0.1,0.1,0.1),
@@ -143,7 +153,7 @@ class MySceneCfg(InteractiveSceneCfg):
     table = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Table",
         init_state=RigidObjectCfg.InitialStateCfg(
-            pos=[0.45, 0, 0.74], 
+            pos=[0.39, 0, 0.74], 
             rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", scale=(4.0, 8.0, 1.00),
@@ -637,6 +647,7 @@ class EventCfg:
             "pose_range": {"x": (-0.03, 0.03), "y": (-0.03, 0.03), "yaw": (-0.0, 0.0)},
             # # white box
             # "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
+            # "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
             "velocity_range": {
                 "x": (-0.0, 0.0),
                 "y": (-0.0, 0.0),
@@ -707,7 +718,7 @@ class TerminationsCfg:
     #                                                               ]), "threshold": 20.0},
     # )
     object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.86, "asset_cfg": SceneEntityCfg("object")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.82, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.72, "asset_cfg": SceneEntityCfg("robot")}
