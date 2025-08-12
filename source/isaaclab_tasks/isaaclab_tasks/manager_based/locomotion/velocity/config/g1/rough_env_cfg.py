@@ -36,7 +36,7 @@ class G1Rewards(RewardsCfg):
         params={
             "std": 0.05,
             "target_height": 0.08,
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*_foot"),
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
         },
     )
@@ -76,8 +76,7 @@ class G1Rewards(RewardsCfg):
                     ".*_shoulder_pitch_joint",
                     ".*_shoulder_roll_joint",
                     ".*_shoulder_yaw_joint",
-                    ".*_elbow_pitch_joint",
-                    ".*_elbow_roll_joint",
+                    ".*_elbow_joint",
                     ".*_wrist_roll_joint",
                     ".*_wrist_pitch_joint",
                     ".*_wrist_yaw_joint",
