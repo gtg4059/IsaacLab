@@ -500,6 +500,7 @@ def randomize_actuator_gains(
     asset_cfg: SceneEntityCfg,
     stiffness_distribution_params: tuple[float, float] | None = None,
     damping_distribution_params: tuple[float, float] | None = None,
+    torque_distribution_params: tuple[float, float] | None = None,
     operation: Literal["add", "scale", "abs"] = "abs",
     distribution: Literal["uniform", "log_uniform", "gaussian"] = "uniform",
 ):
@@ -565,6 +566,14 @@ def randomize_actuator_gains(
             actuator.damping[env_ids] = damping
             if isinstance(actuator, ImplicitActuator):
                 asset.write_joint_damping_to_sim(damping, joint_ids=actuator.joint_indices, env_ids=env_ids)
+        # Randomize torque_multiplier
+        if torque_distribution_params is not None:
+            torque_multiplier = actuator.torque_multiplier[env_ids].clone()
+            # damping[:, actuator_indices] = asset.data.default_joint_damping[env_ids][:, global_indices].clone()
+            randomize(torque_multiplier, torque_distribution_params)
+            actuator.torque_multiplier[env_ids] = torque_multiplier
+            # if isinstance(actuator, ImplicitActuator):
+            #     asset.write_joint_damping_to_sim(damping, joint_ids=actuator.joint_indices, env_ids=env_ids)
 
 
 def randomize_joint_parameters(
@@ -572,6 +581,7 @@ def randomize_joint_parameters(
     env_ids: torch.Tensor | None,
     asset_cfg: SceneEntityCfg,
     friction_distribution_params: tuple[float, float] | None = None,
+    viscous_friction_distribution_params: tuple[float, float] | None = None,
     armature_distribution_params: tuple[float, float] | None = None,
     lower_limit_distribution_params: tuple[float, float] | None = None,
     upper_limit_distribution_params: tuple[float, float] | None = None,
@@ -618,6 +628,20 @@ def randomize_joint_parameters(
         )
         asset.write_joint_friction_coefficient_to_sim(
             friction_coeff[env_ids[:, None], joint_ids], joint_ids=joint_ids, env_ids=env_ids
+        )
+
+    # joint friction coefficient
+    if viscous_friction_distribution_params is not None:
+        viscous_friction_coeff = _randomize_prop_by_op(
+            asset.data.default_joint_viscous_friction_coeff.clone(),
+            viscous_friction_distribution_params,
+            env_ids,
+            joint_ids,
+            operation=operation,
+            distribution=distribution,
+        )
+        asset.write_joint_viscous_friction_coefficient_to_sim(
+            viscous_friction_coeff[env_ids[:, None], joint_ids], joint_ids=joint_ids, env_ids=env_ids
         )
 
     # joint armature

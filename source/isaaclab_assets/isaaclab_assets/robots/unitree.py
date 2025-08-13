@@ -19,7 +19,7 @@ Reference: https://github.com/unitreerobotics/unitree_ros
 """
 
 import isaaclab.sim as sim_utils
-from isaaclab.actuators import ActuatorNetMLPCfg, DCMotorCfg, ImplicitActuatorCfg, IdealPDActuatorCfg
+from isaaclab.actuators import ActuatorNetMLPCfg, DCMotorCfg, ImplicitActuatorCfg, IdealPDActuatorCfg, JointFrictionPDActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
 
@@ -486,7 +486,7 @@ G1_DEX_FIX = ArticulationCfg(
     ),
     soft_joint_pos_limit_factor=0.9,
     actuators={
-        "legs": IdealPDActuatorCfg(
+        "legs": JointFrictionPDActuatorCfg(
             joint_names_expr=[
                 ".*_hip_yaw_joint",
                 ".*_hip_roll_joint",
@@ -537,16 +537,18 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_knee_joint": 0.01,
                 "waist_.*": 0.01,
             },
+            # Joint_friction=(0.8,1.2)
         ),
-        "feet": IdealPDActuatorCfg(
+        "feet": JointFrictionPDActuatorCfg(
             effort_limit=50,
             velocity_limit=37,
             joint_names_expr=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
             stiffness=40.0,
             damping=2.0,
             armature=0.01,
+            # Joint_friction=(0.8,1.2)
         ),
-        "arms": IdealPDActuatorCfg(
+        "arms": JointFrictionPDActuatorCfg(
             joint_names_expr=[
                 ".*_shoulder_pitch_joint",
                 ".*_shoulder_roll_joint",
@@ -597,6 +599,7 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_elbow_.*": 0.01,
                 ".*_wrist_.*": 0.01,
             },
+            # Joint_friction=(0.8,1.2)
         ),
         # "hands": IdealPDActuatorCfg(
         #     joint_names_expr=[

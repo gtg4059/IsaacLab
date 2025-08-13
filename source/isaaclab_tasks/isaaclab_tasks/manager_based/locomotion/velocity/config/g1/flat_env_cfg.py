@@ -35,6 +35,10 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
+        # New Rewards
+        self.rewards.joint_deviation_arms.weight = -1.0
+        self.rewards.joint_deviation_torso.weight = -2.5
+        
         # Commands
         self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
         self.commands.base_velocity.ranges.lin_vel_y = (-0.5, 0.5)

@@ -82,6 +82,9 @@ class ActuatorBase(ABC):
     damping: torch.Tensor
     """The damping (D gain) of the PD controller. Shape is (num_envs, num_joints)."""
 
+    torque_multiplier: torch.Tensor
+    """torque_multiplier. Shape is (num_envs, num_joints)."""
+
     armature: torch.Tensor
     """The armature of the actuator joints. Shape is (num_envs, num_joints)."""
 

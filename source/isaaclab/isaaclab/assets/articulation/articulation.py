@@ -1541,6 +1541,7 @@ class Articulation(AssetBase):
         self._data.default_joint_pos_limits = self.root_physx_view.get_dof_limits().to(self.device).clone()
         self._data.default_joint_stiffness = self.root_physx_view.get_dof_stiffnesses().to(self.device).clone()
         self._data.default_joint_damping = self.root_physx_view.get_dof_dampings().to(self.device).clone()
+        self._data.stiffness = torch.zeros_like(self._data.default_joint_damping)
         self._data.default_joint_armature = self.root_physx_view.get_dof_armatures().to(self.device).clone()
         if int(get_version()[2]) < 5:
             self._data.default_joint_friction_coeff = (
