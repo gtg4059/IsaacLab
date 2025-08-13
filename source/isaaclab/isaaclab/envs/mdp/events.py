@@ -622,7 +622,7 @@ def randomize_joint_parameters(
             friction_coeff[env_ids[:, None], joint_ids], joint_ids=joint_ids, env_ids=env_ids
         )
 
-    # joint friction coefficient
+    # joint viscous_friction coefficient
     if viscous_friction_distribution_params is not None:
         viscous_friction_coeff = _randomize_prop_by_op(
             asset.data.default_joint_viscous_friction_coeff.clone(),

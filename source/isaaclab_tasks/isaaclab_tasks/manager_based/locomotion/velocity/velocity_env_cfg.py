@@ -500,22 +500,25 @@ class EventCfg:
             "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
             "friction_distribution_params": (0.01, 1.15),
             "viscous_friction_distribution_params": (0.3, 1.5),
-            "operation": "scale",
+            "armature_distribution_params": (0.008,0.06),
+            "operation": "add",
             "distribution": "uniform",
         },
     )
 
-    robot_joint_armature = EventTerm(
-        func=mdp.randomize_joint_parameters,
-        min_step_count_between_reset=720,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-            "armature_distribution_params": (0.008,0.06),
-            "operation": "abs",
-            "distribution": "uniform",
-        },
-    )
+    # robot_joint_armature = EventTerm(
+    #     func=mdp.randomize_joint_parameters,
+    #     min_step_count_between_reset=720,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+    #         "friction_distribution_params": (0.01, 1.15),
+    #         "viscous_friction_distribution_params": (0.3, 1.5),
+    #         "armature_distribution_params": (0.008,0.06),
+    #         "operation": "abs",
+    #         "distribution": "uniform",
+    #     },
+    # )
 
     # interval
     push_robot = EventTerm(
