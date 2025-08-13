@@ -428,7 +428,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
-            "mass_distribution_params": (-4., 4.),
+            "mass_distribution_params": (-3., 3.),
             "operation": "add",
         },
     )
@@ -450,7 +450,7 @@ class EventCfg:
             "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
             "stiffness_distribution_params": (0.8, 1.2),
             "damping_distribution_params": (0.8, 1.2),
-            "torque_distribution_params": (0.8, 1.2),
+            # "torque_distribution_params": (0.8, 1.2),
             "operation": "scale",
             "distribution": "uniform",
         },

@@ -23,7 +23,7 @@ if TYPE_CHECKING:
         IdealPDActuatorCfg,
         ImplicitActuatorCfg,
         RemotizedPDActuatorCfg,
-        JointFrictionPDActuatorCfg
+        JointFrictionDelayPDActuatorCfg
     )
 
 
@@ -448,7 +448,7 @@ class RemotizedPDActuator(DelayedPDActuator):
         self.applied_effort = control_action.joint_efforts
         return control_action
 
-class JointFrictionPDActuator(ActuatorBase):
+class JointFrictionDelayPDActuator(DelayedPDActuator):
     r"""Ideal torque-controlled actuator model with a simple saturation model.
 
     It employs the following model for computing torques for the actuated joint :math:`j`:
@@ -458,15 +458,12 @@ class JointFrictionPDActuator(ActuatorBase):
         I_j \ddot{\theta}_j(t)+B_j \dot{\theta}_j(t)=\tau_j(t)+f_j(t)
 
     """
-    cfg: JointFrictionPDActuatorCfg
+    cfg: JointFrictionDelayPDActuatorCfg
     """The configuration for the actuator model."""
 
-    def __init__(self, cfg: JointFrictionPDActuatorCfg, *args, **kwargs):
+    def __init__(self, cfg: JointFrictionDelayPDActuatorCfg, *args, **kwargs):
         super().__init__(cfg, *args, **kwargs)
-
         self._joint_vel = torch.zeros_like(self.computed_effort)
-        # prepare joint friction buffer
-        self._joint_friction = torch.empty_like(self.computed_effort).uniform_(*self.cfg.Joint_friction)
         # create buffer for zeros effort
         self._zeros_effort = torch.zeros_like(self.computed_effort)
         # check that quantities are provided
@@ -483,11 +480,14 @@ class JointFrictionPDActuator(ActuatorBase):
     def compute(
         self, control_action: ArticulationActions, joint_pos: torch.Tensor, joint_vel: torch.Tensor
     ) -> ArticulationActions:
+        # apply delay based on the delay the model for all the setpoints
+        control_action.joint_positions = self.positions_delay_buffer.compute(control_action.joint_positions)
+        control_action.joint_velocities = self.velocities_delay_buffer.compute(control_action.joint_velocities)
+        control_action.joint_efforts = self.efforts_delay_buffer.compute(control_action.joint_efforts)
         # compute errors
         error_pos = control_action.joint_positions - joint_pos
         error_vel = control_action.joint_velocities - joint_vel
         # static friction
-        # self._joint_friction = torch.where(joint_vel>0,-1*self._joint_friction,self._joint_friction)
         # calculate the desired joint torques
         self.computed_effort = self.stiffness * error_pos + self.damping * error_vel + control_action.joint_efforts
         self.computed_effort *= self.torque_multiplier
@@ -497,4 +497,5 @@ class JointFrictionPDActuator(ActuatorBase):
         control_action.joint_efforts = self.applied_effort
         control_action.joint_positions = None
         control_action.joint_velocities = None
+        # compte actuator model
         return control_action

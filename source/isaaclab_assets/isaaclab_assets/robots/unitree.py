@@ -19,7 +19,7 @@ Reference: https://github.com/unitreerobotics/unitree_ros
 """
 
 import isaaclab.sim as sim_utils
-from isaaclab.actuators import ActuatorNetMLPCfg, DCMotorCfg, ImplicitActuatorCfg, IdealPDActuatorCfg, JointFrictionPDActuatorCfg
+from isaaclab.actuators import ActuatorNetMLPCfg, DCMotorCfg, ImplicitActuatorCfg, DelayedPDActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
 
@@ -377,7 +377,7 @@ G1_CFG = ArticulationCfg(
 G1_DEX_FIX = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_DFQ/g1_29dof_rev_1_0_with_inspire_hand_DFQ.usd",
-        usd_path="/home/robotics/git/unitree_ros/robots/g1_description/g1_29dof_rev_1_0_with_inspire_hand_th/g1_29dof_rev_1_0_with_inspire_hand_th.usd",
+        usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_th/g1_29dof_rev_1_0_with_inspire_hand_th.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -486,7 +486,7 @@ G1_DEX_FIX = ArticulationCfg(
     ),
     soft_joint_pos_limit_factor=0.9,
     actuators={
-        "legs": JointFrictionPDActuatorCfg(
+        "legs": DelayedPDActuatorCfg(
             joint_names_expr=[
                 ".*_hip_yaw_joint",
                 ".*_hip_roll_joint",
@@ -537,18 +537,22 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_knee_joint": 0.01,
                 "waist_.*": 0.01,
             },
+            min_delay=0,
+            max_delay=4,
             # Joint_friction=(0.8,1.2)
         ),
-        "feet": JointFrictionPDActuatorCfg(
+        "feet": DelayedPDActuatorCfg(
             effort_limit=50,
             velocity_limit=37,
             joint_names_expr=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
             stiffness=40.0,
             damping=2.0,
             armature=0.01,
+            min_delay=0,
+            max_delay=4,
             # Joint_friction=(0.8,1.2)
         ),
-        "arms": JointFrictionPDActuatorCfg(
+        "arms": DelayedPDActuatorCfg(
             joint_names_expr=[
                 ".*_shoulder_pitch_joint",
                 ".*_shoulder_roll_joint",
@@ -599,6 +603,8 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_elbow_.*": 0.01,
                 ".*_wrist_.*": 0.01,
             },
+            min_delay=0,
+            max_delay=4,
             # Joint_friction=(0.8,1.2)
         ),
         # "hands": IdealPDActuatorCfg(
@@ -618,7 +624,7 @@ G1_DEX_FIX = ArticulationCfg(
         #         "L_.*": 0.001,
         #     },
         # ),
-        "finger": IdealPDActuatorCfg(
+        "finger": DelayedPDActuatorCfg(
             joint_names_expr=[
                 '.*_proximal_joint'
             ],
@@ -629,9 +635,20 @@ G1_DEX_FIX = ArticulationCfg(
             armature={
                 '.*_proximal_joint': 0.001,
             },
+            min_delay=0,
+            max_delay=4,
         ),
     },
 )
+
+# "spot_hip": DelayedPDActuatorCfg(
+#             joint_names_expr=[".*_h[xy]"],
+#             effort_limit=45.0,
+#             stiffness=60.0,
+#             damping=1.5,
+#             min_delay=0,  # physics time steps (min: 2.0*0=0.0ms)
+#             max_delay=4,  # physics time steps (max: 2.0*4=8.0ms)
+#         ),
 
 G1_MINIMAL_CFG = G1_CFG.copy()
 G1_MINIMAL_CFG.spawn.usd_path = f"{ISAACLAB_NUCLEUS_DIR}/Robots/Unitree/G1/g1_minimal.usd"

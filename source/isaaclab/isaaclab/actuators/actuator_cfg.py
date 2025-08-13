@@ -192,15 +192,6 @@ class IdealPDActuatorCfg(ActuatorBaseCfg):
     class_type: type = actuator_pd.IdealPDActuator
 
 @configclass
-class JointFrictionPDActuatorCfg(ActuatorBaseCfg):
-    """Configuration for direct control (DC) motor actuator model."""
-
-    class_type: type = actuator_pd.JointFrictionPDActuator
-
-    Joint_friction: tuple[float, float] = MISSING
-    """Peak motor force/torque of the electric DC motor (in N-m)."""
-
-@configclass
 class DCMotorCfg(IdealPDActuatorCfg):
     """Configuration for direct control (DC) motor actuator model."""
 
@@ -291,3 +282,12 @@ class RemotizedPDActuatorCfg(DelayedPDActuatorCfg):
     This tensor describes the relationship between the joint angle (rad), the transmission ratio (in/out),
     and the output torque (N*m). The table is used to interpolate the output torque based on the joint angle.
     """
+
+@configclass
+class JointFrictionDelayPDActuatorCfg(DelayedPDActuatorCfg):
+    """Configuration for direct control (DC) motor actuator model."""
+
+    class_type: type = actuator_pd.JointFrictionDelayPDActuator
+
+    # Joint_friction: tuple[float, float] = MISSING
+    # """Peak motor force/torque of the electric DC motor (in N-m)."""
