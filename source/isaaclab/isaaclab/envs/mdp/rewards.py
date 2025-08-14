@@ -79,6 +79,11 @@ def lin_vel_z_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntity
     asset: RigidObject = env.scene[asset_cfg.name]
     return torch.square(asset.data.root_lin_vel_b[:, 2])
 
+def lin_vel_xy_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Penalize z-axis base linear velocity using L2 squared kernel."""
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    return torch.square(torch.sum(torch.abs(asset.data.root_lin_vel_b[:, :2]),dim=1))
 
 def ang_vel_xy_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize xy-axis base angular velocity using L2 squared kernel."""
@@ -121,6 +126,16 @@ def base_height_l2(
     # Compute the L2 squared penalty
     return torch.square(asset.data.root_pos_w[:, 2] - adjusted_target_height)
 
+def base_position_l2(
+    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Terminate when the asset's distance is too far from the desired orientation limits.
+
+    This is computed by checking the angle between the projected gravity vector and the z-axis.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    return torch.sum(torch.square(asset.data.root_pos_w[:, :2]-env.scene.env_origins[:, :2]),dim=1)
 
 def body_lin_acc_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize the linear acceleration of bodies using L2-kernel."""
@@ -317,3 +332,61 @@ def track_ang_vel_z_exp(
     # compute the error
     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_b[:, 2])
     return torch.exp(-ang_vel_error / std**2)
+
+def reset_joints_targets(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+)-> torch.Tensor:
+    """Reset the robot joints by scaling the default position and velocity by the given ranges.
+
+    This function samples random values from the given ranges and scales the default joint positions and velocities
+    by these values. The scaled values are then set into the physics simulation.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    # get default joint state
+    joint_pos = asset.data.default_joint_pos[:,asset_cfg.joint_ids].clone()
+    joint_vel = asset.data.default_joint_vel[:,asset_cfg.joint_ids].clone()
+    asset.set_joint_position_target(joint_pos,asset_cfg.joint_ids)
+    asset.set_joint_velocity_target(joint_vel,asset_cfg.joint_ids)
+    # print("joint_pos_target:",asset.data.joint_pos_target)
+    asset.write_joint_state_to_sim(joint_pos, joint_vel, asset_cfg.joint_ids)
+    return torch.sum(asset.data.root_pos_w, dim=1)*0
+
+def reset_joints_forces(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+)-> torch.Tensor:
+    """Reset the robot joints by scaling the default position and velocity by the given ranges.
+
+    This function samples random values from the given ranges and scales the default joint positions and velocities
+    by these values. The scaled values are then set into the physics simulation.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    # get default joint state
+    asset.set_joint_effort_target(0.02*torch.ones_like(asset.data.default_joint_pos[:,asset_cfg.joint_ids]),asset_cfg.joint_ids)
+    # print("joint_effort_target:",asset.data.joint_effort_target)
+    asset.write_data_to_sim()
+    return torch.sum(asset.data.root_pos_w, dim=1)*0
+
+def delete_table(
+        env: ManagerBasedRLEnv,
+        asset_cfg: SceneEntityCfg = SceneEntityCfg("table"),
+    )-> torch.Tensor:
+    """Curriculum that modifies a reward weight a given number of steps.
+
+    Args:
+        env: The learning environment.
+        env_ids: Not used since all environments are affected.
+        term_name: The name of the reward term.
+        weight: The weight of the reward term.
+        num_steps: The number of steps after which the change should be applied.
+    """
+    asset: RigidObject = env.scene[asset_cfg.name]
+    # if env.common_step_counter < num_steps:
+    asset.data.root_pos_w[:, 2] -= 0.002*torch.ones_like(asset.data.root_pos_w[:, 2],device=asset.device)
+    # asset.data.root_pos_w[:, 1] -= 0.002*torch.ones_like(asset.data.root_pos_w[:, 2],device=asset.device)
+    asset.write_root_state_to_sim(asset.data.root_state_w)
+    asset.write_data_to_sim()
+    return torch.sum(asset.data.root_pos_w, dim=1)*0

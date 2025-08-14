@@ -20,6 +20,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers.manager_base import ManagerTermBase
 from isaaclab.managers.manager_term_cfg import ObservationTermCfg
 from isaaclab.sensors import Camera, Imu, RayCaster, RayCasterCamera, TiledCamera
+from isaaclab.utils.math import subtract_frame_transforms
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
@@ -227,6 +228,28 @@ def joint_effort(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCf
     asset: Articulation = env.scene[asset_cfg.name]
     return asset.data.applied_torque[:, asset_cfg.joint_ids]
 
+def object_position_in_robot_body_frame(
+    env: ManagerBasedRLEnv,
+    robot_cfg: SceneEntityCfg,
+    object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+) -> torch.Tensor:
+    """The position of the object in the robot's root frame."""
+    robot: RigidObject = env.scene[robot_cfg.name]
+    object: RigidObject = env.scene[object_cfg.name]
+    object_pos_w = object.data.root_link_state_w[:, :3]
+    object_pos_b, _ = subtract_frame_transforms(
+        robot.data.body_link_pos_w[:, robot_cfg.body_ids[0]], robot.data.body_link_quat_w[:, robot_cfg.body_ids[0]], object_pos_w
+    )
+    # print(robot.data.root_state_w[:, :3])
+    # print("object_pos_w:",object_pos_w)
+    # print("robot.data.body_link_pos_w[:, robot_cfg.body_ids[0]]:",robot.data.body_link_pos_w[:, robot_cfg.body_ids[0]])
+    # print("robot.data.root_pos_w:",robot.data.root_pos_w)
+    # print("object_pos_b:",object_pos_b)
+    # print("object_pos_b2:",object_pos_b2)
+    # print("robot.data.body_link_pos_w:",robot.data.body_link_pos_w[:, robot_cfg.body_ids[0]])
+    # print("object_pos_w:",object_pos_w)
+    # print(object.data.root_pos_w)
+    return object_pos_b
 
 """
 Sensors.
