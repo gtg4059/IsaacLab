@@ -626,8 +626,8 @@ G1_DEX_FIX = ArticulationCfg(
             ],
             effort_limit=1,
             velocity_limit=0.5,
-            stiffness=10.0,
-            damping=0.5,
+            stiffness=0.0,
+            damping=0.0,
             armature={
                 '.*_proximal_joint': 0.001,
             },
