@@ -784,10 +784,10 @@ class TerminationsCfg:
     #                                                               ]), "threshold": 20.0},
     # )
     object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.82, "asset_cfg": SceneEntityCfg("object")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.80, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.72, "asset_cfg": SceneEntityCfg("robot")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.70, "asset_cfg": SceneEntityCfg("robot")}
     )
     bad_position = DoneTerm(
         func=mdp.bad_position, params={"limit_dist": 0.5, "asset_cfg": SceneEntityCfg("robot")}
