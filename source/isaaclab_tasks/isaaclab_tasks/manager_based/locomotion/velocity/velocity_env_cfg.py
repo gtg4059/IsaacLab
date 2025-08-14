@@ -99,11 +99,11 @@ class MySceneCfg(InteractiveSceneCfg):
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
             # scale=((4.17,5.67,3.5)), # 250,340,210
             # # 4-box
-            # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
+            # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
             # scale=((5.17,6.83,4.67)), # 310,410,280
-            # white wing-box
-            # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Assets/box.usd",
-            # scale=(8.73,11.7,6.0),
+            # # white wing-box
+            # usd_path="./source/isaaclab_assets/data/Assets/wing_box.usd",
+            # scale=(8.93,11.5,5.357), # 250,380,150
             mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 # kinematic_enabled=True,
