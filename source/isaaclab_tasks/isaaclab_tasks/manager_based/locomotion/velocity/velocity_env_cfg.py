@@ -343,7 +343,7 @@ class EventCfg:
     """Configuration for events."""
 
     # startup
-    physics_material = EventTerm(
+    randomize_friction = EventTerm(
         func=mdp.randomize_rigid_body_material,
         mode="startup",
         params={
@@ -385,7 +385,15 @@ class EventCfg:
         },
     )
 
-    add_base_mass = EventTerm(
+    # interval
+    push_robot = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="interval",
+        interval_range_s=(10.0, 15.0),
+        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
+    )
+
+    randomize_link_mass = EventTerm(
         func=mdp.randomize_rigid_body_mass,
         mode="startup",
         params={
@@ -418,12 +426,12 @@ class EventCfg:
                                                              'right_wrist_pitch_link', 
                                                              'left_wrist_yaw_link', 
                                                              'right_wrist_yaw_link']),
-            "mass_distribution_params": (0.9, 1.1),
+            "mass_distribution_params": (0.8, 1.2),
             "operation": "scale",
         },
     )
 
-    add_base_mass = EventTerm(
+    randomize_base_mass = EventTerm(
         func=mdp.randomize_rigid_body_mass,
         mode="startup",
         params={
@@ -433,7 +441,7 @@ class EventCfg:
         },
     )
 
-    base_com = EventTerm(
+    randomize_base_com = EventTerm(
         func=mdp.randomize_rigid_body_com,
         mode="startup",
         params={
@@ -442,7 +450,7 @@ class EventCfg:
         },
     )
 
-    robot_joint_stiffness_and_damping = EventTerm(
+    randomize_pd_gains = EventTerm(
         func=mdp.randomize_actuator_gains,
         min_step_count_between_reset=720,
         mode="reset",
@@ -450,7 +458,6 @@ class EventCfg:
             "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
             "stiffness_distribution_params": (0.8, 1.2),
             "damping_distribution_params": (0.8, 1.2),
-            # "torque_distribution_params": (0.8, 1.2),
             "operation": "scale",
             "distribution": "uniform",
         },
@@ -483,7 +490,7 @@ class EventCfg:
         },
     )
 
-    reset_robot_joints = EventTerm(
+    randomize_motor_zero_offset = EventTerm(
         func=mdp.reset_joints_by_offset,
         mode="reset",
         params={
@@ -492,7 +499,7 @@ class EventCfg:
         },
     )
 
-    robot_joint_friction = EventTerm(
+    randomize_joint_param = EventTerm(
         func=mdp.randomize_joint_parameters,
         min_step_count_between_reset=720,
         mode="reset",
@@ -519,14 +526,6 @@ class EventCfg:
     #         "distribution": "uniform",
     #     },
     # )
-
-    # interval
-    push_robot = EventTerm(
-        func=mdp.push_by_setting_velocity,
-        mode="interval",
-        interval_range_s=(10.0, 15.0),
-        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
-    )
 
 
 @configclass
