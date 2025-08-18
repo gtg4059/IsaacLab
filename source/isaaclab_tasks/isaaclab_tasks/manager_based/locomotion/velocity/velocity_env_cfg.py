@@ -93,7 +93,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
             # scale=(4.37,5.9,3.0), # 262,350,180
             # 2-box
-            usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=((3.0,4.0,2.5)), # 180,240,150
             # # 3-box
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
@@ -752,6 +752,16 @@ class EventCfg:
             "com_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1), "z": (-0.1, 0.1)},
         },
     )
+
+    randomize_object_collider = EventTerm(
+        func=mdp.randomize_rigid_body_collider_offsets,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "contact_offset_distribution_params": (0.0, 0.05),
+            "distribution": "uniform",
+        },
+    ) 
 
     # robot_joint_armature = EventTerm(
     #     func=mdp.randomize_joint_parameters,
