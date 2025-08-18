@@ -23,7 +23,7 @@ class G1Rewards(RewardsCfg):
     base_position_l2 = RewTerm(func=mdp.base_position_l2, weight=-100.0)
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-50.0, params={
-            "target_height": 0.76, 
+            "target_height": 0.78, 
         }
     )
 
@@ -44,12 +44,12 @@ class G1Rewards(RewardsCfg):
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
-        weight=0.2
+        weight=1.0
     )
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=0.05,
+        weight=0.25,
         params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
                                                               [
                                                                   "left_wrist_yaw_link",
@@ -72,7 +72,7 @@ class G1Rewards(RewardsCfg):
 
     table_contact = RewTerm(
         func=mdp.table_not_contacted, 
-        weight=0.1,
+        weight=0.5,
         params={"sensor_cfg": SceneEntityCfg("contact_table")
         }, 
     )
@@ -88,7 +88,7 @@ class G1Rewards(RewardsCfg):
     # )
 
     object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
-                               weight=0.1,
+                               weight=0.5,
                                params={"std": 0.4,
                                        "minimal_height": 0.70,
                                        "asset_cfg":SceneEntityCfg("robot", body_names=["camera"]),
