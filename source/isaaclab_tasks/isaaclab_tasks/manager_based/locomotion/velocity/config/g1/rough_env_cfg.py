@@ -36,6 +36,8 @@ class G1Rewards(RewardsCfg):
         }, 
         weight=0.2
     )
+    
+    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=0.5)
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
