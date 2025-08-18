@@ -741,11 +741,11 @@ class EventCfg:
         },
     )
 
-    randomize_base_com = EventTerm(
-        func=mdp.randomize_rigid_body_com,
+    randomize_object_com = EventTerm(
+        func=mdp.randomize_object_com,
         mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("object",body_names=".*"),
+            "asset_cfg": SceneEntityCfg("object"),
             "com_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1), "z": (-0.1, 0.1)},
         },
     )
