@@ -7,7 +7,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 
 from .rough_env_cfg import G1RoughEnvCfg
-from isaaclab_assets import G1_DEX_FIX
+from isaaclab_assets import G1_DEX_FIX,G1_DEX_FIX_D
 
 
 @configclass
@@ -22,7 +22,9 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # self.observations.policy.height_scan = None
         # no terrain curriculum
         self.curriculum.terrain_levels = None
-        self.events.push_robot = None
+
+        # Randomization
+        # self.events.push_robot = None
 
         # New Rewards
         self.rewards.lin_vel_z_l2.weight = -0.2
@@ -57,7 +59,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
-        self.commands.object_pose.body_name = ".*_wrist_yaw_link"
+        # self.commands.object_pose.body_name = ".*_wrist_yaw_link"
 
 
 class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
@@ -65,7 +67,7 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         # post init of parent
         super().__post_init__()
 
-        self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot = G1_DEX_FIX_D.replace(prim_path="{ENV_REGEX_NS}/Robot")
         # make a smaller scene for play
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5

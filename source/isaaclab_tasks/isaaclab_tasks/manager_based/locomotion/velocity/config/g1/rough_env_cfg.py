@@ -60,12 +60,12 @@ class G1Rewards(RewardsCfg):
         }, 
     )
 
-    table_contact = RewTerm(
-        func=mdp.table_not_contacted, 
-        weight=10.0,
-        params={"sensor_cfg": SceneEntityCfg("contact_table")
-        }, 
-    )
+    # table_contact = RewTerm(
+    #     func=mdp.table_not_contacted, 
+    #     weight=10.0,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_table")
+    #     }, 
+    # )
 
     # flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=10.0)
 
@@ -155,7 +155,7 @@ class G1Rewards(RewardsCfg):
         func=mdp.feet_air_time_positive_biped,
         weight=0.75,
         params={
-            "command_name": "object_pose",
+            "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
             "threshold": 0.4,
         },
@@ -285,10 +285,10 @@ class G1Rewards(RewardsCfg):
     #     },
     # )
 
-    delete_table = RewTerm(
-        func=mdp.delete_table,
-        weight=-0.00001,
-    )
+    # delete_table = RewTerm(
+    #     func=mdp.delete_table,
+    #     weight=-0.00001,
+    # )
 
 
 @configclass

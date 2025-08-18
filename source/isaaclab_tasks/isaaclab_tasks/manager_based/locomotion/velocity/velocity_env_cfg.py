@@ -82,7 +82,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # # white-box
             # pos=[0.43, 0, 0.86], 
             # 2-box
-            pos=[0.37, 0, 0.82], 
+            pos=[0.37, 0, 0.92], 
             # # 3-box
             # pos=[0.39, 0, 0.86], 
             # # 4-box
@@ -148,26 +148,26 @@ class MySceneCfg(InteractiveSceneCfg):
     )
 
     # mount
-    table = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/Table",
-        init_state=RigidObjectCfg.InitialStateCfg(
-            pos=[0.39, 0, 0.74], 
-            rot=[1.0, 0.0 ,0.0, 0.0]),
-        spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", scale=(4.0, 8.0, 1.00),
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                kinematic_enabled=True,
-                solver_position_iteration_count=16,
-                solver_velocity_iteration_count=1,
-                max_angular_velocity=1000.0,
-                max_linear_velocity=1000.0,
-                max_depenetration_velocity=5.0,
-                disable_gravity=True,
-            ),
-            activate_contact_sensors=True,
-        ),
-    )
+    # table = RigidObjectCfg(
+    #     prim_path="{ENV_REGEX_NS}/Table",
+    #     init_state=RigidObjectCfg.InitialStateCfg(
+    #         pos=[0.39, 0, 0.74], 
+    #         rot=[1.0, 0.0 ,0.0, 0.0]),
+    #     spawn=sim_utils.UsdFileCfg(
+    #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", scale=(4.0, 8.0, 1.00),
+    #         mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
+    #             kinematic_enabled=True,
+    #             solver_position_iteration_count=16,
+    #             solver_velocity_iteration_count=1,
+    #             max_angular_velocity=1000.0,
+    #             max_linear_velocity=1000.0,
+    #             max_depenetration_velocity=5.0,
+    #             disable_gravity=True,
+    #         ),
+    #         activate_contact_sensors=True,
+    #     ),
+    # )
 
     # camera = TiledCameraCfg(
     #     prim_path="{ENV_REGEX_NS}/Robot/torso_link/d435_link/camera",
@@ -183,13 +183,13 @@ class MySceneCfg(InteractiveSceneCfg):
     #     offset=TiledCameraCfg.OffsetCfg(pos=(0.0, 0.0, 0.0), rot=(0.5, -0.5, 0.5, -0.5), convention="ros"),
     # )
 
-    contact_table = ContactSensorCfg(
-            prim_path="{ENV_REGEX_NS}/Table",
-            debug_vis=False,
-            history_length=3,
-            update_period=0.0,
-            track_air_time=True,
-        )
+    # contact_table = ContactSensorCfg(
+    #         prim_path="{ENV_REGEX_NS}/Table",
+    #         debug_vis=False,
+    #         history_length=3,
+    #         update_period=0.0,
+    #         track_air_time=True,
+    #     )
 
 
 ##
@@ -201,13 +201,16 @@ class MySceneCfg(InteractiveSceneCfg):
 class CommandsCfg:
     """Command specifications for the MDP."""
 
-    object_pose = mdp.UniformPoseCommandCfg(
+    base_velocity = mdp.UniformVelocityCommandCfg(
         asset_name="robot",
-        body_name=MISSING,  # will be set by agent env cfg
-        resampling_time_range=(5.0, 5.0),
+        resampling_time_range=(10.0, 10.0),
+        rel_standing_envs=0.02,
+        rel_heading_envs=1.0,
+        heading_command=True,
+        heading_control_stiffness=0.5,
         debug_vis=True,
-        ranges=mdp.UniformPoseCommandCfg.Ranges(#0.84, 0.86
-            pos_x=(0.0, 0.0), pos_y=(-0.0, 0.0), pos_z=(0.0, 0.0), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+        ranges=mdp.UniformVelocityCommandCfg.Ranges(
+            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
         ),
     )
 
@@ -345,7 +348,7 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
         object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
         # object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, params={
         #     "robot_cfg": SceneEntityCfg("robot",body_names="camera"),
@@ -442,7 +445,7 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})# 3
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
         object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
         # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
         # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"object_cfg": SceneEntityCfg("object_init")})
@@ -661,18 +664,18 @@ class EventCfg:
         },
     )
 
-    physics_material_palm = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("table"),
-            "static_friction_range": (1.25, 2.25),
-            "dynamic_friction_range": (1.25, 2.25),
-            "restitution_range": (0.0, 0.0),
-            "num_buckets": 64,
-            "make_consistent": True,
-        },
-    )
+    # physics_material_palm = EventTerm(
+    #     func=mdp.randomize_rigid_body_material,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("table"),
+    #         "static_friction_range": (1.25, 2.25),
+    #         "dynamic_friction_range": (1.25, 2.25),
+    #         "restitution_range": (0.0, 0.0),
+    #         "num_buckets": 64,
+    #         "make_consistent": True,
+    #     },
+    # )
 
     physics_material_finger = EventTerm(
         func=mdp.randomize_rigid_body_material,
@@ -704,21 +707,21 @@ class EventCfg:
         },
     )
 
-    reset_table = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={"asset_cfg": SceneEntityCfg("table"),
-            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
-            "velocity_range": {
-                "x": (-0.0, 0.0),
-                "y": (-0.0, 0.0),
-                "z": (-0.0, 0.0),
-                "roll": (-0.0, 0.0),
-                "pitch": (-0.0, 0.0),
-                "yaw": (-0.0, 0.0),
-            },
-        },
-    )
+    # reset_table = EventTerm(
+    #     func=mdp.reset_root_state_uniform,
+    #     mode="reset",
+    #     params={"asset_cfg": SceneEntityCfg("table"),
+    #         "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
+    #         "velocity_range": {
+    #             "x": (-0.0, 0.0),
+    #             "y": (-0.0, 0.0),
+    #             "z": (-0.0, 0.0),
+    #             "roll": (-0.0, 0.0),
+    #             "pitch": (-0.0, 0.0),
+    #             "yaw": (-0.0, 0.0),
+    #         },
+    #     },
+    # )
 
     reset_box_position = EventTerm(
         func=mdp.reset_root_state_uniform_init,
@@ -726,7 +729,7 @@ class EventCfg:
         params={
             "asset_cfg": SceneEntityCfg("object"),
             # 4-box
-            "pose_range": {"x": (-0.03, 0.03), "y": (-0.03, 0.03), "yaw": (-0.0, 0.0)},
+            "pose_range": {"x": (-0.00, 0.00), "y": (-0.00, 0.00), "yaw": (-0.0, 0.0)},
             # # white box
             # "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
             # "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
