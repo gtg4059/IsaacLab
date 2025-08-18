@@ -26,6 +26,16 @@ class G1Rewards(RewardsCfg):
             "target_height": 0.76, 
         }
     )
+
+    track_lin_vel_xy_exp = RewTerm(
+        func=mdp.track_lin_vel_xy_yaw_frame_exp,
+        weight=1.0,
+        params={"command_name": "base_velocity", "std": 0.5},
+    )
+    track_ang_vel_z_exp = RewTerm(
+        func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "base_velocity", "std": 0.5}
+    )
+    
     # pickup reward
     reaching_object= RewTerm(
         func=mdp.object_ee_distance, 
@@ -155,7 +165,7 @@ class G1Rewards(RewardsCfg):
         func=mdp.feet_air_time_positive_biped,
         weight=0.75,
         params={
-            "command_name": "object_pose",
+            "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
             "threshold": 0.4,
         },
