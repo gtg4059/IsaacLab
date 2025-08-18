@@ -44,12 +44,12 @@ class G1Rewards(RewardsCfg):
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
-        weight=20.0
+        weight=5.0
     )
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=2.0,
+        weight=1.0,
         params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
                                                               [
                                                                   "left_wrist_yaw_link",
@@ -115,7 +115,7 @@ class G1Rewards(RewardsCfg):
     # same motion
     motion_equality_shoulder1 = RewTerm(
         func=mdp.motion_equality_cons,
-        weight=1.0,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_yaw_joint"),
         },
@@ -123,7 +123,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_shoulder2 = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=1.0,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_pitch_joint"),
         },
@@ -131,7 +131,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_elbow = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=1.0,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_elbow_joint"),
         },
@@ -139,7 +139,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_wrist1 = RewTerm(
         func=mdp.motion_equality_cons,
-        weight=1.0,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_roll_joint"),
         },
@@ -147,7 +147,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_wrist2 = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=1.0,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_pitch_joint"),
         },
@@ -155,7 +155,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_wrist3 = RewTerm(
         func=mdp.motion_equality_cons,
-        weight=1.0,
+        weight=0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_yaw_joint"),
         },
