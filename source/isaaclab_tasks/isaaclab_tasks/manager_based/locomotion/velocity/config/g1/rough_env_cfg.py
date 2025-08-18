@@ -72,7 +72,7 @@ class G1Rewards(RewardsCfg):
 
     table_contact = RewTerm(
         func=mdp.table_not_contacted, 
-        weight=10.0,
+        weight=2.0,
         params={"sensor_cfg": SceneEntityCfg("contact_table")
         }, 
     )
@@ -88,7 +88,7 @@ class G1Rewards(RewardsCfg):
     # )
 
     object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
-                               weight=8.0,
+                               weight=2.0,
                                params={"std": 0.4,
                                        "minimal_height": 0.70,
                                        "asset_cfg":SceneEntityCfg("robot", body_names=["camera"]),
