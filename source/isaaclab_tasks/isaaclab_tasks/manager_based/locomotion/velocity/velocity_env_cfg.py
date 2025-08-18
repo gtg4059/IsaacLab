@@ -497,7 +497,8 @@ class EventCfg:
                                                              'left_wrist_pitch_link', 
                                                              'right_wrist_pitch_link', 
                                                              'left_wrist_yaw_link', 
-                                                             'right_wrist_yaw_link']),
+                                                             'right_wrist_yaw_link',
+                                                             "R_.*","L_.*",]),
             "static_friction_range": (0.2, 1.3),
             "dynamic_friction_range": (0.2, 1.3),
             "restitution_range": (0.0, 0.4),
@@ -664,31 +665,14 @@ class EventCfg:
         },
     )
 
-    # physics_material_palm = EventTerm(
-    #     func=mdp.randomize_rigid_body_material,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("table"),
-    #         "static_friction_range": (1.25, 2.25),
-    #         "dynamic_friction_range": (1.25, 2.25),
-    #         "restitution_range": (0.0, 0.0),
-    #         "num_buckets": 64,
-    #         "make_consistent": True,
-    #     },
-    # )
-
-    physics_material_finger = EventTerm(
+    physics_material_palm = EventTerm(
         func=mdp.randomize_rigid_body_material,
         mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=[
-                ".*_wrist_yaw_link",
-                # ".*_wrist_pitch_link",
-                "R_.*","L_.*",
-            ]),
-            "static_friction_range": (1.25, 2.25),
-            "dynamic_friction_range": (1.25, 2.25),
-            "restitution_range": (0.0, 0.0),
+            "asset_cfg": SceneEntityCfg("table"),
+            "static_friction_range": (0.2, 1.3),
+            "dynamic_friction_range": (0.2, 1.3),
+            "restitution_range": (0.0, 0.4),
             "num_buckets": 64,
             "make_consistent": True,
         },
@@ -699,29 +683,13 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "static_friction_range": (1.25, 2.25),
-            "dynamic_friction_range": (1.25, 2.25),
-            "restitution_range": (0.0, 0.0),
+            "static_friction_range": (0.2, 1.3),
+            "dynamic_friction_range": (0.2, 1.3),
+            "restitution_range": (0.0, 0.4),
             "num_buckets": 64,
             "make_consistent": True,
         },
     )
-
-    # reset_table = EventTerm(
-    #     func=mdp.reset_root_state_uniform,
-    #     mode="reset",
-    #     params={"asset_cfg": SceneEntityCfg("table"),
-    #         "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
-    #         "velocity_range": {
-    #             "x": (-0.0, 0.0),
-    #             "y": (-0.0, 0.0),
-    #             "z": (-0.0, 0.0),
-    #             "roll": (-0.0, 0.0),
-    #             "pitch": (-0.0, 0.0),
-    #             "yaw": (-0.0, 0.0),
-    #         },
-    #     },
-    # )
 
     reset_box_position = EventTerm(
         func=mdp.reset_root_state_uniform_init,
@@ -753,19 +721,6 @@ class EventCfg:
         },
     )
 
-    # robot_joint_armature = EventTerm(
-    #     func=mdp.randomize_joint_parameters,
-    #     min_step_count_between_reset=720,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-    #         "friction_distribution_params": (0.01, 1.15),
-    #         "viscous_friction_distribution_params": (0.3, 1.5),
-    #         "armature_distribution_params": (0.008,0.06),
-    #         "operation": "abs",
-    #         "distribution": "uniform",
-    #     },
-    # )
 
 
 @configclass
