@@ -147,50 +147,6 @@ class MySceneCfg(InteractiveSceneCfg):
         ),
     )
 
-    # mount
-    # table = RigidObjectCfg(
-    #     prim_path="{ENV_REGEX_NS}/Table",
-    #     init_state=RigidObjectCfg.InitialStateCfg(
-    #         pos=[0.39, 0, 0.74], 
-    #         rot=[1.0, 0.0 ,0.0, 0.0]),
-    #     spawn=sim_utils.UsdFileCfg(
-    #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", scale=(4.0, 8.0, 1.00),
-    #         mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
-    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
-    #             kinematic_enabled=True,
-    #             solver_position_iteration_count=16,
-    #             solver_velocity_iteration_count=1,
-    #             max_angular_velocity=1000.0,
-    #             max_linear_velocity=1000.0,
-    #             max_depenetration_velocity=5.0,
-    #             disable_gravity=True,
-    #         ),
-    #         activate_contact_sensors=True,
-    #     ),
-    # )
-
-    # camera = TiledCameraCfg(
-    #     prim_path="{ENV_REGEX_NS}/Robot/torso_link/d435_link/camera",
-    #     update_period=1000.0,
-    #     height=480,
-    #     width=640,
-    #     debug_vis=True,
-    #     data_types=["instance_id_segmentation_fast"],
-    #     colorize_instance_id_segmentation=True,
-    #     spawn=sim_utils.PinholeCameraCfg(
-    #         focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5)
-    #     ),
-    #     offset=TiledCameraCfg.OffsetCfg(pos=(0.0, 0.0, 0.0), rot=(0.5, -0.5, 0.5, -0.5), convention="ros"),
-    # )
-
-    # contact_table = ContactSensorCfg(
-    #         prim_path="{ENV_REGEX_NS}/Table",
-    #         debug_vis=False,
-    #         history_length=3,
-    #         update_period=0.0,
-    #         track_air_time=True,
-    #     )
-
 
 ##
 # MDP settings
@@ -662,19 +618,6 @@ class EventCfg:
             "armature_distribution_params": (0.008,0.06),
             "operation": "add",
             "distribution": "uniform",
-        },
-    )
-
-    physics_material_palm = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("table"),
-            "static_friction_range": (0.2, 1.3),
-            "dynamic_friction_range": (0.2, 1.3),
-            "restitution_range": (0.0, 0.4),
-            "num_buckets": 64,
-            "make_consistent": True,
         },
     )
 
