@@ -741,6 +741,15 @@ class EventCfg:
         },
     )
 
+    randomize_base_com = EventTerm(
+        func=mdp.randomize_rigid_body_com,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object",body_names=".*"),
+            "com_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1), "z": (-0.1, 0.1)},
+        },
+    )
+
     # robot_joint_armature = EventTerm(
     #     func=mdp.randomize_joint_parameters,
     #     min_step_count_between_reset=720,
