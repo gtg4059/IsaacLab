@@ -496,7 +496,8 @@ class EventCfg:
                                                              'left_wrist_pitch_link', 
                                                              'right_wrist_pitch_link', 
                                                              'left_wrist_yaw_link', 
-                                                             'right_wrist_yaw_link']),
+                                                             'right_wrist_yaw_link',
+                                                             "R_.*","L_.*",]),
             "static_friction_range": (0.2, 1.3),
             "dynamic_friction_range": (0.2, 1.3),
             "restitution_range": (0.0, 0.4),
@@ -668,39 +669,39 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("table"),
-            "static_friction_range": (1.25, 2.25),
-            "dynamic_friction_range": (1.25, 2.25),
-            "restitution_range": (0.0, 0.0),
+            "static_friction_range": (0.2, 1.3),
+            "dynamic_friction_range": (0.2, 1.3),
+            "restitution_range": (0.0, 0.4),
             "num_buckets": 64,
             "make_consistent": True,
         },
     )
 
-    physics_material_finger = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=[
-                ".*_wrist_yaw_link",
-                # ".*_wrist_pitch_link",
-                "R_.*","L_.*",
-            ]),
-            "static_friction_range": (1.25, 2.25),
-            "dynamic_friction_range": (1.25, 2.25),
-            "restitution_range": (0.0, 0.0),
-            "num_buckets": 64,
-            "make_consistent": True,
-        },
-    )
+    # physics_material_finger = EventTerm(
+    #     func=mdp.randomize_rigid_body_material,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names=[
+    #             ".*_wrist_yaw_link",
+    #             # ".*_wrist_pitch_link",
+    #             "R_.*","L_.*",
+    #         ]),
+    #         "static_friction_range": (1.25, 2.25),
+    #         "dynamic_friction_range": (1.25, 2.25),
+    #         "restitution_range": (0.0, 0.0),
+    #         "num_buckets": 64,
+    #         "make_consistent": True,
+    #     },
+    # )
 
     physics_material_obj = EventTerm(
         func=mdp.randomize_rigid_body_material,
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "static_friction_range": (1.25, 2.25),
-            "dynamic_friction_range": (1.25, 2.25),
-            "restitution_range": (0.0, 0.0),
+            "static_friction_range": (0.2, 1.3),
+            "dynamic_friction_range": (0.2, 1.3),
+            "restitution_range": (0.0, 0.4),
             "num_buckets": 64,
             "make_consistent": True,
         },
