@@ -306,7 +306,7 @@ def motion_equality_pros(
     asset: Articulation = env.scene[asset_cfg.name]
     curr_pos_w1 = asset.data.joint_pos[:, asset_cfg.joint_ids[0]]
     curr_pos_w2 = asset.data.joint_pos[:, asset_cfg.joint_ids[1]]
-    return 1 - torch.tanh(torch.abs(curr_pos_w1-curr_pos_w2) / std)
+    return torch.square(curr_pos_w1-curr_pos_w2)
 
 def motion_equality_cons(
     env: ManagerBasedRLEnv,
@@ -318,4 +318,4 @@ def motion_equality_cons(
     asset: Articulation = env.scene[asset_cfg.name]
     curr_pos_w1 = asset.data.joint_pos[:, asset_cfg.joint_ids[0]]
     curr_pos_w2 = asset.data.joint_pos[:, asset_cfg.joint_ids[1]]
-    return 1 - torch.tanh(torch.abs(curr_pos_w1+curr_pos_w2) / std)
+    return torch.square(curr_pos_w1+curr_pos_w2)
