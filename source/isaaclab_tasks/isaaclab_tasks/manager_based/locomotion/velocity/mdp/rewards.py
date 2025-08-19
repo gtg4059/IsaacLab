@@ -219,7 +219,7 @@ def object_ee_distance(
     angle = torch.sqrt((1 - torch.tanh(torch.abs(angle1/(std))))*(1 - torch.tanh(torch.abs(angle2/(std)))))
     # print("distance1:",distance1)
     # print("distance2:",distance2)
-    print(des_quat_b,curr_quat_w1,curr_quat_w2)
+    # print(des_quat_b,curr_quat_w1,curr_quat_w2)
     return dist*angle#+0.3*angle
 
 
