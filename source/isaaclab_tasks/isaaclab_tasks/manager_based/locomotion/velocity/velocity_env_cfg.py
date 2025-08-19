@@ -177,7 +177,7 @@ class CommandsCfg:
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.38, 0.38),
-            pos_y=(0.12, 0.12),
+            pos_y=(0.15, 0.15),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
@@ -192,7 +192,7 @@ class CommandsCfg:
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.38, 0.38),
-            pos_y=(-0.12, -0.12),
+            pos_y=(-0.15, -0.15),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
@@ -579,7 +579,37 @@ class EventCfg:
         min_step_count_between_reset=720,
         mode="reset",
         params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "asset_cfg": SceneEntityCfg("robot", joint_names=[
+                'left_hip_pitch_joint', 
+                'left_hip_roll_joint', 
+                'left_hip_yaw_joint', 
+                'left_knee_joint', 
+                'left_ankle_pitch_joint', 
+                'left_ankle_roll_joint', 
+                'right_hip_pitch_joint', 
+                'right_hip_roll_joint', 
+                'right_hip_yaw_joint', 
+                'right_knee_joint', 
+                'right_ankle_pitch_joint', 
+                'right_ankle_roll_joint',
+                # G1_29_no_hand
+                "waist_yaw_joint",
+                "waist_roll_joint",
+                "waist_pitch_joint",
+                "left_shoulder_pitch_joint",
+                "left_shoulder_roll_joint",
+                "left_shoulder_yaw_joint",
+                "left_elbow_joint",
+                "left_wrist_roll_joint",
+                "left_wrist_pitch_joint",
+                "left_wrist_yaw_joint",
+                "right_shoulder_pitch_joint",
+                "right_shoulder_roll_joint",
+                "right_shoulder_yaw_joint",
+                "right_elbow_joint",
+                "right_wrist_roll_joint",
+                "right_wrist_pitch_joint",
+                "right_wrist_yaw_joint"]),
             "stiffness_distribution_params": (0.8, 1.2),
             "damping_distribution_params": (0.8, 1.2),
             "operation": "scale",
@@ -613,6 +643,18 @@ class EventCfg:
             },
         },
     )
+
+    # reset_robot_joints = EventTerm(
+    #     func=mdp.reset_joints_by_scale,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names=[
+    #             '.*_proximal_joint'
+    #             ]),
+    #         "position_range": (1.0, 1.0),
+    #         "velocity_range": (0.0, 0.0),
+    #     },
+    # )
 
     randomize_motor_zero_offset = EventTerm(
         func=mdp.reset_joints_by_offset,
