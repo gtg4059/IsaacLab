@@ -197,22 +197,22 @@ class MySceneCfg(InteractiveSceneCfg):
 ##
 
 
-@configclass
-class CommandsCfg:
-    """Command specifications for the MDP."""
+# @configclass
+# class CommandsCfg:
+#     """Command specifications for the MDP."""
 
-    base_velocity = mdp.UniformVelocityCommandCfg(
-        asset_name="robot",
-        resampling_time_range=(10.0, 10.0),
-        rel_standing_envs=0.02,
-        rel_heading_envs=1.0,
-        heading_command=True,
-        heading_control_stiffness=0.5,
-        debug_vis=True,
-        ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
-        ),
-    )
+#     base_velocity = mdp.UniformVelocityCommandCfg(
+#         asset_name="robot",
+#         resampling_time_range=(10.0, 10.0),
+#         rel_standing_envs=0.02,
+#         rel_heading_envs=1.0,
+#         heading_command=True,
+#         heading_control_stiffness=0.5,
+#         debug_vis=True,
+#         ranges=mdp.UniformVelocityCommandCfg.Ranges(
+#             lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
+#         ),
+#     )
 
 @configclass
 class ActionsCfg:
@@ -347,7 +347,7 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
+        # velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
         object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
         # object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, params={
         #     "robot_cfg": SceneEntityCfg("robot",body_names="camera"),
@@ -444,7 +444,7 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
+        # velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
         object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
         # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
         # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"object_cfg": SceneEntityCfg("object_init")})
@@ -865,7 +865,7 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
-    commands: CommandsCfg = CommandsCfg()
+    # commands: CommandsCfg = CommandsCfg()
     # MDP settings
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
