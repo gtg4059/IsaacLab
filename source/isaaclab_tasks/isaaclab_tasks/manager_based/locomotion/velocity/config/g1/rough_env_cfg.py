@@ -49,7 +49,7 @@ class G1Rewards(RewardsCfg):
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=0.25,
+        weight=0.5,
         params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
                                                               [
                                                                   "left_wrist_yaw_link",
@@ -72,7 +72,7 @@ class G1Rewards(RewardsCfg):
 
     table_contact = RewTerm(
         func=mdp.table_not_contacted, 
-        weight=0.5,
+        weight=1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_table")
         }, 
     )
@@ -88,7 +88,7 @@ class G1Rewards(RewardsCfg):
     # )
 
     object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
-                               weight=0.5,
+                               weight=1.0,
                                params={"std": 0.4,
                                        "minimal_height": 0.70,
                                        "asset_cfg":SceneEntityCfg("robot", body_names=["camera"]),
@@ -186,7 +186,7 @@ class G1Rewards(RewardsCfg):
     # Penalize deviation from default of the joints that are not essential for Pickup
     joint_deviation_leg = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.2,
+        weight=-1.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
                     ".*_hip_roll_joint",
                     # ".*_hip_pitch_joint",
@@ -201,7 +201,7 @@ class G1Rewards(RewardsCfg):
 
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.2,
+        weight=-1.0,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -239,7 +239,7 @@ class G1Rewards(RewardsCfg):
    
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-1.0,
+        weight=-5.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
             "waist_roll_joint",
             "waist_pitch_joint",
