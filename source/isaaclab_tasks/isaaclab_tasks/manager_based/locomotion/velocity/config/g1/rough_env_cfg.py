@@ -9,7 +9,7 @@ from isaaclab.utils import configclass
 
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg, RewardsCfg
-
+import isaaclab_tasks.manager_based.manipulation.reach.mdp as manipulation_mdp
 ##
 # Pre-defined configs
 ##
@@ -93,6 +93,62 @@ class G1Rewards(RewardsCfg):
             "waist_pitch_joint",
             "waist_yaw_joint",
         ])},
+    )
+
+    left_ee_pos_tracking = RewTerm(
+        func=manipulation_mdp.position_command_error,
+        weight=-2.0,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="left_arm_wrist_yaw"),
+            "command_name": "left_ee_pose",
+        },
+    )
+
+    left_ee_pos_tracking_fine_grained = RewTerm(
+        func=manipulation_mdp.position_command_error_tanh,
+        weight=2.0,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="left_arm_wrist_yaw"),
+            "std": 0.05,
+            "command_name": "left_ee_pose",
+        },
+    )
+
+    left_end_effector_orientation_tracking = RewTerm(
+        func=manipulation_mdp.orientation_command_error,
+        weight=-0.2,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="left_arm_wrist_yaw"),
+            "command_name": "left_ee_pose",
+        },
+    )
+
+    right_ee_pos_tracking = RewTerm(
+        func=manipulation_mdp.position_command_error,
+        weight=-2.0,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="right_arm_wrist_yaw"),
+            "command_name": "right_ee_pose",
+        },
+    )
+
+    right_ee_pos_tracking_fine_grained = RewTerm(
+        func=manipulation_mdp.position_command_error_tanh,
+        weight=2.0,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="right_arm_wrist_yaw"),
+            "std": 0.05,
+            "command_name": "right_ee_pose",
+        },
+    )
+
+    right_end_effector_orientation_tracking = RewTerm(
+        func=manipulation_mdp.orientation_command_error,
+        weight=-0.2,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="right_arm_wrist_yaw"),
+            "command_name": "right_ee_pose",
+        },
     )
 
 
