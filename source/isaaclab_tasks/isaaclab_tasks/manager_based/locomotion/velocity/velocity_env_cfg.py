@@ -128,24 +128,24 @@ class MySceneCfg(InteractiveSceneCfg):
     # )
 
     # add cube
-    object_init: RigidObjectCfg = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/object_init",
-        init_state=RigidObjectCfg.InitialStateCfg(
-            # # white-box
-            # pos=[0.43, 0, 0.86], 
-            # 4-box
-            pos=[0.37, 0, 0.93], 
-            rot=[1.0, 0.0 ,0.0, 0.0]),
-        spawn=sim_utils.CuboidCfg(
-            size=(0.1,0.1,0.1),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(max_depenetration_velocity=1.0, 
-                                                         disable_gravity=True,
-                                                         kinematic_enabled=True),
-            # mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
-            # physics_material=sim_utils.RigidBodyMaterialCfg(),
-            # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.0, 0.0)),
-        ),
-    )
+    # object_init: RigidObjectCfg = RigidObjectCfg(
+    #     prim_path="{ENV_REGEX_NS}/object_init",
+    #     init_state=RigidObjectCfg.InitialStateCfg(
+    #         # # white-box
+    #         # pos=[0.43, 0, 0.86], 
+    #         # 4-box
+    #         pos=[0.37, 0, 0.93], 
+    #         rot=[1.0, 0.0 ,0.0, 0.0]),
+    #     spawn=sim_utils.CuboidCfg(
+    #         size=(0.1,0.1,0.1),
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(max_depenetration_velocity=1.0, 
+    #                                                      disable_gravity=True,
+    #                                                      kinematic_enabled=True),
+    #         # mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+    #         # physics_material=sim_utils.RigidBodyMaterialCfg(),
+    #         # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.0, 0.0)),
+    #     ),
+    # )
 
     # mount
     table = RigidObjectCfg(
@@ -206,7 +206,7 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.38, 0.38),
+            pos_x=(0.32, 0.32),
             pos_y=(0.12, 0.12),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
@@ -220,7 +220,7 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.38, 0.38),
+            pos_x=(0.32, 0.32),
             pos_y=(-0.12, -0.12),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
@@ -775,12 +775,12 @@ class EventCfg:
     )
 
     reset_box_position = EventTerm(
-        func=mdp.reset_root_state_uniform_init,
+        func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("object"),
             # 4-box
-            "pose_range": {"x": (-0.03, 0.03), "y": (-0.03, 0.03), "yaw": (-0.0, 0.0)},
+            "pose_range": {"x": (-0.06, 0.06), "y": (-0.06, 0.06), "yaw": (-0.0, 0.0)},
             # # white box
             # "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
             # "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
@@ -809,7 +809,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "contact_offset_distribution_params": (0.0, 0.05),
+            "contact_offset_distribution_params": (0.0, 0.03),
             "distribution": "uniform",
         },
     ) 
@@ -837,7 +837,7 @@ class RewardsCfg:
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.005)
 
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
@@ -885,7 +885,7 @@ class TerminationsCfg:
     #                                                               ]), "threshold": 20.0},
     # )
     object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("object")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.80, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
