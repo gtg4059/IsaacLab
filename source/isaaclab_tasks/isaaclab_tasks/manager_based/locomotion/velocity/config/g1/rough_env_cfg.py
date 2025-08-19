@@ -58,7 +58,7 @@ class G1Rewards(RewardsCfg):
         }, 
     )
 
-    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=2.0)
+    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=10.0)
 
     # pickup reward
     reaching_object= RewTerm(

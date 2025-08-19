@@ -208,18 +208,19 @@ def object_ee_distance(
     # print("curr_pos_w2:",curr_pos_w2)
     # print("des_pos_b:",des_pos_b)
     # obtain the desired and current orientations
-    des_quat_b = object.data.root_quat_w
-    curr_quat_w1 = asset.data.body_state_w[:, asset_cfg.body_ids[0], 3:7]  # type: ignore
-    curr_quat_w2 = asset.data.body_state_w[:, asset_cfg.body_ids[1], 3:7]  # type: ignore
+    des_quat_b = object.data.root_quat_w # 1 0 0 0
+    curr_quat_w1 = asset.data.body_state_w[:, asset_cfg.body_ids[0], 3:7]  # type: ignore 7 0 0 7
+    curr_quat_w2 = asset.data.body_state_w[:, asset_cfg.body_ids[1], 3:7]  # type: ignore 7 0 0 -7
     angle1 = quat_error_magnitude(des_quat_b-curr_quat_w1, torch.tensor([0.7073883, 0,0,-0.7068252],device="cuda:0").repeat(env.num_envs,1))#-pi
     angle2 = quat_error_magnitude(des_quat_b-curr_quat_w2, torch.tensor([0.7073883, 0,0, 0.7068252],device="cuda:0").repeat(env.num_envs,1))#pi
     # result1 = (1 - torch.tanh(torch.abs(angle1)/(std)))*(1 - torch.tanh(torch.abs(distance1-0.18)/(std**2)))
     # result2 = (1 - torch.tanh(torch.abs(angle2)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.18)/(std**2)))
     dist = torch.sqrt((1 - torch.tanh(torch.abs(distance1)/(std)))*(1 - torch.tanh(torch.abs(distance2)/(std))))+5*torch.sqrt((1 - torch.tanh(torch.abs(distance1)/(std**2)))*(1 - torch.tanh(torch.abs(distance2)/(std**2))))
-    angle = torch.sqrt((1 - torch.tanh(torch.abs(angle1/(std*2))))*(1 - torch.tanh(torch.abs(angle2/(std*2)))))
+    angle = torch.sqrt((1 - torch.tanh(torch.abs(angle1/(std))))*(1 - torch.tanh(torch.abs(angle2/(std)))))
     # print("distance1:",distance1)
     # print("distance2:",distance2)
-    return dist#+0.3*angle
+    print(des_quat_b,curr_quat_w1,curr_quat_w2)
+    return dist*angle#+0.3*angle
 
 
 def object_goal_distance(
