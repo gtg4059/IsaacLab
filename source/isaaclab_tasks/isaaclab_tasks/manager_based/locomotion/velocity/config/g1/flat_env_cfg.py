@@ -22,11 +22,10 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # self.observations.policy.height_scan = None
         # no terrain curriculum
         self.curriculum.terrain_levels = None
-        self.events.push_robot = None
 
         # New Rewards
         self.rewards.lin_vel_z_l2.weight = -0.2
-        self.rewards.action_rate_l2.weight = -0.05
+        self.rewards.action_rate_l2.weight = -0.1
         self.rewards.dof_acc_l2.weight = -1.0e-7
         # self.rewards.joint_deviation_torso.weight = -5.0
         # self.rewards.joint_deviation_hip.weight = -2.0
