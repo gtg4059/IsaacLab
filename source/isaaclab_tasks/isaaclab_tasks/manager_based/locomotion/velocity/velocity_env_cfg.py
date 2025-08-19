@@ -200,7 +200,6 @@ class MySceneCfg(InteractiveSceneCfg):
 @configclass
 class CommandsCfg:
     """Command specifications for the MDP."""
-
     left_ee_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
         body_name="L_middle_proximal",
@@ -208,14 +207,13 @@ class CommandsCfg:
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.38, 0.38),
-            pos_y=(0.15, 0.15),
+            pos_y=(0.12, 0.12),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
             yaw=(math.pi / 2.0, math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
         ),
     )
-
     right_ee_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
         body_name="R_middle_proximal",
@@ -223,7 +221,7 @@ class CommandsCfg:
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.38, 0.38),
-            pos_y=(-0.15, -0.15),
+            pos_y=(-0.12, -0.12),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
@@ -364,8 +362,6 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        # velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
         left_ee_pose_command = ObsTerm(
             func=mdp.generated_commands,
             params={"command_name": "left_ee_pose"},
@@ -470,8 +466,6 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        # velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
         left_ee_pose_command = ObsTerm(
             func=mdp.generated_commands,
             params={"command_name": "left_ee_pose"},
@@ -542,13 +536,34 @@ class EventCfg:
     )
 
     # interval
-    push_object = EventTerm(
-        func=mdp.push_by_setting_velocity,
+    left_hand_force = EventTerm(
+        func=mdp.apply_external_force_torque,
         mode="interval",
-        interval_range_s=(2.0, 3.0),
-        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5),"z": (-0.5, 0.5)},
-                "asset_cfg": SceneEntityCfg("object")},
+        interval_range_s=(10.0, 15.0),
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
+            "force_range": (-10.0, 10.0),
+            "torque_range": (-1.0, 1.0),
+        },
     )
+
+    right_hand_force = EventTerm(
+        func=mdp.apply_external_force_torque,
+        mode="interval",
+        interval_range_s=(10.0, 15.0),
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
+            "force_range": (-10.0, 10.0),
+            "torque_range": (-1.0, 1.0),
+        },
+    )
+    # push_object = EventTerm(
+    #     func=mdp.push_by_setting_velocity,
+    #     mode="interval",
+    #     interval_range_s=(2.0, 3.0),
+    #     params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5),"z": (-0.5, 0.5)},
+    #             "asset_cfg": SceneEntityCfg("object")},
+    # )
 
     randomize_link_mass = EventTerm(
         func=mdp.randomize_rigid_body_mass,
@@ -870,10 +885,10 @@ class TerminationsCfg:
     #                                                               ]), "threshold": 20.0},
     # )
     object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.80, "asset_cfg": SceneEntityCfg("object")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.70, "asset_cfg": SceneEntityCfg("robot")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
     )
     bad_position = DoneTerm(
         func=mdp.bad_position, params={"limit_dist": 0.5, "asset_cfg": SceneEntityCfg("robot")}
@@ -901,7 +916,7 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
-    # commands: CommandsCfg = CommandsCfg()
+    commands: CommandsCfg = CommandsCfg()
     # MDP settings
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
