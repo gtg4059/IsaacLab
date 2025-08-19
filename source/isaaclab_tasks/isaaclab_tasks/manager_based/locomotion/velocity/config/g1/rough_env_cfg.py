@@ -44,12 +44,12 @@ class G1Rewards(RewardsCfg):
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
-        weight=1.0
+        weight=2.0
     )
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=0.5,
+        weight=1.0,
         params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
                                                               [
                                                                   "left_wrist_yaw_link",
@@ -72,12 +72,12 @@ class G1Rewards(RewardsCfg):
 
     table_contact = RewTerm(
         func=mdp.table_not_contacted, 
-        weight=1.0,
+        weight=2.0,
         params={"sensor_cfg": SceneEntityCfg("contact_table")
         }, 
     )
 
-    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=0.5)
+    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=1.0)
 
     # object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
     #                            weight=1.0,
@@ -88,7 +88,7 @@ class G1Rewards(RewardsCfg):
     # )
 
     object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
-                               weight=1.0,
+                               weight=2.0,
                                params={"std": 0.4,
                                        "minimal_height": 0.70,
                                        "asset_cfg":SceneEntityCfg("robot", body_names=["camera"]),
@@ -207,11 +207,11 @@ class G1Rewards(RewardsCfg):
                 "robot",
                 joint_names=[
                     # ".*_shoulder_roll_joint",
-                    # ".*_shoulder_pitch_joint",
+                    ".*_shoulder_pitch_joint",
                     # ".*_shoulder_yaw_joint",
-                    # ".*_elbow_joint",
+                    ".*_elbow_joint",
                     ".*_wrist_yaw_joint",
-                    # ".*_wrist_pitch_joint",
+                    ".*_wrist_pitch_joint",
                     ".*_wrist_roll_joint",
                 ],
             )
