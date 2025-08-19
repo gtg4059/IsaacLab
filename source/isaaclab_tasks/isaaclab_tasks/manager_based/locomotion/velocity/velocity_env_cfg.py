@@ -79,10 +79,10 @@ class MySceneCfg(InteractiveSceneCfg):
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
         init_state=RigidObjectCfg.InitialStateCfg(
-            # # white-box
-            # pos=[0.43, 0, 0.86], 
-            # 2-box
-            pos=[0.37, 0, 0.92], 
+            # white-box
+            pos=[0.38, 0, 0.86], 
+            # # 2-box
+            # pos=[0.37, 0, 0.92], 
             # # 3-box
             # pos=[0.39, 0, 0.86], 
             # # 4-box
@@ -92,18 +92,18 @@ class MySceneCfg(InteractiveSceneCfg):
             # # white box
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
             # scale=(4.37,5.9,3.0), # 262,350,180
-            # 2-box
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            scale=((3.0,4.0,2.5)), # 180,240,150
+            # # 2-box
+            # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+            # scale=((3.0,4.0,2.5)), # 180,240,150
             # # 3-box
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
             # scale=((4.17,5.67,3.5)), # 250,340,210
             # # 4-box
             # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
             # scale=((5.17,6.83,4.67)), # 310,410,280
-            # # white wing-box
-            # usd_path="./source/isaaclab_assets/data/Assets/wing_box.usd",
-            # scale=(8.93,11.5,5.357), # 250,380,150
+            # white wing-box
+            usd_path="./source/isaaclab_assets/data/Assets/wing_box.usd",
+            scale=(8.93,11.5,5.357), # 250,380,150
             mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 # kinematic_enabled=True,
@@ -747,10 +747,6 @@ class TerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    # base_contact = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 40.0},
-    # )
     base_contact2 = DoneTerm(
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 20.0},
@@ -759,32 +755,11 @@ class TerminationsCfg:
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 20.0},
     )
-    # base_contact4 = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_pitch_link"), "threshold": 10.0},
-    # )
-    # base_contact5 = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_elbow_link"), "threshold": 10.0},
-    # )
-    # base_contact6 = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=[
-    #                                                               ".*_thumb_intermediate",
-    #                                                               ".*_index_intermediate",
-    #                                                               ".*_middle_intermediate",
-    #                                                               ".*_pinky_intermediate",
-    #                                                               ".*_ring_intermediate",
-    #                                                               ]), "threshold": 20.0},
-    # )
     object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.88, "asset_cfg": SceneEntityCfg("object")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.70, "asset_cfg": SceneEntityCfg("robot")}
-    )
-    bad_position = DoneTerm(
-        func=mdp.bad_position, params={"limit_dist": 0.5, "asset_cfg": SceneEntityCfg("robot")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.4, "asset_cfg": SceneEntityCfg("robot")}
     )
 
 
