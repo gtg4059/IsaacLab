@@ -157,7 +157,7 @@ class JointPositionAction(JointAction):
 
     def apply_actions(self):
         # set position targets
-        print(self.processed_actions[0])
+        # print(self.processed_actions[0])
         self._asset.set_joint_position_target(self.processed_actions, joint_ids=self._joint_ids)
 
 
