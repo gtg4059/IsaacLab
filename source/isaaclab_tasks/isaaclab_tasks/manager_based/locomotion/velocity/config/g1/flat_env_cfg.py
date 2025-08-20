@@ -46,7 +46,7 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         # post init of parent
         super().__post_init__()
 
-        self.scene.robot = G1_DEX_FIX_D.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
         # make a smaller scene for play
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
