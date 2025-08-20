@@ -19,7 +19,7 @@ Reference: https://github.com/unitreerobotics/unitree_ros
 """
 
 import isaaclab.sim as sim_utils
-from isaaclab.actuators import ActuatorNetMLPCfg, DCMotorCfg, ImplicitActuatorCfg, DelayedPDActuatorCfg
+from isaaclab.actuators import ActuatorNetMLPCfg, DCMotorCfg, ImplicitActuatorCfg, DelayedPDActuatorCfg, IdealPDActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
 
@@ -748,7 +748,7 @@ G1_DEX_FIX_D = ArticulationCfg(
     ),
     soft_joint_pos_limit_factor=0.9,
     actuators={
-        "legs": DelayedPDActuatorCfg(
+        "legs": IdealPDActuatorCfg(
             joint_names_expr=[
                 ".*_hip_yaw_joint",
                 ".*_hip_roll_joint",
@@ -799,20 +799,20 @@ G1_DEX_FIX_D = ArticulationCfg(
                 ".*_knee_joint": 0.01,
                 "waist_.*": 0.01,
             },
-            min_delay=0,
-            max_delay=4,
+            # min_delay=0,
+            # max_delay=1,
         ),
-        "feet": DelayedPDActuatorCfg(
+        "feet": IdealPDActuatorCfg(
             effort_limit=50,
             velocity_limit=37,
             joint_names_expr=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
             stiffness=40.0,
             damping=2.0,
             armature=0.01,
-            min_delay=0,
-            max_delay=4,
+            # min_delay=0,
+            # max_delay=1,
         ),
-        "arms": DelayedPDActuatorCfg(
+        "arms": IdealPDActuatorCfg(
             joint_names_expr=[
                 ".*_shoulder_pitch_joint",
                 ".*_shoulder_roll_joint",
@@ -863,8 +863,8 @@ G1_DEX_FIX_D = ArticulationCfg(
                 ".*_elbow_.*": 0.01,
                 ".*_wrist_.*": 0.01,
             },
-            min_delay=0,
-            max_delay=4,
+            # min_delay=0,
+            # max_delay=1,
         ),
         # "hands": IdealPDActuatorCfg(
         #     joint_names_expr=[
@@ -883,7 +883,7 @@ G1_DEX_FIX_D = ArticulationCfg(
         #         "L_.*": 0.001,
         #     },
         # ),
-        "finger": DelayedPDActuatorCfg(
+        "finger": IdealPDActuatorCfg(
             joint_names_expr=[
                 '.*_proximal_joint'
             ],
@@ -894,8 +894,8 @@ G1_DEX_FIX_D = ArticulationCfg(
             armature={
                 '.*_proximal_joint': 0.001,
             },
-            min_delay=0,
-            max_delay=4,
+            # min_delay=0,
+            # max_delay=1,
         ),
     },
 )
