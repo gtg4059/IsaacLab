@@ -537,7 +537,7 @@ G1_DEX_FIX = ArticulationCfg(
                 "waist_.*": 0.01,
             },
             min_delay=0,
-            max_delay=4,
+            max_delay=1,
         ),
         "feet": DelayedPDActuatorCfg(
             effort_limit=50,
@@ -547,7 +547,7 @@ G1_DEX_FIX = ArticulationCfg(
             damping=2.0,
             armature=0.01,
             min_delay=0,
-            max_delay=4,
+            max_delay=1,
         ),
         "arms": DelayedPDActuatorCfg(
             joint_names_expr=[
@@ -601,7 +601,7 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_wrist_.*": 0.01,
             },
             min_delay=0,
-            max_delay=4,
+            max_delay=1,
         ),
         # "hands": IdealPDActuatorCfg(
         #     joint_names_expr=[
@@ -632,7 +632,7 @@ G1_DEX_FIX = ArticulationCfg(
                 '.*_proximal_joint': 0.001,
             },
             min_delay=0,
-            max_delay=4,
+            max_delay=1,
         ),
     },
 )
