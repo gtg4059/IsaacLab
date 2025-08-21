@@ -95,61 +95,61 @@ class G1Rewards(RewardsCfg):
         ])},
     )
 
-    left_ee_pos_tracking = RewTerm(
-        func=manipulation_mdp.position_command_error,
-        weight=-0.5,
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
-            "command_name": "left_ee_pose",
-        },
-    )
+    # left_ee_pos_tracking = RewTerm(
+    #     func=manipulation_mdp.position_command_error,
+    #     weight=-0.5,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
+    #         "command_name": "left_ee_pose",
+    #     },
+    # )
 
-    left_ee_pos_tracking_fine_grained = RewTerm(
-        func=manipulation_mdp.position_command_error_tanh,
-        weight=0.5,
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
-            "std": 0.05,
-            "command_name": "left_ee_pose",
-        },
-    )
+    # left_ee_pos_tracking_fine_grained = RewTerm(
+    #     func=manipulation_mdp.position_command_error_tanh,
+    #     weight=0.5,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
+    #         "std": 0.05,
+    #         "command_name": "left_ee_pose",
+    #     },
+    # )
 
-    left_end_effector_orientation_tracking = RewTerm(
-        func=manipulation_mdp.orientation_command_error,
-        weight=-0.5,
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
-            "command_name": "left_ee_pose",
-        },
-    )
+    # left_end_effector_orientation_tracking = RewTerm(
+    #     func=manipulation_mdp.orientation_command_error,
+    #     weight=-0.5,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
+    #         "command_name": "left_ee_pose",
+    #     },
+    # )
 
-    right_ee_pos_tracking = RewTerm(
-        func=manipulation_mdp.position_command_error,
-        weight=-0.5,
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
-            "command_name": "right_ee_pose",
-        },
-    )
+    # right_ee_pos_tracking = RewTerm(
+    #     func=manipulation_mdp.position_command_error,
+    #     weight=-0.5,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
+    #         "command_name": "right_ee_pose",
+    #     },
+    # )
 
-    right_ee_pos_tracking_fine_grained = RewTerm(
-        func=manipulation_mdp.position_command_error_tanh,
-        weight=0.5,
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
-            "std": 0.05,
-            "command_name": "right_ee_pose",
-        },
-    )
+    # right_ee_pos_tracking_fine_grained = RewTerm(
+    #     func=manipulation_mdp.position_command_error_tanh,
+    #     weight=0.5,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
+    #         "std": 0.05,
+    #         "command_name": "right_ee_pose",
+    #     },
+    # )
 
-    right_end_effector_orientation_tracking = RewTerm(
-        func=manipulation_mdp.orientation_command_error,
-        weight=-0.5,
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
-            "command_name": "right_ee_pose",
-        },
-    )
+    # right_end_effector_orientation_tracking = RewTerm(
+    #     func=manipulation_mdp.orientation_command_error,
+    #     weight=-0.5,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
+    #         "command_name": "right_ee_pose",
+    #     },
+    # )
 
 
 @configclass

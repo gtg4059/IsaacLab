@@ -104,34 +104,34 @@ class CommandsCfg:
         ),
     )
 
-    left_ee_pose = mdp.UniformPoseCommandCfg(
-        asset_name="robot",
-        body_name="L_middle_proximal",
-        resampling_time_range=(30.0, 30.0),
-        debug_vis=True,
-        ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.38, 0.38),
-            pos_y=(0.14, 0.14),
-            pos_z=(0.15, 0.15),
-            roll=(-0.0, 0.0),
-            pitch=(-0.0, 0.0),
-            yaw=(math.pi / 2.0, math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
-        ),
-    )
-    right_ee_pose = mdp.UniformPoseCommandCfg(
-        asset_name="robot",
-        body_name="R_middle_proximal",
-        resampling_time_range=(30.0, 30.0),
-        debug_vis=True,
-        ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.38, 0.38),
-            pos_y=(-0.14, -0.14),
-            pos_z=(0.15, 0.15),
-            roll=(-0.0, 0.0),
-            pitch=(-0.0, 0.0),
-            yaw=(-math.pi / 2.0, -math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
-        ),
-    )
+    # left_ee_pose = mdp.UniformPoseCommandCfg(
+    #     asset_name="robot",
+    #     body_name="L_middle_proximal",
+    #     resampling_time_range=(30.0, 30.0),
+    #     debug_vis=True,
+    #     ranges=mdp.UniformPoseCommandCfg.Ranges(
+    #         pos_x=(0.38, 0.38),
+    #         pos_y=(0.14, 0.14),
+    #         pos_z=(0.15, 0.15),
+    #         roll=(-0.0, 0.0),
+    #         pitch=(-0.0, 0.0),
+    #         yaw=(math.pi / 2.0, math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
+    #     ),
+    # )
+    # right_ee_pose = mdp.UniformPoseCommandCfg(
+    #     asset_name="robot",
+    #     body_name="R_middle_proximal",
+    #     resampling_time_range=(30.0, 30.0),
+    #     debug_vis=True,
+    #     ranges=mdp.UniformPoseCommandCfg.Ranges(
+    #         pos_x=(0.38, 0.38),
+    #         pos_y=(-0.14, -0.14),
+    #         pos_z=(0.15, 0.15),
+    #         roll=(-0.0, 0.0),
+    #         pitch=(-0.0, 0.0),
+    #         yaw=(-math.pi / 2.0, -math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
+    #     ),
+    # )
 
 
 @configclass
@@ -268,14 +268,14 @@ class ObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
         #########################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))# 3
-        left_ee_pose_command = ObsTerm(
-            func=mdp.generated_commands,
-            params={"command_name": "left_ee_pose"},
-        )
-        right_ee_pose_command = ObsTerm(
-            func=mdp.generated_commands,
-            params={"command_name": "right_ee_pose"},
-        )
+        # left_ee_pose_command = ObsTerm(
+        #     func=mdp.generated_commands,
+        #     params={"command_name": "left_ee_pose"},
+        # )
+        # right_ee_pose_command = ObsTerm(
+        #     func=mdp.generated_commands,
+        #     params={"command_name": "right_ee_pose"},
+        # )
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -367,14 +367,14 @@ class ObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
         #########################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))# 3
-        left_ee_pose_command = ObsTerm(
-            func=mdp.generated_commands,
-            params={"command_name": "left_ee_pose"},
-        )
-        right_ee_pose_command = ObsTerm(
-            func=mdp.generated_commands,
-            params={"command_name": "right_ee_pose"},
-        )
+        # left_ee_pose_command = ObsTerm(
+        #     func=mdp.generated_commands,
+        #     params={"command_name": "left_ee_pose"},
+        # )
+        # right_ee_pose_command = ObsTerm(
+        #     func=mdp.generated_commands,
+        #     params={"command_name": "right_ee_pose"},
+        # )
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
