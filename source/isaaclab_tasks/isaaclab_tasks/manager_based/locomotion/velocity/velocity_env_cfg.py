@@ -183,7 +183,7 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(-3.0, 3.0)
+            pos_x=(-3.0, 3.0),
             pos_y=(-3.0, 3.0),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
@@ -715,7 +715,7 @@ class EventCfg:
     )
 
     reset_box_position = EventTerm(
-        func=mdp.reset_root_state_uniform_init,
+        func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("object"),
