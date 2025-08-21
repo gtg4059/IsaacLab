@@ -78,33 +78,25 @@ class MySceneCfg(InteractiveSceneCfg):
     # Set Cube as object
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(
-            # white-box
-            pos=[0.38, 0, 0.86], 
-            # # 2-box
-            # pos=[0.37, 0, 0.92], 
-            # # 3-box
-            # pos=[0.39, 0, 0.86], 
-            # # 4-box
-            # pos=[0.43, 0, 0.93], 
-            rot=[1.0, 0.0 ,0.0, 0.0]),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.2659, -0.0108,  0.8287], rot=[1, 0, 0, 0]), # 0.3766, 0.0169, 0.8889 = 4 scale
         spawn=sim_utils.UsdFileCfg(
-            # # white box
+            usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
+            scale=(3.10,4.14, 2.84),#(3.10,4.14, 2.84),8/8 test->no 4scale box & yes last time
+            # white wing-box
+            # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Assets/box.usd",
+            # scale=(8.73,11.7,6.0),
+            # white box
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
             # scale=(4.37,5.9,3.0), # 262,350,180
-            # # 2-box
-            # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+            # 2호
             # scale=((3.0,4.0,2.5)), # 180,240,150
-            # # 3-box
+            # 3호
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
             # scale=((4.17,5.67,3.5)), # 250,340,210
-            # # 4-box
-            # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
-            # scale=((5.17,6.83,4.67)), # 310,410,280
-            # white wing-box
-            usd_path="./source/isaaclab_assets/data/Assets/wing_box.usd",
-            scale=(8.93,11.5,5.357), # 250,380,150
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
+            # 4호
+            # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
+            # scale=((5.17,6.83,4.67)), # 310,410,280          
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.7),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 # kinematic_enabled=True,
                 solver_position_iteration_count=16,
@@ -128,24 +120,24 @@ class MySceneCfg(InteractiveSceneCfg):
     # )
 
     # add cube
-    object_init: RigidObjectCfg = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/object_init",
-        init_state=RigidObjectCfg.InitialStateCfg(
-            # # white-box
-            # pos=[0.43, 0, 0.86], 
-            # 4-box
-            pos=[0.37, 0, 0.93], 
-            rot=[1.0, 0.0 ,0.0, 0.0]),
-        spawn=sim_utils.CuboidCfg(
-            size=(0.1,0.1,0.1),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(max_depenetration_velocity=1.0, 
-                                                         disable_gravity=True,
-                                                         kinematic_enabled=True),
-            # mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
-            # physics_material=sim_utils.RigidBodyMaterialCfg(),
-            # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.0, 0.0)),
-        ),
-    )
+    # object_init: RigidObjectCfg = RigidObjectCfg(
+    #     prim_path="{ENV_REGEX_NS}/object_init",
+    #     init_state=RigidObjectCfg.InitialStateCfg(
+    #         # # white-box
+    #         # pos=[0.43, 0, 0.86], 
+    #         # 4-box
+    #         pos=[0.37, 0, 0.93], 
+    #         rot=[1.0, 0.0 ,0.0, 0.0]),
+    #     spawn=sim_utils.CuboidCfg(
+    #         size=(0.1,0.1,0.1),
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(max_depenetration_velocity=1.0, 
+    #                                                      disable_gravity=True,
+    #                                                      kinematic_enabled=True),
+    #         # mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+    #         # physics_material=sim_utils.RigidBodyMaterialCfg(),
+    #         # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.0, 0.0)),
+    #     ),
+    # )
 
 
 ##
@@ -176,8 +168,8 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.38, 0.38),
-            pos_y=(0.15, 0.15),
+            pos_x=(-3.0, 3.0),
+            pos_y=(-3.0, 3.0),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
@@ -191,8 +183,8 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.38, 0.38),
-            pos_y=(-0.15, -0.15),
+            pos_x=(-3.0, 3.0)
+            pos_y=(-3.0, 3.0),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
@@ -656,58 +648,58 @@ class EventCfg:
     #     },
     # )
 
-    randomize_motor_zero_offset = EventTerm(
-        func=mdp.reset_joints_by_offset,
-        mode="reset",
-        params={
-            "position_range": (-0.035, 0.035),
-            "velocity_range": (0.0, 0.0),
-        },
-    )
+    # randomize_motor_zero_offset = EventTerm(
+    #     func=mdp.reset_joints_by_offset,
+    #     mode="reset",
+    #     params={
+    #         "position_range": (-0.035, 0.035),
+    #         "velocity_range": (0.0, 0.0),
+    #     },
+    # )
 
-    randomize_joint_param = EventTerm(
-        func=mdp.randomize_joint_parameters,
-        min_step_count_between_reset=720,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=[
-                'left_hip_pitch_joint', 
-                'left_hip_roll_joint', 
-                'left_hip_yaw_joint', 
-                'left_knee_joint', 
-                'left_ankle_pitch_joint', 
-                'left_ankle_roll_joint', 
-                'right_hip_pitch_joint', 
-                'right_hip_roll_joint', 
-                'right_hip_yaw_joint', 
-                'right_knee_joint', 
-                'right_ankle_pitch_joint', 
-                'right_ankle_roll_joint',
-                # G1_29_no_hand
-                "waist_yaw_joint",
-                "waist_roll_joint",
-                "waist_pitch_joint",
-                "left_shoulder_pitch_joint",
-                "left_shoulder_roll_joint",
-                "left_shoulder_yaw_joint",
-                "left_elbow_joint",
-                "left_wrist_roll_joint",
-                "left_wrist_pitch_joint",
-                "left_wrist_yaw_joint",
-                "right_shoulder_pitch_joint",
-                "right_shoulder_roll_joint",
-                "right_shoulder_yaw_joint",
-                "right_elbow_joint",
-                "right_wrist_roll_joint",
-                "right_wrist_pitch_joint",
-                "right_wrist_yaw_joint",]),
-            "friction_distribution_params": (0.01, 1.15),
-            "viscous_friction_distribution_params": (0.3, 1.5),
-            "armature_distribution_params": (0.008,0.06),
-            "operation": "add",
-            "distribution": "uniform",
-        },
-    )
+    # randomize_joint_param = EventTerm(
+    #     func=mdp.randomize_joint_parameters,
+    #     min_step_count_between_reset=720,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names=[
+    #             'left_hip_pitch_joint', 
+    #             'left_hip_roll_joint', 
+    #             'left_hip_yaw_joint', 
+    #             'left_knee_joint', 
+    #             'left_ankle_pitch_joint', 
+    #             'left_ankle_roll_joint', 
+    #             'right_hip_pitch_joint', 
+    #             'right_hip_roll_joint', 
+    #             'right_hip_yaw_joint', 
+    #             'right_knee_joint', 
+    #             'right_ankle_pitch_joint', 
+    #             'right_ankle_roll_joint',
+    #             # G1_29_no_hand
+    #             "waist_yaw_joint",
+    #             "waist_roll_joint",
+    #             "waist_pitch_joint",
+    #             "left_shoulder_pitch_joint",
+    #             "left_shoulder_roll_joint",
+    #             "left_shoulder_yaw_joint",
+    #             "left_elbow_joint",
+    #             "left_wrist_roll_joint",
+    #             "left_wrist_pitch_joint",
+    #             "left_wrist_yaw_joint",
+    #             "right_shoulder_pitch_joint",
+    #             "right_shoulder_roll_joint",
+    #             "right_shoulder_yaw_joint",
+    #             "right_elbow_joint",
+    #             "right_wrist_roll_joint",
+    #             "right_wrist_pitch_joint",
+    #             "right_wrist_yaw_joint",]),
+    #         "friction_distribution_params": (0.01, 1.15),
+    #         "viscous_friction_distribution_params": (0.3, 1.5),
+    #         "armature_distribution_params": (0.008,0.06),
+    #         "operation": "add",
+    #         "distribution": "uniform",
+    #     },
+    # )
 
     physics_material_obj = EventTerm(
         func=mdp.randomize_rigid_body_material,
