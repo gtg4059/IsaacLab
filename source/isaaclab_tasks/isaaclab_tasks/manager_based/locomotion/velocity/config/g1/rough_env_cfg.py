@@ -130,12 +130,62 @@ class G1Rewards(RewardsCfg):
    
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-5.0,
+        weight=-20.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
             "waist_roll_joint",
-            "waist_pitch_joint",
+            # "waist_pitch_joint",
             "waist_yaw_joint",
         ])},
+    )
+
+
+    # same motion
+    motion_equality_shoulder1 = RewTerm(
+        func=mdp.motion_equality_cons,
+        weight=-1.0,
+        params={
+            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_yaw_joint"),
+        },
+    )
+
+    motion_equality_shoulder2 = RewTerm(
+        func=mdp.motion_equality_pros,
+        weight=-1.0,
+        params={
+            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_pitch_joint"),
+        },
+    )
+
+    motion_equality_elbow = RewTerm(
+        func=mdp.motion_equality_pros,
+        weight=-1.0,
+        params={
+            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_elbow_joint"),
+        },
+    )
+
+    motion_equality_wrist1 = RewTerm(
+        func=mdp.motion_equality_cons,
+        weight=-1.0,
+        params={
+            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_roll_joint"),
+        },
+    )
+
+    motion_equality_wrist2 = RewTerm(
+        func=mdp.motion_equality_pros,
+        weight=-1.0,
+        params={
+            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_pitch_joint"),
+        },
+    )
+
+    motion_equality_wrist3 = RewTerm(
+        func=mdp.motion_equality_cons,
+        weight=-1.0,
+        params={
+            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_yaw_joint"),
+        },
     )
 
     left_ee_pos_tracking = RewTerm(
