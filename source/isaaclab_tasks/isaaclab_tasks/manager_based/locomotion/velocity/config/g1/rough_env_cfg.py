@@ -96,7 +96,7 @@ class G1Rewards(RewardsCfg):
     # Penalize deviation from default of the joints that are not essential for Pickup
     joint_deviation_leg = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-1.0,
+        weight=-10.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
                     ".*_hip_roll_joint",
                     # ".*_hip_pitch_joint",
@@ -263,10 +263,10 @@ class G1Rewards(RewardsCfg):
         },
     )
 
-    delete_table = RewTerm(
-        func=mdp.delete_table,
-        weight=-0.00001,
-    )
+    # delete_table = RewTerm(
+    #     func=mdp.delete_table,
+    #     weight=-0.00001,
+    # )
 
 
 @configclass

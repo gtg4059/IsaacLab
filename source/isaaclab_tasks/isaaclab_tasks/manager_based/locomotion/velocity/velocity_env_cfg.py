@@ -154,7 +154,7 @@ class MySceneCfg(InteractiveSceneCfg):
             pos=[0.39, 0, 0.74], 
             rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", scale=(4.0, 8.0, 1.00),
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", scale=(4.0, 4.0, 1.00),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 kinematic_enabled=True,
@@ -206,7 +206,7 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.38, 0.38),
+            pos_x=(0.28, 0.28),
             pos_y=(0.14, 0.14),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
@@ -220,7 +220,7 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.38, 0.38),
+            pos_x=(0.28, 0.28),
             pos_y=(-0.14, -0.14),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
