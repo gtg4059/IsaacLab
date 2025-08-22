@@ -53,7 +53,7 @@ class G1Rewards(RewardsCfg):
 
     table_contact = RewTerm(
         func=mdp.table_not_contacted, 
-        weight=2.0,
+        weight=5.0,
         params={"sensor_cfg": SceneEntityCfg("contact_table")
         }, 
     )

@@ -206,7 +206,7 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.28, 0.28),
+            pos_x=(0.37, 0.37),
             pos_y=(0.14, 0.14),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
@@ -220,7 +220,7 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.28, 0.28),
+            pos_x=(0.37, 0.37),
             pos_y=(-0.14, -0.14),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
@@ -860,9 +860,9 @@ class TerminationsCfg:
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
     )
-    bad_position = DoneTerm(
-        func=mdp.bad_position, params={"limit_dist": 0.5, "asset_cfg": SceneEntityCfg("robot")}
-    )
+    # bad_position = DoneTerm(
+    #     func=mdp.bad_position, params={"limit_dist": 0.5, "asset_cfg": SceneEntityCfg("robot")}
+    # )
 
 
 @configclass

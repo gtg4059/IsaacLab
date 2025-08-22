@@ -215,7 +215,7 @@ def object_ee_distance(
     angle2 = quat_error_magnitude(des_quat_b-curr_quat_w2, torch.tensor([0.7073883, 0,0, 0.7068252],device="cuda:0").repeat(env.num_envs,1))#pi
     # result1 = (1 - torch.tanh(torch.abs(angle1)/(std)))*(1 - torch.tanh(torch.abs(distance1-0.18)/(std**2)))
     # result2 = (1 - torch.tanh(torch.abs(angle2)/(std)))*(1 - torch.tanh(torch.abs(distance2-0.18)/(std**2)))
-    dist = torch.sqrt((1 - torch.tanh(torch.abs(distance1)/(std)))*(1 - torch.tanh(torch.abs(distance2)/(std))))+5*torch.sqrt((1 - torch.tanh(torch.abs(distance1)/(std**2)))*(1 - torch.tanh(torch.abs(distance2)/(std**2))))
+    dist = torch.sqrt((1 - torch.tanh(torch.abs(distance1)/(std**2)))*(1 - torch.tanh(torch.abs(distance2)/(std**2))))+5*torch.sqrt((1 - torch.tanh(torch.abs(distance1)/(std**4)))*(1 - torch.tanh(torch.abs(distance2)/(std**4))))
     angle = torch.sqrt((1 - torch.tanh(torch.abs(angle1/(std))))*(1 - torch.tanh(torch.abs(angle2/(std)))))
     # print("distance1:",distance1)
     # print("distance2:",distance2)
