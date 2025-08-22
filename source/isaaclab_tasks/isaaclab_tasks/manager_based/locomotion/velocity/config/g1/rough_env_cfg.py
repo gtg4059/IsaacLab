@@ -51,12 +51,12 @@ class G1Rewards(RewardsCfg):
         }, 
     )
 
-    # table_contact = RewTerm(
-    #     func=mdp.table_not_contacted, 
-    #     weight=5.0,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_table")
-    #     }, 
-    # )
+    table_contact = RewTerm(
+        func=mdp.table_not_contacted, 
+        weight=10.0,
+        params={"sensor_cfg": SceneEntityCfg("contact_table")
+        }, 
+    )
 
     flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=10.0)
 
@@ -135,6 +135,13 @@ class G1Rewards(RewardsCfg):
             "waist_roll_joint",
             # "waist_pitch_joint",
             "waist_yaw_joint",
+        ])},
+    )
+    joint_deviation_torso2 = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-2.0,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
+            "waist_pitch_joint",
         ])},
     )
 
