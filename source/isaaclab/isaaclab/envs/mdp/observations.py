@@ -240,15 +240,8 @@ def object_position_in_robot_body_frame(
     object_pos_b, _ = subtract_frame_transforms(
         robot.data.body_link_pos_w[:, robot_cfg.body_ids[0]], robot.data.body_link_quat_w[:, robot_cfg.body_ids[0]], object_pos_w
     )
-    # print(robot.data.root_state_w[:, :3])
-    # print("object_pos_w:",object_pos_w)
-    # print("robot.data.body_link_pos_w[:, robot_cfg.body_ids[0]]:",robot.data.body_link_pos_w[:, robot_cfg.body_ids[0]])
-    # print("robot.data.root_pos_w:",robot.data.root_pos_w)
+
     # print("object_pos_b:",object_pos_b)
-    # print("object_pos_b2:",object_pos_b2)
-    # print("robot.data.body_link_pos_w:",robot.data.body_link_pos_w[:, robot_cfg.body_ids[0]])
-    # print("object_pos_w:",object_pos_w)
-    # print(object.data.root_pos_w)
     return object_pos_b
 
 """
