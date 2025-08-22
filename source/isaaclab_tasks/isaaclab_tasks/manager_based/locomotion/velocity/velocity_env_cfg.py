@@ -93,7 +93,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
             # scale=(4.37,5.9,3.0), # 262,350,180
             # 2-box
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+            usd_path="source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=((3.0,4.0,2.5)), # 180,240,150
             # # 3-box
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
@@ -154,7 +154,8 @@ class MySceneCfg(InteractiveSceneCfg):
             pos=[0.39, 0, 0.74], 
             rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", scale=(4.0, 4.0, 1.00),
+            usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", 
+            scale=(4.0, 4.0, 1.00),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 kinematic_enabled=True,
@@ -168,6 +169,14 @@ class MySceneCfg(InteractiveSceneCfg):
             activate_contact_sensors=True,
         ),
     )
+
+    # table = AssetBaseCfg(
+    #     prim_path="{ENV_REGEX_NS}/Table",
+    #     spawn=sim_utils.UsdFileCfg(
+    #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd", scale=(4.0, 4.0, 1.0),
+    #     ),
+    #     init_state=AssetBaseCfg.InitialStateCfg(pos=(0.1, 0.0, 0.0), rot=(1.0, 0.0, 0.0, 0.0)),
+    # )
 
     # camera = TiledCameraCfg(
     #     prim_path="{ENV_REGEX_NS}/Robot/torso_link/d435_link/camera",
@@ -183,13 +192,13 @@ class MySceneCfg(InteractiveSceneCfg):
     #     offset=TiledCameraCfg.OffsetCfg(pos=(0.0, 0.0, 0.0), rot=(0.5, -0.5, 0.5, -0.5), convention="ros"),
     # )
 
-    contact_table = ContactSensorCfg(
-            prim_path="{ENV_REGEX_NS}/Table",
-            debug_vis=False,
-            history_length=3,
-            update_period=0.0,
-            track_air_time=True,
-        )
+    # contact_table = ContactSensorCfg(
+    #         prim_path="{ENV_REGEX_NS}/Table",
+    #         debug_vis=False,
+    #         history_length=3,
+    #         update_period=0.0,
+    #         track_air_time=True,
+    #     )
 
 
 ##
@@ -684,18 +693,18 @@ class EventCfg:
         },
     )
 
-    physics_material_palm = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("table"),
-            "static_friction_range": (0.2, 1.3),
-            "dynamic_friction_range": (0.2, 1.3),
-            "restitution_range": (0.0, 0.4),
-            "num_buckets": 64,
-            "make_consistent": True,
-        },
-    )
+    # physics_material_palm = EventTerm(
+    #     func=mdp.randomize_rigid_body_material,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("table"),
+    #         "static_friction_range": (0.2, 1.3),
+    #         "dynamic_friction_range": (0.2, 1.3),
+    #         "restitution_range": (0.0, 0.4),
+    #         "num_buckets": 64,
+    #         "make_consistent": True,
+    #     },
+    # )
 
     # physics_material_finger = EventTerm(
     #     func=mdp.randomize_rigid_body_material,
@@ -727,21 +736,21 @@ class EventCfg:
         },
     )
 
-    reset_table = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={"asset_cfg": SceneEntityCfg("table"),
-            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
-            "velocity_range": {
-                "x": (-0.0, 0.0),
-                "y": (-0.0, 0.0),
-                "z": (-0.0, 0.0),
-                "roll": (-0.0, 0.0),
-                "pitch": (-0.0, 0.0),
-                "yaw": (-0.0, 0.0),
-            },
-        },
-    )
+    # reset_table = EventTerm(
+    #     func=mdp.reset_root_state_uniform,
+    #     mode="reset",
+    #     params={"asset_cfg": SceneEntityCfg("table"),
+    #         "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
+    #         "velocity_range": {
+    #             "x": (-0.0, 0.0),
+    #             "y": (-0.0, 0.0),
+    #             "z": (-0.0, 0.0),
+    #             "roll": (-0.0, 0.0),
+    #             "pitch": (-0.0, 0.0),
+    #             "yaw": (-0.0, 0.0),
+    #         },
+    #     },
+    # )
 
     reset_box_position = EventTerm(
         func=mdp.reset_root_state_uniform,
@@ -817,17 +826,17 @@ class RewardsCfg:
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
-
+    # alive = RewTerm(func=mdp.is_alive, weight=50.0)
 
 @configclass
 class TerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    # base_contact = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 40.0},
-    # )
+    base_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 200.0},
+    )
     base_contact2 = DoneTerm(
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 20.0},
@@ -855,7 +864,7 @@ class TerminationsCfg:
     #                                                               ]), "threshold": 20.0},
     # )
     object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.80, "asset_cfg": SceneEntityCfg("object")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
