@@ -28,63 +28,63 @@ class G1Rewards(RewardsCfg):
         }
     )
  
-    object_contact = RewTerm(
-        func=mdp.object_is_contacted, 
-        weight=1.0,
-        params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
-                                                              [
-                                                                  "left_wrist_yaw_link",
-                                                                  "right_wrist_yaw_link",
-                                                                #   "left_wrist_pitch_link",
-                                                                #   "right_wrist_pitch_link",
-                                                                #   "L_thumb_proximal",
-                                                                #   "R_thumb_proximal",
-                                                                #   ".*_thumb_intermediate",
-                                                                #   ".*_index_intermediate",
-                                                                #   ".*_middle_intermediate",
-                                                                #   ".*_pinky_intermediate",
-                                                                #   ".*_ring_intermediate",
-                                                                #   "left_ankle_roll_link",
-                                                                #   "right_ankle_roll_link"
-                                                                  ],preserve_order=True,
-            )
-        }, 
-    )
+    # object_contact = RewTerm(
+    #     func=mdp.object_is_contacted, 
+    #     weight=1.0,
+    #     params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
+    #                                                           [
+    #                                                               "left_wrist_yaw_link",
+    #                                                               "right_wrist_yaw_link",
+    #                                                             #   "left_wrist_pitch_link",
+    #                                                             #   "right_wrist_pitch_link",
+    #                                                             #   "L_thumb_proximal",
+    #                                                             #   "R_thumb_proximal",
+    #                                                             #   ".*_thumb_intermediate",
+    #                                                             #   ".*_index_intermediate",
+    #                                                             #   ".*_middle_intermediate",
+    #                                                             #   ".*_pinky_intermediate",
+    #                                                             #   ".*_ring_intermediate",
+    #                                                             #   "left_ankle_roll_link",
+    #                                                             #   "right_ankle_roll_link"
+    #                                                               ],preserve_order=True,
+    #         )
+    #     }, 
+    # )
 
-    table_contact = RewTerm(
-        func=mdp.table_not_contacted, 
-        weight=10.0,
-        params={"sensor_cfg": SceneEntityCfg("contact_table")
-        }, 
-    )
+    # table_contact = RewTerm(
+    #     func=mdp.table_not_contacted, 
+    #     weight=10.0,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_table")
+    #     }, 
+    # )
 
-    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=10.0)
+    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=-5.0)
 
     # pickup reward
     reaching_object= RewTerm(
         func=mdp.object_ee_distance, 
         params={
-            "std": 0.4,
+            "std": 0.5,
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
         weight=30.0
     )
-    # object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
-    #                            weight=1.0,
-    #                            params={"std": 0.2,
-    #                                    "minimal_height": 0.72,
-    #                                    "height": 0.76
-    #     }, 
-    # )
-
-    object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
-                               weight=2.0,
-                               params={"std": 1.0,
-                                       "minimal_height": 0.70,
-                                       "asset_cfg":SceneEntityCfg("robot", body_names=["camera"]),
+    object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
+                               weight=10.0,
+                               params={"std": 0.2,
+                                       "minimal_height": 0.82,
+                                       "height": 0.90,
         }, 
     )
+
+    # object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
+    #                            weight=2.0,
+    #                            params={"std": 1.0,
+    #                                    "minimal_height": 0.70,
+    #                                    "asset_cfg":SceneEntityCfg("robot", body_names=["camera"]),
+    #     }, 
+    # )
 
     # Penalize ankle joint limits
     dof_pos_limits = RewTerm(

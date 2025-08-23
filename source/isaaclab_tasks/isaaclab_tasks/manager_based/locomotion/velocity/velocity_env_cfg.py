@@ -82,7 +82,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # # white-box
             # pos=[0.43, 0, 0.86], 
             # 2-box
-            pos=[0.37, 0, 0.82], 
+            pos=[0.37, 0, 0.80], 
             # # 3-box
             # pos=[0.39, 0, 0.86], 
             # # 4-box
@@ -93,7 +93,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
             # scale=(4.37,5.9,3.0), # 262,350,180
             # 2-box
-            usd_path="source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+            usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=((3.0,4.0,2.5)), # 180,240,150
             # # 3-box
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
@@ -147,33 +147,39 @@ class MySceneCfg(InteractiveSceneCfg):
     #     ),
     # )
 
-    # mount
-    table = RigidObjectCfg(
+    # # mount
+    # table = RigidObjectCfg(
+    #     prim_path="{ENV_REGEX_NS}/Table",
+    #     init_state=RigidObjectCfg.InitialStateCfg(
+    #         pos=[0.39, 0, 0.74], 
+    #         rot=[1.0, 0.0 ,0.0, 0.0]),
+    #     spawn=sim_utils.UsdFileCfg(
+    #         usd_path="./source/isaaclab_assets/data/Assets/table/danny_inst.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", 
+    #         scale=(4.0, 4.0, 1.00),
+    #         mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
+    #             kinematic_enabled=True,
+    #             solver_position_iteration_count=16,
+    #             solver_velocity_iteration_count=1,
+    #             max_angular_velocity=1000.0,
+    #             max_linear_velocity=1000.0,
+    #             max_depenetration_velocity=5.0,
+    #             disable_gravity=True,
+    #         ),
+    #         activate_contact_sensors=True,
+    #     ),
+    # )
+
+    table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
-        init_state=RigidObjectCfg.InitialStateCfg(
-            pos=[0.39, 0, 0.74], 
-            rot=[1.0, 0.0 ,0.0, 0.0]),
-        spawn=sim_utils.UsdFileCfg(
-            usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", 
-            scale=(4.0, 4.0, 1.00),
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                kinematic_enabled=True,
-                solver_position_iteration_count=16,
-                solver_velocity_iteration_count=1,
-                max_angular_velocity=1000.0,
-                max_linear_velocity=1000.0,
-                max_depenetration_velocity=5.0,
-                disable_gravity=True,
-            ),
-            activate_contact_sensors=True,
-        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.06, 0.78), rot=[0.707, 0, 0, -0.707]),
+        spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table/table.usd",scale=(0.2, 0.2, 1.0),),
     )
 
     # table = AssetBaseCfg(
     #     prim_path="{ENV_REGEX_NS}/Table",
     #     spawn=sim_utils.UsdFileCfg(
-    #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd", scale=(4.0, 4.0, 1.0),
+            # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd", scale=(4.0, 4.0, 1.0),
     #     ),
     #     init_state=AssetBaseCfg.InitialStateCfg(pos=(0.1, 0.0, 0.0), rot=(1.0, 0.0, 0.0, 0.0)),
     # )
@@ -215,7 +221,7 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.37, 0.37),
+            pos_x=(0.2, 0.2),
             pos_y=(0.14, 0.14),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
@@ -229,7 +235,7 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.37, 0.37),
+            pos_x=(0.2, 0.2),
             pos_y=(-0.14, -0.14),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
@@ -758,10 +764,10 @@ class EventCfg:
         params={
             "asset_cfg": SceneEntityCfg("object"),
             # 4-box
-            "pose_range": {"x": (-0.06, 0.06), "y": (-0.06, 0.06), "yaw": (-0.0, 0.0)},
+            # "pose_range": {"x": (-0.04, 0.04), "y": (-0.04, 0.04), "yaw": (-0.0, 0.0)},
             # # white box
             # "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
-            # "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
+            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
             "velocity_range": {
                 "x": (-0.0, 0.0),
                 "y": (-0.0, 0.0),
@@ -832,6 +838,7 @@ class RewardsCfg:
 class TerminationsCfg:
     """Termination terms for the MDP."""
 
+    # bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.3})
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     # base_contact = DoneTerm(
     #     func=mdp.illegal_contact,
@@ -864,14 +871,14 @@ class TerminationsCfg:
     #                                                               ]), "threshold": 20.0},
     # )
     object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("object")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.76, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
     )
-    # bad_position = DoneTerm(
-    #     func=mdp.bad_position, params={"limit_dist": 0.5, "asset_cfg": SceneEntityCfg("robot")}
-    # )
+    bad_position = DoneTerm(
+        func=mdp.bad_position, params={"limit_dist": 0.6, "asset_cfg": SceneEntityCfg("robot")}
+    )
 
 
 @configclass

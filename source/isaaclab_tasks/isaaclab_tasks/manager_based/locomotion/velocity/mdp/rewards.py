@@ -148,6 +148,7 @@ def object_is_lifted(
     distance = torch.abs(object.data.root_pos_w[:,2]-height*torch.ones_like((object.data.root_pos_w[:,2])))
     # return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
     # print(object.data.root_pos_w[:,2])
+    # print(object.data.root_pos_w[:,2])
     return ((1 - torch.tanh(torch.abs(distance)/std))+5*(1 - torch.tanh(torch.abs(distance)/std**2)))*torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
 
 def object_is_contacted(
@@ -263,7 +264,7 @@ def flat_orientation_obj(env: ManagerBasedRLEnv, object_cfg: SceneEntityCfg = Sc
     # extract the used quantities (to enable type-hinting)
     object: RigidObject = env.scene[object_cfg.name]
     # return -torch.sum(torch.square(object.data.projected_gravity_b[:, :2]), dim=1)#*torch.where(object.data.root_pos_w[:, 2] > 0.83, 1.0, 0.0)
-    return -torch.sum(torch.square(object.data.projected_gravity_b[:, :2]), dim=1)#*torch.where(object.data.root_pos_w[:, 2] > 0.83, 1.0, 0.0)
+    return torch.sum(torch.square(object.data.projected_gravity_b[:, :2]), dim=1)#*torch.where(object.data.root_pos_w[:, 2] > 0.83, 1.0, 0.0)
 
 
 def object_state_in_robot_root_frame(
