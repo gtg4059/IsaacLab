@@ -82,7 +82,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # # white-box
             # pos=[0.43, 0, 0.86], 
             # 2-box
-            pos=[0.37, 0, 0.80], 
+            pos=[0.37, 0, 0.84], 
             # # 3-box
             # pos=[0.39, 0, 0.86], 
             # # 4-box
@@ -95,6 +95,9 @@ class MySceneCfg(InteractiveSceneCfg):
             # 2-box
             usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             scale=((3.0,4.0,2.5)), # 180,240,150
+            # # IKEA-box
+            # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+            # scale=((4.17,6.33,2.5)), # 250,380,150
             # # 3-box
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
             # scale=((4.17,5.67,3.5)), # 250,340,210
@@ -103,7 +106,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # scale=((5.17,6.83,4.67)), # 310,410,280
             # # white wing-box
             # usd_path="./source/isaaclab_assets/data/Assets/wing_box.usd",
-            # scale=(8.93,11.5,5.357), # 250,380,150
+            # scale=(6.43,7.26,5.357), # 250,380,150
             mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 # kinematic_enabled=True,
@@ -172,8 +175,21 @@ class MySceneCfg(InteractiveSceneCfg):
 
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.06, 0.78), rot=[0.707, 0, 0, -0.707]),
-        spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table/table.usd",scale=(0.2, 0.2, 1.0),),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.15, 0.78), rot=[0.707, 0, 0, -0.707]),
+        spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table/table.usd",
+        # init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.0, 0.05), rot=[0.707, 0, 0, -0.707]),
+        # spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table_inst.usd",
+                scale=(0.5, 0.2, 1.0),
+                rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                    kinematic_enabled=True,
+                    solver_position_iteration_count=16,
+                    solver_velocity_iteration_count=1,
+                    max_angular_velocity=1000.0,
+                    max_linear_velocity=1000.0,
+                    max_depenetration_velocity=5.0,
+                    disable_gravity=True,
+                ),
+            ),
     )
 
     # table = AssetBaseCfg(
@@ -221,9 +237,9 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.2, 0.2),
+            pos_x=(0.25, 0.25),
             pos_y=(0.14, 0.14),
-            pos_z=(0.15, 0.15),
+            pos_z=(0.2, 0.2),
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
             yaw=(math.pi / 2.0, math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
@@ -235,9 +251,9 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.2, 0.2),
+            pos_x=(0.25, 0.25),
             pos_y=(-0.14, -0.14),
-            pos_z=(0.15, 0.15),
+            pos_z=(0.2, 0.2),
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
             yaw=(-math.pi / 2.0, -math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
@@ -538,10 +554,7 @@ class EventCfg:
                                                              'left_wrist_roll_link', 
                                                              'right_wrist_roll_link', 
                                                              'left_wrist_pitch_link', 
-                                                             'right_wrist_pitch_link', 
-                                                             'left_wrist_yaw_link', 
-                                                             'right_wrist_yaw_link',
-                                                             "R_.*","L_.*",]),
+                                                             'right_wrist_pitch_link',]),
             "static_friction_range": (0.2, 1.3),
             "dynamic_friction_range": (0.2, 1.3),
             "restitution_range": (0.0, 0.4),
@@ -550,28 +563,45 @@ class EventCfg:
         },
     )
 
-    # interval
-    left_hand_force = EventTerm(
-        func=mdp.apply_external_force_torque,
-        mode="interval",
-        interval_range_s=(10.0, 15.0),
+    # startup
+    randomize_friction_hand = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
-            "force_range": (-10.0, 10.0),
-            "torque_range": (-1.0, 1.0),
+            "asset_cfg": SceneEntityCfg("robot", body_names=[
+                                                             'left_wrist_yaw_link', 
+                                                             'right_wrist_yaw_link',
+                                                             "R_.*","L_.*",]),
+            "static_friction_range": (0.8, 1.3),
+            "dynamic_friction_range": (0.8, 1.3),
+            "restitution_range": (0.0, 0.4),
+            "num_buckets": 256,
+            "make_consistent": True
         },
     )
 
-    right_hand_force = EventTerm(
-        func=mdp.apply_external_force_torque,
-        mode="interval",
-        interval_range_s=(10.0, 15.0),
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
-            "force_range": (-10.0, 10.0),
-            "torque_range": (-1.0, 1.0),
-        },
-    )
+    # # interval
+    # left_hand_force = EventTerm(
+    #     func=mdp.apply_external_force_torque,
+    #     mode="interval",
+    #     interval_range_s=(10.0, 15.0),
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
+    #         "force_range": (-10.0, 10.0),
+    #         "torque_range": (-1.0, 1.0),
+    #     },
+    # )
+
+    # right_hand_force = EventTerm(
+    #     func=mdp.apply_external_force_torque,
+    #     mode="interval",
+    #     interval_range_s=(10.0, 15.0),
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
+    #         "force_range": (-10.0, 10.0),
+    #         "torque_range": (-1.0, 1.0),
+    #     },
+    # )
     # push_object = EventTerm(
     #     func=mdp.push_by_setting_velocity,
     #     mode="interval",
@@ -764,10 +794,10 @@ class EventCfg:
         params={
             "asset_cfg": SceneEntityCfg("object"),
             # 4-box
-            # "pose_range": {"x": (-0.04, 0.04), "y": (-0.04, 0.04), "yaw": (-0.0, 0.0)},
+            "pose_range": {"x": (-0.04, 0.04), "y": (-0.04, 0.04), "yaw": (-0.02, 0.02)},
             # # white box
             # "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
-            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
+            # "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
             "velocity_range": {
                 "x": (-0.0, 0.0),
                 "y": (-0.0, 0.0),
@@ -838,7 +868,7 @@ class RewardsCfg:
 class TerminationsCfg:
     """Termination terms for the MDP."""
 
-    # bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.3})
+    bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.6,"asset_cfg": SceneEntityCfg("object")})
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     # base_contact = DoneTerm(
     #     func=mdp.illegal_contact,
@@ -871,7 +901,7 @@ class TerminationsCfg:
     #                                                               ]), "threshold": 20.0},
     # )
     object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.76, "asset_cfg": SceneEntityCfg("object")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.65, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}

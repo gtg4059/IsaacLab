@@ -7,7 +7,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 
 from .rough_env_cfg import G1RoughEnvCfg
-from isaaclab_assets import G1_DEX_FIX, G1_DEX_FIX_D
+from isaaclab_assets import G1_DEX_FIX
 
 
 @configclass
@@ -25,7 +25,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
 
         # New Rewards
         self.rewards.lin_vel_z_l2.weight = -0.2
-        self.rewards.action_rate_l2.weight = -0.01
+        self.rewards.action_rate_l2.weight = -0.2
         self.rewards.dof_acc_l2.weight = -1.0e-7
 
         # Rewards

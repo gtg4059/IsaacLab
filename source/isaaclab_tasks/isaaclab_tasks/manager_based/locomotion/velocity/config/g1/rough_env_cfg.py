@@ -14,7 +14,7 @@ import isaaclab_tasks.manager_based.manipulation.reach.mdp as manipulation_mdp
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import G1_DEX_FIX, G1_DEX_FIX_D  # isort: skip
+from isaaclab_assets import G1_DEX_FIX  # isort: skip
 
 
 @configclass
@@ -28,28 +28,28 @@ class G1Rewards(RewardsCfg):
         }
     )
  
-    # object_contact = RewTerm(
-    #     func=mdp.object_is_contacted, 
-    #     weight=1.0,
-    #     params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
-    #                                                           [
-    #                                                               "left_wrist_yaw_link",
-    #                                                               "right_wrist_yaw_link",
-    #                                                             #   "left_wrist_pitch_link",
-    #                                                             #   "right_wrist_pitch_link",
-    #                                                             #   "L_thumb_proximal",
-    #                                                             #   "R_thumb_proximal",
-    #                                                             #   ".*_thumb_intermediate",
-    #                                                             #   ".*_index_intermediate",
-    #                                                             #   ".*_middle_intermediate",
-    #                                                             #   ".*_pinky_intermediate",
-    #                                                             #   ".*_ring_intermediate",
-    #                                                             #   "left_ankle_roll_link",
-    #                                                             #   "right_ankle_roll_link"
-    #                                                               ],preserve_order=True,
-    #         )
-    #     }, 
-    # )
+    object_contact = RewTerm(
+        func=mdp.object_is_contacted, 
+        weight=1.0,
+        params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
+                                                              [
+                                                                  "left_wrist_yaw_link",
+                                                                  "right_wrist_yaw_link",
+                                                                #   "left_wrist_pitch_link",
+                                                                #   "right_wrist_pitch_link",
+                                                                #   "L_thumb_proximal",
+                                                                #   "R_thumb_proximal",
+                                                                #   ".*_thumb_intermediate",
+                                                                #   ".*_index_intermediate",
+                                                                #   ".*_middle_intermediate",
+                                                                #   ".*_pinky_intermediate",
+                                                                #   ".*_ring_intermediate",
+                                                                #   "left_ankle_roll_link",
+                                                                #   "right_ankle_roll_link"
+                                                                  ],preserve_order=True,
+            )
+        }, 
+    )
 
     # table_contact = RewTerm(
     #     func=mdp.table_not_contacted, 
@@ -71,10 +71,10 @@ class G1Rewards(RewardsCfg):
         weight=30.0
     )
     object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
-                               weight=10.0,
+                               weight=5.0,
                                params={"std": 0.2,
                                        "minimal_height": 0.82,
-                                       "height": 0.90,
+                                       "height": 0.86,
         }, 
     )
 
@@ -117,9 +117,9 @@ class G1Rewards(RewardsCfg):
                 "robot",
                 joint_names=[
                     # ".*_shoulder_roll_joint",
-                    # ".*_shoulder_pitch_joint",
+                    ".*_shoulder_pitch_joint",
                     # ".*_shoulder_yaw_joint",
-                    # ".*_elbow_joint",
+                    ".*_elbow_joint",
                     ".*_wrist_yaw_joint",
                     # ".*_wrist_pitch_joint",
                     ".*_wrist_roll_joint",
@@ -133,17 +133,17 @@ class G1Rewards(RewardsCfg):
         weight=-20.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
             "waist_roll_joint",
-            # "waist_pitch_joint",
+            "waist_pitch_joint",
             "waist_yaw_joint",
         ])},
     )
-    joint_deviation_torso2 = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-2.0,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
-            "waist_pitch_joint",
-        ])},
-    )
+    # joint_deviation_torso2 = RewTerm(
+    #     func=mdp.joint_deviation_l1,
+    #     weight=-2.0,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
+    #         "waist_pitch_joint",
+    #     ])},
+    # )
 
 
     # same motion
@@ -257,13 +257,13 @@ class G1Rewards(RewardsCfg):
         params={
             "asset_cfg": SceneEntityCfg("robot",
                 joint_names=[
-                    # 'L_thumb_proximal_yaw_joint',
-                    #          'R_thumb_proximal_yaw_joint',
-                    #         'L_thumb_proximal_pitch_joint',
-                    #         'R_thumb_proximal_pitch_joint',
-                            '.*_proximal_joint',
-                    #         '.*_thumb_intermediate_joint',
-                    #         '.*_thumb_distal_joint',
+                    ".*_proximal_joint",
+                    # ".*_index_proximal_joint",
+                    # ".*_middle_proximal_joint",
+                    # ".*_pinky_proximal_joint",
+                    # ".*_ring_proximal_joint",
+                    # "R_thumb_.*",
+                    # "L_thumb_.*",
                             ],
                 preserve_order=True,
             )
