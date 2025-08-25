@@ -37,17 +37,17 @@ from isaaclab.devices import Se2Keyboard
 # Scene definition
 ##
 
-def keyboard_commands(env: ManagerBasedEnv) -> torch.Tensor:
-    """키보드로부터 명령을 받아옵니다."""
-    if not hasattr(env, "keyboard"):
-        env.keyboard = Se2Keyboard(
-            v_x_sensitivity=0.8, v_y_sensitivity=0.4, omega_z_sensitivity=0.4
-        )
-        # env.keyboard.add_callback("a", print_cb)
-        env.keyboard.reset()
+# def keyboard_commands(env: ManagerBasedEnv) -> torch.Tensor:
+#     """키보드로부터 명령을 받아옵니다."""
+#     if not hasattr(env, "keyboard"):
+#         env.keyboard = Se2Keyboard(
+#             v_x_sensitivity=0.8, v_y_sensitivity=0.4, omega_z_sensitivity=0.4
+#         )
+#         # env.keyboard.add_callback("a", print_cb)
+#         env.keyboard.reset()
     
-    command = env.keyboard.advance()
-    return torch.tensor(command, device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
+#     command = env.keyboard.advance()
+#     return torch.tensor(command, device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
 
 @configclass
 class MySceneCfg(InteractiveSceneCfg):
@@ -97,7 +97,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # # 2-box
             # pos=[0.37, 0, 0.84], 
             # IKEA-box
-            pos=[0.41, 0, 0.81], 
+            pos=[0.41, 0, 0.80], 
             # # 3-box
             # pos=[0.39, 0, 0.86], 
             # # 4-box

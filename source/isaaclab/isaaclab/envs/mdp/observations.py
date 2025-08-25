@@ -20,7 +20,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers.manager_base import ManagerTermBase
 from isaaclab.managers.manager_term_cfg import ObservationTermCfg
 from isaaclab.sensors import Camera, Imu, RayCaster, RayCasterCamera, TiledCamera
-from isaaclab.utils.math import subtract_frame_transforms
+from isaaclab.utils.math import subtract_frame_transforms, quat_apply
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
@@ -236,11 +236,13 @@ def object_position_in_robot_body_frame(
     """The position of the object in the robot's root frame."""
     robot: RigidObject = env.scene[robot_cfg.name]
     object: RigidObject = env.scene[object_cfg.name]
-    object_pos_w = object.data.root_link_state_w[:, :3]
+    # object.data.root_link_state_w[:, 0]
+    # object.data.root_link_state_w[:, :3]
+    object_pos_w = object.data.root_link_state_w[:, :3]+quat_apply(object.data.root_link_state_w[:, 3:7],torch.tensor([0.0,0.0,0.075],device="cuda:0").repeat(env.num_envs,1))
     object_pos_b, _ = subtract_frame_transforms(
         robot.data.body_link_pos_w[:, robot_cfg.body_ids[0]], robot.data.body_link_quat_w[:, robot_cfg.body_ids[0]], object_pos_w
     )
-
+    # print("object_pos_w:",object_pos_w)
     # print("object_pos_b:",object_pos_b)
     return object_pos_b
 
