@@ -29,12 +29,25 @@ import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 # Pre-defined configs
 ##
 from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
-
+import torch
+from isaaclab.envs import ManagerBasedEnv, ManagerBasedEnvCfg
+from isaaclab.devices import Se2Keyboard
 
 ##
 # Scene definition
 ##
 
+def keyboard_commands(env: ManagerBasedEnv) -> torch.Tensor:
+    """키보드로부터 명령을 받아옵니다."""
+    if not hasattr(env, "keyboard"):
+        env.keyboard = Se2Keyboard(
+            v_x_sensitivity=0.8, v_y_sensitivity=0.4, omega_z_sensitivity=0.4
+        )
+        # env.keyboard.add_callback("a", print_cb)
+        env.keyboard.reset()
+    
+    command = env.keyboard.advance()
+    return torch.tensor(command, device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
 
 @configclass
 class MySceneCfg(InteractiveSceneCfg):
@@ -393,6 +406,7 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
+        # velocity_commands = ObsTerm(func=keyboard_commands)
         left_ee_pose_command = ObsTerm(
             func=mdp.generated_commands,
             params={"command_name": "left_ee_pose"},
