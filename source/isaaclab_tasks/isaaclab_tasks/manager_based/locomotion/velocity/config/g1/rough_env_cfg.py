@@ -111,6 +111,31 @@ class G1Rewards(RewardsCfg):
         },
     )
 
+    # same motion
+    motion_equality_hip = RewTerm(
+        func=mdp.motion_equality_cons,
+        weight=-1.0,
+        params={
+            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_hip_pitch_joint"),
+        },
+    )
+
+    motion_equality_knee = RewTerm(
+        func=mdp.motion_equality_pros,
+        weight=-1.0,
+        params={
+            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_knee_joint"),
+        },
+    )
+
+    motion_equality_ankle = RewTerm(
+        func=mdp.motion_equality_pros,
+        weight=-1.0,
+        params={
+            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_ankle_pitch_joint"),
+        },
+    )
+
     # # G1_inspire_hand
     # joint_deviation_fingers = RewTerm(
     #     func=mdp.joint_deviation_l1,

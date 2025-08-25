@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 from isaaclab.envs import mdp
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor
+from isaaclab.assets import Articulation
 from isaaclab.utils.math import quat_apply_inverse, yaw_quat
 
 if TYPE_CHECKING:
@@ -130,3 +131,29 @@ def stand_still_joint_deviation_l1(
     command = env.command_manager.get_command(command_name)
     # Penalize motion when command is nearly zero.
     return mdp.joint_deviation_l1(env, asset_cfg) * (torch.norm(command[:, :2], dim=1) < command_threshold)
+
+##############################################################################
+
+def motion_equality_pros(
+    env: ManagerBasedRLEnv,
+    std: float,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Reward the agent for tracking the goal pose using tanh-kernel."""
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    curr_pos_w1 = asset.data.joint_pos[:, asset_cfg.joint_ids[0]]
+    curr_pos_w2 = asset.data.joint_pos[:, asset_cfg.joint_ids[1]]
+    return torch.square(curr_pos_w1-curr_pos_w2)
+
+def motion_equality_cons(
+    env: ManagerBasedRLEnv,
+    std: float,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Reward the agent for tracking the goal pose using tanh-kernel."""
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    curr_pos_w1 = asset.data.joint_pos[:, asset_cfg.joint_ids[0]]
+    curr_pos_w2 = asset.data.joint_pos[:, asset_cfg.joint_ids[1]]
+    return torch.square(curr_pos_w1+curr_pos_w2)
