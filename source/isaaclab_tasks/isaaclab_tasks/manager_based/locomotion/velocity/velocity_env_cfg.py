@@ -112,7 +112,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # scale=((3.0,4.0,2.5)), # 180,240,150
             # IKEA-box
             usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            scale=((6.33,4.17,2.5)), # 250,380,150
+            scale=((6.33,4.17,2.5)), # 380,250,150
             # # 3-box
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
             # scale=((4.17,5.67,3.5)), # 250,340,210
