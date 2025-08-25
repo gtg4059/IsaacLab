@@ -94,8 +94,10 @@ class MySceneCfg(InteractiveSceneCfg):
         init_state=RigidObjectCfg.InitialStateCfg(
             # # white-box
             # pos=[0.43, 0, 0.86], 
-            # 2-box
-            pos=[0.37, 0, 0.84], 
+            # # 2-box
+            # pos=[0.37, 0, 0.84], 
+            # IKEA-box
+            pos=[0.41, 0, 0.81], 
             # # 3-box
             # pos=[0.39, 0, 0.86], 
             # # 4-box
@@ -105,12 +107,12 @@ class MySceneCfg(InteractiveSceneCfg):
             # # white box
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
             # scale=(4.37,5.9,3.0), # 262,350,180
-            # 2-box
-            usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            scale=((3.0,4.0,2.5)), # 180,240,150
-            # # IKEA-box
+            # # 2-box
             # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            # scale=((4.17,6.33,2.5)), # 250,380,150
+            # scale=((3.0,4.0,2.5)), # 180,240,150
+            # IKEA-box
+            usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+            scale=((6.33,4.17,2.5)), # 250,380,150
             # # 3-box
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
             # scale=((4.17,5.67,3.5)), # 250,340,210
@@ -192,7 +194,7 @@ class MySceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table/table.usd",
         # init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.0, 0.05), rot=[0.707, 0, 0, -0.707]),
         # spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table_inst.usd",
-                scale=(0.5, 0.2, 1.0),
+                scale=(0.5, 0.4, 1.0),
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(
                     kinematic_enabled=True,
                     solver_position_iteration_count=16,
@@ -890,11 +892,11 @@ class TerminationsCfg:
     # )
     base_contact2 = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 20.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 10.0},
     )
     base_contact3 = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 20.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 10.0},
     )
     # base_contact4 = DoneTerm(
     #     func=mdp.illegal_contact,
@@ -921,7 +923,7 @@ class TerminationsCfg:
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
     )
     bad_position = DoneTerm(
-        func=mdp.bad_position, params={"limit_dist": 0.6, "asset_cfg": SceneEntityCfg("robot")}
+        func=mdp.bad_position, params={"limit_dist": 0.045, "asset_cfg": SceneEntityCfg("robot")}
     )
 
 
