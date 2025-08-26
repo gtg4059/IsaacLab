@@ -48,9 +48,16 @@ from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 from isaaclab_tasks.manager_based.locomotion.velocity.config.g1.flat_env_cfg import G1FlatEnvCfg_PLAY
+import torch
+from isaaclab.envs import ManagerBasedEnv, ManagerBasedEnvCfg
+from isaaclab.devices import Se2Keyboard
+from isaaclab.devices.keyboard.se2_keyboard import Se2KeyboardCfg
 
-
-
+keyboard_cfg = Se2KeyboardCfg(
+    v_x_sensitivity=0.8,
+    v_y_sensitivity=0.4,
+    omega_z_sensitivity=1.0,
+)
 
 def main():
     """Main function."""
@@ -60,19 +67,20 @@ def main():
     policy_path1 = "./scripts/tutorials/03_envs/policy_run.pt"
     file_content1 = omni.client.read_file(policy_path1)[2]
     file1 = io.BytesIO(memoryview(file_content1).tobytes())
-    policy1 = torch.jit.load(file1)
+    policy_run = torch.jit.load(file1)
     # stop
     policy_path2 = "./scripts/tutorials/03_envs/policy_stop.pt"
     file_content2 = omni.client.read_file(policy_path2)[2]
     file2 = io.BytesIO(memoryview(file_content2).tobytes())
-    policy2 = torch.jit.load(file2)
+    policy_stop = torch.jit.load(file2)
     # pickup
     policy_path3 = "./scripts/tutorials/03_envs/policy_pickup.pt"
     file_content3 = omni.client.read_file(policy_path3)[2]
     file3 = io.BytesIO(memoryview(file_content3).tobytes())
-    policy3 = torch.jit.load(file3)
+    policy_pickup = torch.jit.load(file3)
     # env
-    env_cfg = G1FlatEnvCfg_PLAY()
+    env_cfg = G1FlatEnvCfg_PLAY(device_cfg=keyboard_cfg)
+    
     env_cfg.scene.num_envs = 1
     env_cfg.curriculum = None
     # env_cfg.scene.terrain = TerrainImporterCfg(
@@ -89,17 +97,18 @@ def main():
         flag = not flag
     # env_cfg.sim.use_fabric = False
     env = ManagerBasedRLEnv(cfg=env_cfg)
-    env.keyboard.add_callback("A", print_cb)
+    # commands = keyboard.advance()
+    command = keyboard_device.advance()
+    env.keyboard_device.add_callback("A", print_cb)
     # env.keyboard.add_callback("a", print_cb))
-    env.scene
     obs, _ = env.reset()
     while simulation_app.is_running():
         # print(env.keyboard.is_pressed("a"))
         # print(obs["policy"][:, 93:96])
-        if not flag and torch.norm(obs["policy"][:,93:96])>0.1: #run
-            action = policy1(obs["policy"][:, :-3])
+        if not flag and torch.norm(obs["policy"][:,93:96])>0.02: #run
+            action = policy_run(obs["policy"][:, :-3])
         elif not flag and torch.norm(obs["policy"][:, 93:96])<=0.1: #stop
-            action = policy2(obs["policy"][:, :-3])
+            action = policy_stop(obs["policy"][:, :-3])
         elif flag:
             robot = env.scene["robot"]
             joint_indices, joint_names = robot.find_joints(['.*_proximal_joint'])
