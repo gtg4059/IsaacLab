@@ -824,7 +824,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "mass_distribution_params": (-0.3, 0.3),
+            "mass_distribution_params": (-0.4, 0.4),
             "operation": "add",
         },
     )

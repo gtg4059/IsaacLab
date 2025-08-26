@@ -64,11 +64,11 @@ class G1Rewards(RewardsCfg):
     reaching_object= RewTerm(
         func=mdp.object_ee_distance, 
         params={
-            "std": 0.5,
+            "std": 0.2,
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
-        weight=20.0
+        weight=10.0
     )
     object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
                                weight=5.0,
