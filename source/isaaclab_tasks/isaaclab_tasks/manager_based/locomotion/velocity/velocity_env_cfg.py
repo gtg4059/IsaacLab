@@ -97,7 +97,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # # 2-box
             # pos=[0.37, 0, 0.84], 
             # IKEA-box
-            pos=[0.41, 0, 0.80], 
+            pos=[0.36, 0, 0.80], 
             # # 3-box
             # pos=[0.39, 0, 0.86], 
             # # 4-box
@@ -120,7 +120,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
             # scale=((5.17,6.83,4.67)), # 310,410,280
             # # white wing-box
-            # usd_path="./source/isaaclab_assets/data/Assets/wing_box.usd",
+            # usd_path="./source/isaaclab_assets/data/Assets/wing_box2.usd",
             # scale=(6.43,7.26,5.357), # 250,380,150
             mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
@@ -190,11 +190,11 @@ class MySceneCfg(InteractiveSceneCfg):
 
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.15, 0.78), rot=[0.707, 0, 0, -0.707]),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.4, 0.15, 0.78), rot=[0.707, 0, 0, -0.707]),
         spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table/table.usd",
         # init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.0, 0.05), rot=[0.707, 0, 0, -0.707]),
         # spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table_inst.usd",
-                scale=(0.5, 0.4, 1.0),
+                scale=(0.5, 0.7, 0.1),
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(
                     kinematic_enabled=True,
                     solver_position_iteration_count=16,
@@ -780,9 +780,9 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "static_friction_range": (0.2, 1.3),
-            "dynamic_friction_range": (0.2, 1.3),
-            "restitution_range": (0.0, 0.4),
+            "static_friction_range": (0.8, 1.3),
+            "dynamic_friction_range": (0.8, 1.3),
+            "restitution_range": (0.0, 0.1),
             "num_buckets": 64,
             "make_consistent": True,
         },
@@ -810,7 +810,7 @@ class EventCfg:
         params={
             "asset_cfg": SceneEntityCfg("object"),
             # 4-box
-            "pose_range": {"x": (-0.04, 0.04), "y": (-0.04, 0.04), "yaw": (-0.02, 0.02)},
+            "pose_range": {"x": (-0.03, 0.03), "y": (-0.01, 0.01), "yaw": (-0.02, 0.02)},
             # # white box
             # "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
             # "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
@@ -923,7 +923,7 @@ class TerminationsCfg:
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
     )
     bad_position = DoneTerm(
-        func=mdp.bad_position, params={"limit_dist": 0.045, "asset_cfg": SceneEntityCfg("robot")}
+        func=mdp.bad_position, params={"limit_dist": 0.04, "asset_cfg": SceneEntityCfg("robot")}
     )
 
 
@@ -965,6 +965,7 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.render_interval = self.decimation
         self.sim.physics_material = self.scene.terrain.physics_material
         self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
+        self.sim.physx.bounce_threshold_velocity = 0.1
         # update sensor update periods
         # we tick all the sensors based on the smallest update period (physics update period)
         if self.scene.contact_forces is not None:
