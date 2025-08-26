@@ -97,7 +97,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # # 2-box
             # pos=[0.37, 0, 0.84], 
             # IKEA-box
-            pos=[0.36, 0, 0.80], 
+            pos=[0.38, 0, 0.82], 
             # # 3-box
             # pos=[0.39, 0, 0.86], 
             # # 4-box
@@ -111,26 +111,20 @@ class MySceneCfg(InteractiveSceneCfg):
             # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             # scale=((3.0,4.0,2.5)), # 180,240,150
             # IKEA-box
-            usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            scale=((6.33,4.17,2.5)), # 380,250,150
-            # # 3-box
-            # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
-            # scale=((4.17,5.67,3.5)), # 250,340,210
-            # # 4-box
-            # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
-            # scale=((5.17,6.83,4.67)), # 310,410,280
-            # # white wing-box
-            # usd_path="./source/isaaclab_assets/data/Assets/wing_box2.usd",
-            # scale=(6.43,7.26,5.357), # 250,380,150
+            # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+            # scale=((6.33,4.17,2.5)), # 380,250,150
+            # white wing IKEA-box
+            usd_path="/home/gwkim/Downloads/Wingbox.usd",
+            scale=(13.57, 7.576, 5.357), # 380,250,150
             mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 # kinematic_enabled=True,
-                solver_position_iteration_count=16,
-                solver_velocity_iteration_count=1,
-                max_angular_velocity=1000.0,
-                max_linear_velocity=1000.0,
-                max_depenetration_velocity=5.0,
-                disable_gravity=False,
+                solver_position_iteration_count=96,
+                # solver_velocity_iteration_count=1,
+                # max_angular_velocity=1000.0,
+                # max_linear_velocity=1000.0,
+                # max_depenetration_velocity=5.0,
+                # disable_gravity=False,
             ),
             # activate_contact_sensors=True,
         ),
@@ -190,11 +184,11 @@ class MySceneCfg(InteractiveSceneCfg):
 
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.4, 0.15, 0.78), rot=[0.707, 0, 0, -0.707]),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.40, 0.15, 0.78), rot=[0.707, 0, 0, -0.707]),
         spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table/table.usd",
         # init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.0, 0.05), rot=[0.707, 0, 0, -0.707]),
         # spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table_inst.usd",
-                scale=(0.5, 0.7, 0.1),
+                scale=(0.5, 0.8, 0.1),
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(
                     kinematic_enabled=True,
                     solver_position_iteration_count=16,
@@ -830,7 +824,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "com_range": {"x": (-0.2, 0.2), "y": (-0.1, 0.1), "z": (-0.1, 0.1)},
+            "com_range": {"x": (-0.15, 0.15), "y": (-0.1, 0.1), "z": (-0.0, 0.0)},
         },
     )
 
@@ -923,7 +917,7 @@ class TerminationsCfg:
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
     )
     bad_position = DoneTerm(
-        func=mdp.bad_position, params={"limit_dist": 0.04, "asset_cfg": SceneEntityCfg("robot")}
+        func=mdp.bad_position, params={"limit_dist": 0.05, "asset_cfg": SceneEntityCfg("robot")}
     )
 
 
