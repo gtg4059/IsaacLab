@@ -169,7 +169,7 @@ class CommandsCfg:
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.2659, 0.2659),
-            pos_y=(0.15, 0.15),
+            pos_y=(0.18, 0.18),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
@@ -184,7 +184,7 @@ class CommandsCfg:
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.2659, 0.2659),
-            pos_y=(-0.15, -0.15),
+            pos_y=(-0.18, -0.18),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
