@@ -237,6 +237,18 @@ class MySceneCfg(InteractiveSceneCfg):
 @configclass
 class CommandsCfg:
     """Command specifications for the MDP."""
+    base_velocity = mdp.UniformVelocityCommandCfg(
+        asset_name="robot",
+        resampling_time_range=(10.0, 10.0),
+        rel_standing_envs=0.02,
+        rel_heading_envs=1.0,
+        heading_command=True,
+        heading_control_stiffness=0.5,
+        debug_vis=True,
+        ranges=mdp.UniformVelocityCommandCfg.Ranges(
+            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
+        ),
+    )
     left_ee_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
         body_name="L_middle_proximal",
@@ -314,7 +326,7 @@ class ObservationsCfg:
     """Observation specifications for the MDP."""
 
     @configclass
-    class PolicyCfg(ObsGroup):
+    class PickupCfg(ObsGroup):
         """Observations for policy group."""
 
         # observation terms (order preserved)
@@ -399,7 +411,6 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        # velocity_commands = ObsTerm(func=keyboard_commands)
         left_ee_pose_command = ObsTerm(
             func=mdp.generated_commands,
             params={"command_name": "left_ee_pose"},
@@ -408,21 +419,19 @@ class ObservationsCfg:
             func=mdp.generated_commands,
             params={"command_name": "right_ee_pose"},
         )
-        object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
-        # object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, params={
-        #     "robot_cfg": SceneEntityCfg("robot",body_names="camera"),
-        #     "object_cfg": SceneEntityCfg("object_init")})
+        object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, 
+                                  noise=Unoise(n_min=-0.02, n_max=0.02),
+                                  params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
 
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
 
     @configclass
-    class CriticCfg(ObsGroup):
+    class RunCfg(ObsGroup):
         """Observations for policy group."""
 
         # observation terms (order preserved)
-        base_lin_vel = ObsTerm(func=mdp.base_lin_vel, noise=Unoise(n_min=-0.1, n_max=0.1),scale=2.0)
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2),scale=0.25)
         projected_gravity = ObsTerm(
             func=mdp.projected_gravity,
@@ -504,25 +513,16 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        left_ee_pose_command = ObsTerm(
-            func=mdp.generated_commands,
-            params={"command_name": "left_ee_pose"},
-        )
-        right_ee_pose_command = ObsTerm(
-            func=mdp.generated_commands,
-            params={"command_name": "right_ee_pose"},
-        )
-        object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
-        # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
-        # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"object_cfg": SceneEntityCfg("object_init")})
+        velocity_commands = ObsTerm(func=mdp.generated_commands, 
+                                    params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))# 3
 
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
 
     # observation groups
-    policy: PolicyCfg = PolicyCfg()
-    Critic: CriticCfg = CriticCfg()
+    Pickup: PickupCfg = PickupCfg()
+    Run: RunCfg = RunCfg()
 
 
 @configclass
@@ -885,47 +885,44 @@ class RewardsCfg:
 class TerminationsCfg:
     """Termination terms for the MDP."""
 
-    bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.6,"asset_cfg": SceneEntityCfg("object")})
+    # bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.6,"asset_cfg": SceneEntityCfg("object")})
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    # base_contact = DoneTerm(
+    # # base_contact = DoneTerm(
+    # #     func=mdp.illegal_contact,
+    # #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 500.0},
+    # # )
+    # base_contact2 = DoneTerm(
     #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 500.0},
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 10.0},
     # )
-    base_contact2 = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 10.0},
-    )
-    base_contact3 = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 10.0},
-    )
-    # base_contact4 = DoneTerm(
+    # base_contact3 = DoneTerm(
     #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_pitch_link"), "threshold": 10.0},
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 10.0},
     # )
-    # base_contact5 = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_elbow_link"), "threshold": 10.0},
+    # # base_contact4 = DoneTerm(
+    # #     func=mdp.illegal_contact,
+    # #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_pitch_link"), "threshold": 10.0},
+    # # )
+    # # base_contact5 = DoneTerm(
+    # #     func=mdp.illegal_contact,
+    # #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_elbow_link"), "threshold": 10.0},
+    # # )
+    # # base_contact6 = DoneTerm(
+    # #     func=mdp.illegal_contact,
+    # #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=[
+    # #                                                               ".*_thumb_intermediate",
+    # #                                                               ".*_index_intermediate",
+    # #                                                               ".*_middle_intermediate",
+    # #                                                               ".*_pinky_intermediate",
+    # #                                                               ".*_ring_intermediate",
+    # #                                                               ]), "threshold": 20.0},
+    # # )
+    # object_dropping = DoneTerm(
+    #     func=mdp.root_height_below_minimum, params={"minimum_height": 0.65, "asset_cfg": SceneEntityCfg("object")}
     # )
-    # base_contact6 = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=[
-    #                                                               ".*_thumb_intermediate",
-    #                                                               ".*_index_intermediate",
-    #                                                               ".*_middle_intermediate",
-    #                                                               ".*_pinky_intermediate",
-    #                                                               ".*_ring_intermediate",
-    #                                                               ]), "threshold": 20.0},
+    # robot_dropping = DoneTerm(
+    #     func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
     # )
-    object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.65, "asset_cfg": SceneEntityCfg("object")}
-    )
-    robot_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
-    )
-    bad_position = DoneTerm(
-        func=mdp.bad_position, params={"limit_dist": 0.05, "asset_cfg": SceneEntityCfg("robot")}
-    )
 
 
 @configclass

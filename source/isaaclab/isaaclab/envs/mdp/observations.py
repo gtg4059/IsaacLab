@@ -238,7 +238,7 @@ def object_position_in_robot_body_frame(
     object: RigidObject = env.scene[object_cfg.name]
     # object.data.root_link_state_w[:, 0]
     # object.data.root_link_state_w[:, :3]
-    object_pos_w = object.data.root_link_state_w[:, :3]+quat_apply(object.data.root_link_state_w[:, 3:7],torch.tensor([0.0,0.0,0.075],device="cuda:0").repeat(env.num_envs,1))
+    object_pos_w = object.data.root_link_state_w[:, :3]+quat_apply(object.data.root_link_state_w[:, 3:7],torch.tensor([0.0,0.0,0.075]).repeat(env.num_envs,1))
     object_pos_b, _ = subtract_frame_transforms(
         robot.data.body_link_pos_w[:, robot_cfg.body_ids[0]], robot.data.body_link_quat_w[:, robot_cfg.body_ids[0]], object_pos_w
     )
