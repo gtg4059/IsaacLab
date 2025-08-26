@@ -116,7 +116,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # white wing IKEA-box
             usd_path="/home/gwkim/Downloads/Wingbox.usd",
             scale=(13.57, 7.576, 5.357), # 380,250,150
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
+            # mass_props=sim_utils.MassPropertiesCfg(mass=0.5),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 # kinematic_enabled=True,
                 solver_position_iteration_count=96,
@@ -816,6 +816,16 @@ class EventCfg:
                 "pitch": (-0.0, 0.0),
                 "yaw": (-0.0, 0.0),
             },
+        },
+    )
+
+    randomize_object_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "mass_distribution_params": (-0.3, 0.3),
+            "operation": "add",
         },
     )
 
