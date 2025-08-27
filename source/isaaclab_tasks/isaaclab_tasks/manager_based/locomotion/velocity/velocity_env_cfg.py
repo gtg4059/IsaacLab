@@ -78,25 +78,33 @@ class MySceneCfg(InteractiveSceneCfg):
     # #Set Cube as object
     # object = RigidObjectCfg(
     #     prim_path="{ENV_REGEX_NS}/Object",
-    #     init_state=RigidObjectCfg.InitialStateCfg(pos=[0.2659, -0.0108,  0.8287], rot=[1, 0, 0, 0]), # 0.3766, 0.0169, 0.8889 = 4 scale
+    #     init_state=RigidObjectCfg.InitialStateCfg(
+    #         # # white-box
+    #         # pos=[0.43, 0, 0.86],
+    #         # 2-box
+    #         pos=[0.37, 0, 0.82],
+    #         # # 3-box
+    #         # pos=[0.39, 0, 0.86],
+    #         # # 4-box
+    #         # pos=[0.43, 0, 0.93],
+    #         rot=[1.0, 0.0 ,0.0, 0.0]),
     #     spawn=sim_utils.UsdFileCfg(
-    #         usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
-    #         scale=(3.10,4.14, 2.84),#(3.10,4.14, 2.84),8/8 test->no 4scale box & yes last time
-    #         # white wing-box
-    #         # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Assets/box.usd",
-    #         # scale=(8.73,11.7,6.0),
-    #         # white box
+    #         # # white box
     #         # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
     #         # scale=(4.37,5.9,3.0), # 262,350,180
-    #         # 2호
+    #         # # 2-box
+    #         # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
     #         # scale=((3.0,4.0,2.5)), # 180,240,150
-    #         # 3호
+    #         # # 3-box
     #         # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
     #         # scale=((4.17,5.67,3.5)), # 250,340,210
-    #         # 4호
-    #         # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
-    #         # scale=((5.17,6.83,4.67)), # 310,410,280          
-    #         mass_props=sim_utils.MassPropertiesCfg(mass=0.7),
+    #         # # 4-box
+    #         # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
+    #         # scale=((5.17,6.83,4.67)), # 310,410,280
+    #         # white wing-box
+    #         usd_path="./source/isaaclab_assets/data/Wingbox.usd",
+    #         scale=(11.5,8.93,5.357),# 380,250,150
+    #         mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
     #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
     #             # kinematic_enabled=True,
     #             solver_position_iteration_count=16,
@@ -154,7 +162,7 @@ class CommandsCfg:
         resampling_time_range=(10.0, 10.0),
         rel_standing_envs=0.02,
         rel_heading_envs=1.0,
-        heading_command=True,
+        heading_command=False,
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
@@ -162,14 +170,15 @@ class CommandsCfg:
         ),
     )
 
+# pos=[0.37, 0, 0.82] # 380,250,150
     left_ee_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
         body_name="L_middle_proximal",
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.2659, 0.2659),
-            pos_y=(0.18, 0.18),
+            pos_x=(0.33, 0.33),
+            pos_y=(0.15, 0.15),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
@@ -183,8 +192,8 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.2659, 0.2659),
-            pos_y=(-0.18, -0.18),
+            pos_x=(0.33, 0.33),
+            pos_y=(-0.15, -0.15),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
@@ -637,17 +646,17 @@ class EventCfg:
         },
     )
 
-    # reset_robot_joints = EventTerm(
-    #     func=mdp.reset_joints_by_scale,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", joint_names=[
-    #             '.*_proximal_joint'
-    #             ]),
-    #         "position_range": (1.0, 1.0),
-    #         "velocity_range": (0.0, 0.0),
-    #     },
-    # )
+    reset_robot_joints = EventTerm(
+        func=mdp.reset_joints_by_scale,
+        mode="reset",
+        params={
+            # "asset_cfg": SceneEntityCfg("robot", joint_names=[
+            #     '.*_proximal_joint'
+            #     ]),
+            "position_range": (1.0, 1.0),
+            "velocity_range": (0.0, 0.0),
+        },
+    )
 
     # randomize_motor_zero_offset = EventTerm(
     #     func=mdp.reset_joints_by_offset,
@@ -716,6 +725,34 @@ class EventCfg:
     #     },
     # )
 
+    physics_material = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
+            "static_friction_range": (1.25, 2.25),
+            "dynamic_friction_range": (1.25, 2.25),
+            "restitution_range": (0.0, 0.0),
+            "num_buckets": 64,
+            "make_consistent": True
+        },
+    )
+
+    physics_material_hand = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link",
+                                                            "R_.*",
+                                                            "L_.*",
+                                                            ]),
+            "static_friction_range": (1.25, 2.25),#(2.0, 2.0),
+            "dynamic_friction_range": (1.25, 2.25),#(2.0, 2.0),
+            "restitution_range": (0.0, 0.0),
+            "num_buckets": 64,
+            "make_consistent": True,
+        },
+    )
     # reset_box_position = EventTerm(
     #     func=mdp.reset_root_state_uniform,
     #     mode="reset",
@@ -797,7 +834,7 @@ class TerminationsCfg:
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.4, "asset_cfg": SceneEntityCfg("robot")}
     )
-
+    # bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.6,"asset_cfg": SceneEntityCfg("object")})
 
 @configclass
 class CurriculumCfg:
