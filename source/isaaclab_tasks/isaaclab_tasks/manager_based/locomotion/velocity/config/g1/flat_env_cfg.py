@@ -63,10 +63,10 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         # disable randomization for play
 
         # remove random pushing
-        # self.events.randomize_friction = None
-        # self.events.randomize_base_mass = None
-        # self.events.randomize_base_com = None
-        # self.events.randomize_pd_gains = None
-        # self.events.randomize_link_mass = None
-        # self.events.randomize_motor_zero_offset = None
+        self.events.randomize_friction = None
+        self.events.randomize_base_mass = None
+        self.events.randomize_base_com = None
+        self.events.randomize_pd_gains = None
+        self.events.randomize_link_mass = None
+        self.events.randomize_motor_zero_offset = None
         # self.events.randomize_joint_param = None
