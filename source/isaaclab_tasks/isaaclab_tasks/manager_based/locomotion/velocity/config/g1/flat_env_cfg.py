@@ -72,7 +72,6 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         self.events.randomize_friction = None
         self.events.push_robot = None
         self.events.randomize_base_mass = None
-        self.events.randomize_base_com = None
         self.events.randomize_pd_gains = None
         self.events.randomize_link_mass = None
         self.events.randomize_motor_zero_offset = None
