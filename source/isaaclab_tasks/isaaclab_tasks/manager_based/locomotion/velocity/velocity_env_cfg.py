@@ -115,7 +115,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # scale=((6.33,4.17,2.5)), # 380,250,150
             # white wing IKEA-box
             usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
-            scale=(13.57, 7.576, 5.357), # 380,250,150
+            scale=(11.5, 8.93, 5.357), # 380,250,150
             mass_props=sim_utils.MassPropertiesCfg(mass=0.5),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 # kinematic_enabled=True,

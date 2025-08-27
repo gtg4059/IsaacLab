@@ -198,8 +198,8 @@ def object_ee_distance(
     des_pos_b = object.data.root_pos_w 
     curr_pos_w1 = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]  # type: ignore
     curr_pos_w2 = asset.data.body_state_w[:, asset_cfg.body_ids[1], :3]  # type: ignore
-    distance1 = torch.norm(curr_pos_w1 - (des_pos_b+torch.tensor([0.0,0.11,0.0],device="cuda:0").repeat(env.num_envs,1)), dim=1, p=2)# 0.
-    distance2 = torch.norm(curr_pos_w2 - (des_pos_b-torch.tensor([0.0,0.11,0.0],device="cuda:0").repeat(env.num_envs,1)), dim=1, p=2)
+    distance1 = torch.norm(curr_pos_w1 - (des_pos_b+torch.tensor([0.0,0.12,0.0],device="cuda:0").repeat(env.num_envs,1)), dim=1, p=2)# 0.
+    distance2 = torch.norm(curr_pos_w2 - (des_pos_b-torch.tensor([0.0,0.12,0.0],device="cuda:0").repeat(env.num_envs,1)), dim=1, p=2)
     des_quat_b = object.data.root_quat_w # 1 0 0 0
     curr_quat_w1 = asset.data.body_state_w[:, asset_cfg.body_ids[0], 3:7]  # type: ignore 7 0 0 7
     curr_quat_w2 = asset.data.body_state_w[:, asset_cfg.body_ids[1], 3:7]  # type: ignore 7 0 0 -7
