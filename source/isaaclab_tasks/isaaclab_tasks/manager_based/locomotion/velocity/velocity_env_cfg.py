@@ -130,20 +130,6 @@ class ActionsCfg:
                     "waist_yaw_joint",
                     "waist_roll_joint",
                     "waist_pitch_joint",
-                    "left_shoulder_pitch_joint",
-                    "left_shoulder_roll_joint",
-                    "left_shoulder_yaw_joint",
-                    "left_elbow_joint",
-                    "left_wrist_roll_joint",
-                    "left_wrist_pitch_joint",
-                    "left_wrist_yaw_joint",
-                    "right_shoulder_pitch_joint",
-                    "right_shoulder_roll_joint",
-                    "right_shoulder_yaw_joint",
-                    "right_elbow_joint",
-                    "right_wrist_roll_joint",
-                    "right_wrist_pitch_joint",
-                    "right_wrist_yaw_joint",
                      ], 
         scale=0.25, 
         use_default_offset=True,
@@ -184,20 +170,6 @@ class ObservationsCfg:
                                                 "waist_yaw_joint",
                                                 "waist_roll_joint",
                                                 "waist_pitch_joint",
-                                                "left_shoulder_pitch_joint",
-                                                "left_shoulder_roll_joint",
-                                                "left_shoulder_yaw_joint",
-                                                "left_elbow_joint",
-                                                "left_wrist_roll_joint",
-                                                "left_wrist_pitch_joint",
-                                                "left_wrist_yaw_joint",
-                                                "right_shoulder_pitch_joint",
-                                                "right_shoulder_roll_joint",
-                                                "right_shoulder_yaw_joint",
-                                                "right_elbow_joint",
-                                                "right_wrist_roll_joint",
-                                                "right_wrist_pitch_joint",
-                                                "right_wrist_yaw_joint",
                                                 ],
                                     preserve_order=True,
                                     )},
@@ -221,20 +193,6 @@ class ObservationsCfg:
                                                 "waist_yaw_joint",
                                                 "waist_roll_joint",
                                                 "waist_pitch_joint",
-                                                "left_shoulder_pitch_joint",
-                                                "left_shoulder_roll_joint",
-                                                "left_shoulder_yaw_joint",
-                                                "left_elbow_joint",
-                                                "left_wrist_roll_joint",
-                                                "left_wrist_pitch_joint",
-                                                "left_wrist_yaw_joint",
-                                                "right_shoulder_pitch_joint",
-                                                "right_shoulder_roll_joint",
-                                                "right_shoulder_yaw_joint",
-                                                "right_elbow_joint",
-                                                "right_wrist_roll_joint",
-                                                "right_wrist_pitch_joint",
-                                                "right_wrist_yaw_joint",
                                                 ],
                                     preserve_order=True,
                                     )},
@@ -276,20 +234,6 @@ class ObservationsCfg:
                                                 "waist_yaw_joint",
                                                 "waist_roll_joint",
                                                 "waist_pitch_joint",
-                                                "left_shoulder_pitch_joint",
-                                                "left_shoulder_roll_joint",
-                                                "left_shoulder_yaw_joint",
-                                                "left_elbow_joint",
-                                                "left_wrist_roll_joint",
-                                                "left_wrist_pitch_joint",
-                                                "left_wrist_yaw_joint",
-                                                "right_shoulder_pitch_joint",
-                                                "right_shoulder_roll_joint",
-                                                "right_shoulder_yaw_joint",
-                                                "right_elbow_joint",
-                                                "right_wrist_roll_joint",
-                                                "right_wrist_pitch_joint",
-                                                "right_wrist_yaw_joint",
                                                 ],
                                     preserve_order=True,
                                     )},
@@ -313,20 +257,6 @@ class ObservationsCfg:
                                                 "waist_yaw_joint",
                                                 "waist_roll_joint",
                                                 "waist_pitch_joint",
-                                                "left_shoulder_pitch_joint",
-                                                "left_shoulder_roll_joint",
-                                                "left_shoulder_yaw_joint",
-                                                "left_elbow_joint",
-                                                "left_wrist_roll_joint",
-                                                "left_wrist_pitch_joint",
-                                                "left_wrist_yaw_joint",
-                                                "right_shoulder_pitch_joint",
-                                                "right_shoulder_roll_joint",
-                                                "right_shoulder_yaw_joint",
-                                                "right_elbow_joint",
-                                                "right_wrist_roll_joint",
-                                                "right_wrist_pitch_joint",
-                                                "right_wrist_yaw_joint",
                                                 ],
                                     preserve_order=True,
                                     )},
@@ -388,14 +318,6 @@ class EventCfg:
         },
     )
 
-    # interval
-    push_robot = EventTerm(
-        func=mdp.push_by_setting_velocity,
-        mode="interval",
-        interval_range_s=(10.0, 15.0),
-        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
-    )
-
     randomize_link_mass = EventTerm(
         func=mdp.randomize_rigid_body_mass,
         mode="startup",
@@ -444,14 +366,14 @@ class EventCfg:
         },
     )
 
-    randomize_base_com = EventTerm(
-        func=mdp.randomize_rigid_body_com,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
-            "com_range": {"x": (-0.06, 0.06), "y": (-0.06, 0.06), "z": (-0.06, 0.06)},
-        },
-    )
+    # randomize_base_com = EventTerm(
+    #     func=mdp.randomize_rigid_body_com,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
+    #         "com_range": {"x": (-0.06, 0.06), "y": (-0.06, 0.06), "z": (-0.06, 0.06)},
+    #     },
+    # )
 
     randomize_pd_gains = EventTerm(
         func=mdp.randomize_actuator_gains,
@@ -513,6 +435,24 @@ class EventCfg:
             "armature_distribution_params": (0.008,0.06),
             "operation": "add",
             "distribution": "uniform",
+        },
+    )
+
+    # interval
+    push_robot = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="interval",
+        interval_range_s=(10.0, 15.0),
+        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+    )
+
+    randomize_com = EventTerm(
+        func=mdp.randomize_rigid_body_com,
+        mode="interval",
+        interval_range_s=(2.0,3.0),
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=['torso_link']),
+            "com_range": {"x": (-0.00, 0.4), "y": (-0.2, 0.2), "z": (-0.2, 0.2)},
         },
     )
 
