@@ -65,7 +65,7 @@ class G1Rewards(RewardsCfg):
     )
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.1,
+        weight=-0.5,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -85,36 +85,18 @@ class G1Rewards(RewardsCfg):
     # G1_29_no_hand
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.1,
+        weight=-0.5,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
             "waist_roll_joint",
             "waist_pitch_joint",
             "waist_yaw_joint",
         ])},
     )
-    joint_deviation_arms = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-0.1,
-        params={
-            "asset_cfg": SceneEntityCfg(
-                "robot",
-                joint_names=[
-                    ".*_shoulder_pitch_joint",
-                    ".*_shoulder_roll_joint",
-                    ".*_shoulder_yaw_joint",
-                    ".*_elbow_joint",
-                    ".*_wrist_roll_joint",
-                    ".*_wrist_pitch_joint",
-                    ".*_wrist_yaw_joint",
-                ],
-            )
-        },
-    )
 
     # same motion
     motion_equality_hip = RewTerm(
         func=mdp.motion_equality_cons,
-        weight=-1.0,
+        weight=-0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_hip_pitch_joint"),
         },
@@ -122,7 +104,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_knee = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=-1.0,
+        weight=-0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_knee_joint"),
         },
@@ -130,7 +112,7 @@ class G1Rewards(RewardsCfg):
 
     motion_equality_ankle = RewTerm(
         func=mdp.motion_equality_pros,
-        weight=-1.0,
+        weight=-0.5,
         params={
             "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_ankle_pitch_joint"),
         },
