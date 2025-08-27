@@ -20,6 +20,8 @@ from isaaclab.managers.manager_base import ManagerTermBase
 from isaaclab.managers.manager_term_cfg import RewardTermCfg
 from isaaclab.sensors import ContactSensor, RayCaster
 
+from isaaclab.devices import Se2Keyboard
+from isaaclab.devices.keyboard.se2_keyboard import Se2KeyboardCfg
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 

@@ -24,6 +24,12 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
+from isaaclab.devices import DevicesCfg
+
+import torch
+from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
+from isaaclab.devices import Se2Keyboard
+from isaaclab.devices.keyboard.se2_keyboard import Se2KeyboardCfg
 
 ##
 # Pre-defined configs
@@ -34,17 +40,19 @@ from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
 # Scene definition
 ##
 
-# def keyboard_commands(env: ManagerBasedEnv) -> torch.Tensor:
-#     """키보드로부터 명령을 받아옵니다."""
-#     if not hasattr(env, "keyboard"):
-#         env.keyboard = Se2Keyboard(
-#             v_x_sensitivity=0.8, v_y_sensitivity=0.4, omega_z_sensitivity=0.4
-#         )
-#         # env.keyboard.add_callback("a", print_cb)
-#         env.keyboard.reset()
+
+def keyboard_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
+    """키보드로부터 명령을 받아옵니다."""
+    if not hasattr(env, "keyboard"):
+        env.keyboard = Se2Keyboard(Se2KeyboardCfg(
+            v_x_sensitivity=0.8, v_y_sensitivity=0.4, omega_z_sensitivity=0.4
+            )
+        )
+        # env.keyboard.add_callback("a", print_cb)
+        env.keyboard.reset()
     
-#     command = env.keyboard.advance()
-#     return torch.tensor(command, device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
+    command = env.keyboard.advance()
+    return torch.tensor(command, device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
 
 @configclass
 class MySceneCfg(InteractiveSceneCfg):
@@ -242,7 +250,7 @@ class CommandsCfg:
         resampling_time_range=(10.0, 10.0),
         rel_standing_envs=0.02,
         rel_heading_envs=1.0,
-        heading_command=True,
+        # heading_command=True,
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
@@ -513,8 +521,9 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands, 
-                                    params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))# 3
+        velocity_commands = ObsTerm(func=keyboard_commands)
+        # velocity_commands = ObsTerm(func=mdp.generated_commands, 
+        #                             params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))# 3
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -931,6 +940,15 @@ class CurriculumCfg:
 
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
 
+# @configclass
+# class DevicesCfg:
+#     """Device configurations for the MDP."""
+#     keyboard = Se2Keyboard(Se2KeyboardCfg(
+#             v_x_sensitivity=0.7,
+#             v_y_sensitivity=0.5,
+#             omega_z_sensitivity=1.0
+#         )
+#     )
 
 ##
 # Environment configuration
@@ -968,7 +986,6 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
         # we tick all the sensors based on the smallest update period (physics update period)
         if self.scene.contact_forces is not None:
             self.scene.contact_forces.update_period = self.sim.dt
-
         # check if terrain levels curriculum is enabled - if so, enable curriculum for terrain generator
         # this generates terrains with increasing difficulty and is useful for training
         if getattr(self.curriculum, "terrain_levels", None) is not None:
@@ -977,3 +994,14 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
         else:
             if self.scene.terrain.terrain_generator is not None:
                 self.scene.terrain.terrain_generator.curriculum = False
+
+        self.teleop_devices = DevicesCfg(
+            devices={
+                "keyboard": Se2KeyboardCfg(
+                    sim_device=self.sim.device,
+                    v_x_sensitivity=0.7,
+                    v_y_sensitivity=0.5,
+                    omega_z_sensitivity=1.0
+                ),
+            }
+        )
