@@ -58,7 +58,7 @@ class G1Rewards(RewardsCfg):
     #     }, 
     # )
 
-    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=-5.0)
+    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=-30.0)
 
     # pickup reward
     reaching_object= RewTerm(
@@ -68,7 +68,7 @@ class G1Rewards(RewardsCfg):
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
-        weight=20.0
+        weight=10.0
     )
     object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
                                weight=5.0,
