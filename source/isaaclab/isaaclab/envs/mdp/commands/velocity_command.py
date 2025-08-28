@@ -156,8 +156,8 @@ class UniformVelocityCommand(CommandTerm):
         angle = torch.atan2(self.vel_command_w[:, 1]-(self.robot.data.root_pos_w[:,1]-self.base_pos_w[:,1]),
                             self.vel_command_w[:, 0]-(self.robot.data.root_pos_w[:,0]-self.base_pos_w[:,0]))
         vec_norm = torch.norm(self.vel_command_w[:, :2]-(self.robot.data.root_pos_w[:,:2]-self.base_pos_w[:,:2]),dim=1)
-        self.vel_command_b[:, 0]=torch.cos(angle-self.robot.data.heading_w)*torch.tanh(10*vec_norm)
-        self.vel_command_b[:, 1]=torch.sin(angle-self.robot.data.heading_w)*torch.tanh(10*vec_norm)
+        self.vel_command_b[:, 0]=torch.cos(angle-self.robot.data.heading_w)*torch.tanh(5*vec_norm)
+        self.vel_command_b[:, 1]=torch.sin(angle-self.robot.data.heading_w)*torch.tanh(5*vec_norm)
         
         # math_utils.quat_apply_yaw
         if self.cfg.heading_command:

@@ -452,7 +452,7 @@ class EventCfg:
         interval_range_s=(2.0,3.0),
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=['torso_link']),
-            "com_range": {"x": (-0.00, 0.4), "y": (-0.2, 0.2), "z": (-0.2, 0.2)},
+            "com_range": {"x": (-0.00, 0.5), "y": (-0.2, 0.2), "z": (-0.2, 0.2)},
         },
     )
 
