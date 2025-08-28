@@ -92,11 +92,11 @@ def main():
     # )
     env_cfg.sim.device = "cpu"
 
-    flag=False
-    def print_cb():
-        print("pressed")
-        nonlocal flag
-        flag = not flag
+    # flag=False
+    # def print_cb():
+    #     print("pressed")
+    #     nonlocal flag
+    #     flag = not flag
     # env_cfg.sim.use_fabric = False
     
     # commands = keyboard.advance()
@@ -104,30 +104,34 @@ def main():
     # env.keyboard.add_callback("a", print_cb))
     env = ManagerBasedRLEnv(cfg=env_cfg)
     # command = env_cfg.keyboard.advance()
-    # env_cfg.gamepad.add_callback(carb.input.GamepadInput.A, print_cb)
+    # env_cfg.gamepad.add_callback(carb.input.GamepadInput.X, print_cb)
     obs, _ = env.reset()
     while simulation_app.is_running():
-        # command = env_cfg.gamepad.advance()
-        # print("command",command)
-        # # action = policy_run(obs["Run"])
-        # # # print(env.keyboard.is_pressed("a"))
-        # # # print(obs["policy"][:, 93:96])
-        # if not flag and torch.norm(command)>0.02: #run
-        #     action = policy_run(obs["Run"])
-        # elif not flag and torch.norm(command)<=0.1: #stop
-        #     action = policy_stop(obs["Run"])
-        # elif flag:
-        #     robot = env.scene["robot"]
-        #     joint_indices, joint_names = robot.find_joints(['.*_proximal_joint'])
-        #     joint_idx = robot.set_joint_effort_target(torch.zeros_like(robot.data.default_joint_pos[:,joint_indices]),joint_indices)
-        #     num_envs = env.num_envs
-        #     num_joints = robot.num_joints
-        #     efforts = 0.02*torch.ones((num_envs, num_joints), device=env.device)
-        #     efforts[:, joint_idx] = 0.02
-        #     robot.set_joint_effort_target(efforts)
-        #     robot.write_data_to_sim()
-        #     # action = policy3(obs["policy"])
-        # # run inference
+        command = obs["Run"][:, 93:96]
+        
+        # action = policy_run(obs["Run"])
+        # # print(env.keyboard.is_pressed("a"))
+        # # print(obs["policy"][:, 93:96])
+        print("commands",env.gamepad.advance())
+        # X, Y, A, B button: 3,4,5,6
+        if env.gamepad.advance()[3]>0.5:# and torch.norm(command)>0.4: #run
+            action = policy_run(obs["Run"])
+        elif env.gamepad.advance()[3]<0 and env.gamepad.advance()[5]>0:# and torch.norm(command)<=0.4: #stop
+            action = policy_stop(torch.cat((obs["Run"][:,:93],command*0),dim=1))
+        elif env.gamepad.advance()[3]<0 and env.gamepad.advance()[5]<0: #pickup
+            # robot = env.scene["robot"]
+            # joint_indices, joint_names = robot.find_joints(['.*_proximal_joint'])
+            # joint_idx = robot.set_joint_effort_target(torch.zeros_like(robot.data.default_joint_pos[:,joint_indices]),joint_indices)
+            # num_envs = env.num_envs
+            # num_joints = robot.num_joints
+            # efforts = 0.02*torch.ones((num_envs, num_joints), device=env.device)
+            # efforts[:, joint_idx] = 0.02
+            # robot.set_joint_effort_target(efforts)
+            # robot.write_data_to_sim()
+            print("Pickup")
+            action = policy_pickup(obs["Pickup"])
+        # run inference
+        # print("command",obs["Run"][:, 93:96])
         obs, _, _, _, _ = env.step(action)
 
 

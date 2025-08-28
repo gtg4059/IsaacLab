@@ -10,7 +10,7 @@ from .rough_env_cfg import G1RoughEnvCfg
 from isaaclab_assets import G1_DEX_FIX
 from isaaclab.devices import Se2Keyboard
 from isaaclab.devices.keyboard.se2_keyboard import Se2KeyboardCfg
-from isaaclab.devices.gamepad import Se2Gamepad, Se2GamepadCfg
+from isaaclab.devices.gamepad import Se3Gamepad, Se3GamepadCfg
 
 @configclass
 class G1FlatEnvCfg(G1RoughEnvCfg):
@@ -51,13 +51,14 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
     def __post_init__(self) -> None:
         # post init of parent
         super().__post_init__()
-        self.gamepad = Se2Gamepad(Se2GamepadCfg(
-                v_x_sensitivity=0.5,
-                v_y_sensitivity=0.5,
-                omega_z_sensitivity=1.0,
-                dead_zone=0.01,
-            )
-        )
+        # self.gamepad = Se3Gamepad(Se3GamepadCfg())
+        # self.gamepad = Se2Gamepad(Se2GamepadCfg(
+        #         v_x_sensitivity=0.5,
+        #         v_y_sensitivity=0.5,
+        #         omega_z_sensitivity=1.0,
+        #         dead_zone=0.01,
+        #     )
+        # )
         self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
         # make a smaller scene for play
         self.scene.num_envs = 50
@@ -65,10 +66,10 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         # disable randomization for play
 
         # remove random pushing
-        self.events.randomize_friction = None
-        self.events.randomize_base_mass = None
-        self.events.randomize_base_com = None
-        self.events.randomize_pd_gains = None
-        self.events.randomize_link_mass = None
-        self.events.randomize_motor_zero_offset = None
+        # self.events.randomize_friction = None
+        # self.events.randomize_base_mass = None
+        # self.events.randomize_base_com = None
+        # self.events.randomize_pd_gains = None
+        # self.events.randomize_link_mass = None
+        # self.events.randomize_motor_zero_offset = None
         # self.events.randomize_joint_param = None

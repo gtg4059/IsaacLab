@@ -39,30 +39,33 @@ from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
 ##
 # Scene definition
 ##
-from isaaclab.devices.gamepad import Se2Gamepad, Se2GamepadCfg
-
-# def gamepad_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
-#     """게임패드(조이스틱) 입력을 받아옴."""
-#     if not hasattr(env, "gamepad"):
-#         env.gamepad = Se2Gamepad(Se2GamepadCfg(
-#             v_x_sensitivity=0.8, v_y_sensitivity=0.4, omega_z_sensitivity=0.4, dead_zone=0.01
-#         ))
-#         env.gamepad.reset()
-#     command = env.gamepad.advance()
-#     return torch.tensor(command, device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
+from isaaclab.devices.gamepad import Se2bGamepad, Se2bGamepadCfg
 
 def gamepad_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
-    """키보드로부터 명령을 받아옵니다."""
-    if not hasattr(env, "keyboard"):
-        env.keyboard = Se2Keyboard(Se2KeyboardCfg(
-            v_x_sensitivity=0.8, v_y_sensitivity=0.4, omega_z_sensitivity=0.4
-            )
-        )
-        # env.keyboard.add_callback("a", print_cb)
-        env.keyboard.reset()
+    """게임패드(조이스틱) 입력을 받아옴."""
+    if not hasattr(env, "gamepad"):
+        env.gamepad = Se2bGamepad(Se2bGamepadCfg(
+            # pos_sensitivity=2.0,
+            # rot_sensitivity=0.25,
+            v_x_sensitivity=1.0, v_y_sensitivity=1.0, omega_z_sensitivity=0.25, #dead_zone=0.01
+        ))
+        env.gamepad.reset()
+    command = env.gamepad.advance()
+    # print(command)
+    return torch.tensor([command[0],-command[1],-command[2]], device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
+
+# def gamepad_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
+#     """키보드로부터 명령을 받아옵니다."""
+#     if not hasattr(env, "keyboard"):
+#         env.keyboard = Se2Keyboard(Se2KeyboardCfg(
+#             v_x_sensitivity=0.8, v_y_sensitivity=0.4, omega_z_sensitivity=0.4
+#             )
+#         )
+#         # env.keyboard.add_callback("a", print_cb)
+#         env.keyboard.reset()
     
-    command = env.keyboard.advance()
-    return torch.tensor(command, device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
+#     command = env.keyboard.advance()
+#     return torch.tensor(command, device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
 
 @configclass
 class MySceneCfg(InteractiveSceneCfg):
@@ -203,14 +206,14 @@ class MySceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table/table.usd",
         # init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.0, 0.05), rot=[0.707, 0, 0, -0.707]),
         # spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table_inst.usd",
-                scale=(0.5, 0.8, 0.1),
+                scale=(0.5, 0.8, 1.0),
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(
                     kinematic_enabled=True,
-                    # solver_position_iteration_count=16,
-                    # solver_velocity_iteration_count=1,
-                    # max_angular_velocity=1000.0,
-                    # max_linear_velocity=1000.0,
-                    # max_depenetration_velocity=5.0,
+                    solver_position_iteration_count=8,
+                    solver_velocity_iteration_count=1,
+                    max_angular_velocity=1000.0,
+                    max_linear_velocity=1000.0,
+                    max_depenetration_velocity=5.0,
                     disable_gravity=True,
                 ),
             ),
@@ -1004,14 +1007,13 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
         else:
             if self.scene.terrain.terrain_generator is not None:
                 self.scene.terrain.terrain_generator.curriculum = False
-
-        self.teleop_devices = DevicesCfg(
-            devices={
-                "Gamepad": Se2GamepadCfg(
-                    sim_device=self.sim.device,
-                    v_x_sensitivity=0.7,
-                    v_y_sensitivity=0.5,
-                    omega_z_sensitivity=1.0
-                ),
-            }
-        )
+        # self.teleop_devices = DevicesCfg(
+        #     devices={
+        #         "Gamepad": Se2GamepadCfg(
+        #             sim_device=self.sim.device,
+        #             v_x_sensitivity=0.7,
+        #             v_y_sensitivity=0.5,
+        #             omega_z_sensitivity=1.0
+        #         ),
+        #     }
+        # )

@@ -6,4 +6,5 @@
 """Gamepad device for SE(2) and SE(3) control."""
 
 from .se2_gamepad import Se2Gamepad, Se2GamepadCfg
+from .se2b_gamepad import Se2bGamepad, Se2bGamepadCfg
 from .se3_gamepad import Se3Gamepad, Se3GamepadCfg
