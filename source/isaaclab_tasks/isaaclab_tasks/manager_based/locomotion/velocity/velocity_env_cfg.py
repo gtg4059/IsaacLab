@@ -41,28 +41,28 @@ from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
 ##
 from isaaclab.devices.gamepad import Se2Gamepad, Se2GamepadCfg
 
-def gamepad_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
-    """게임패드(조이스틱) 입력을 받아옴."""
-    if not hasattr(env, "gamepad"):
-        env.gamepad = Se2Gamepad(Se2GamepadCfg(
-            v_x_sensitivity=0.8, v_y_sensitivity=0.4, omega_z_sensitivity=0.4, dead_zone=0.01
-        ))
-        env.gamepad.reset()
-    command = env.gamepad.advance()
-    return torch.tensor(command, device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
-
-# def keyboard_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
-#     """키보드로부터 명령을 받아옵니다."""
-#     if not hasattr(env, "keyboard"):
-#         env.keyboard = Se2Keyboard(Se2KeyboardCfg(
-#             v_x_sensitivity=0.8, v_y_sensitivity=0.4, omega_z_sensitivity=0.4
-#             )
-#         )
-#         # env.keyboard.add_callback("a", print_cb)
-#         env.keyboard.reset()
-    
-#     command = env.keyboard.advance()
+# def gamepad_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
+#     """게임패드(조이스틱) 입력을 받아옴."""
+#     if not hasattr(env, "gamepad"):
+#         env.gamepad = Se2Gamepad(Se2GamepadCfg(
+#             v_x_sensitivity=0.8, v_y_sensitivity=0.4, omega_z_sensitivity=0.4, dead_zone=0.01
+#         ))
+#         env.gamepad.reset()
+#     command = env.gamepad.advance()
 #     return torch.tensor(command, device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
+
+def gamepad_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
+    """키보드로부터 명령을 받아옵니다."""
+    if not hasattr(env, "keyboard"):
+        env.keyboard = Se2Keyboard(Se2KeyboardCfg(
+            v_x_sensitivity=0.8, v_y_sensitivity=0.4, omega_z_sensitivity=0.4
+            )
+        )
+        # env.keyboard.add_callback("a", print_cb)
+        env.keyboard.reset()
+    
+    command = env.keyboard.advance()
+    return torch.tensor(command, device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
 
 @configclass
 class MySceneCfg(InteractiveSceneCfg):
@@ -531,7 +531,7 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        velocity_commands = ObsTerm(func=gamepad_commands, scale=(2.0,2.0,0.25))# 3
+        velocity_commands = ObsTerm(func=gamepad_commands) #, scale=(2.0,2.0,0.25))# 3
         # velocity_commands = ObsTerm(func=mdp.generated_commands, 
         #                             params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))# 3
 
@@ -1007,7 +1007,7 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
 
         self.teleop_devices = DevicesCfg(
             devices={
-                "keyboard": Se2KeyboardCfg(
+                "Gamepad": Se2GamepadCfg(
                     sim_device=self.sim.device,
                     v_x_sensitivity=0.7,
                     v_y_sensitivity=0.5,
