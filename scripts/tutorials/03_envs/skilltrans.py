@@ -52,6 +52,8 @@ import torch
 from isaaclab.envs import ManagerBasedEnv, ManagerBasedEnvCfg
 from isaaclab.devices import Se2Keyboard
 from isaaclab.devices.keyboard.se2_keyboard import Se2KeyboardCfg
+from isaaclab.devices.gamepad import Se2Gamepad, Se2GamepadCfg
+import carb.input
 
 keyboard_cfg = Se2KeyboardCfg(
     v_x_sensitivity=0.8,
@@ -102,10 +104,10 @@ def main():
     # env.keyboard.add_callback("a", print_cb))
     env = ManagerBasedRLEnv(cfg=env_cfg)
     # command = env_cfg.keyboard.advance()
-    env_cfg.keyboard.add_callback("A", print_cb)
+    # env_cfg.gamepad.add_callback(carb.input.GamepadInput.A, print_cb)
     obs, _ = env.reset()
     while simulation_app.is_running():
-        command = env_cfg.keyboard.advance()
+        command = env_cfg.gamepad.advance()
         print("command",command)
         # action = policy_run(obs["Run"])
         # # print(env.keyboard.is_pressed("a"))
