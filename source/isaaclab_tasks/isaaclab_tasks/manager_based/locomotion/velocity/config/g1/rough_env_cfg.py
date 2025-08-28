@@ -24,7 +24,7 @@ class G1Rewards(RewardsCfg):
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
         weight=5.0,
-        params={"command_name": "base_velocity", "std": 0.5},
+        params={"command_name": "base_velocity", "std": 1.0},
     )
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_world_exp, weight=5.0, params={"command_name": "base_velocity", "std": 1.0}
@@ -93,30 +93,30 @@ class G1Rewards(RewardsCfg):
         ])},
     )
 
-    # same motion
-    motion_equality_hip = RewTerm(
-        func=mdp.motion_equality_cons,
-        weight=-0.5,
-        params={
-            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_hip_pitch_joint"),
-        },
-    )
+    # # same motion
+    # motion_equality_hip = RewTerm(
+    #     func=mdp.motion_equality_cons,
+    #     weight=-0.5,
+    #     params={
+    #         "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_hip_pitch_joint"),
+    #     },
+    # )
 
-    motion_equality_knee = RewTerm(
-        func=mdp.motion_equality_pros,
-        weight=-0.5,
-        params={
-            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_knee_joint"),
-        },
-    )
+    # motion_equality_knee = RewTerm(
+    #     func=mdp.motion_equality_pros,
+    #     weight=-0.5,
+    #     params={
+    #         "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_knee_joint"),
+    #     },
+    # )
 
-    motion_equality_ankle = RewTerm(
-        func=mdp.motion_equality_pros,
-        weight=-0.5,
-        params={
-            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_ankle_pitch_joint"),
-        },
-    )
+    # motion_equality_ankle = RewTerm(
+    #     func=mdp.motion_equality_pros,
+    #     weight=-0.5,
+    #     params={
+    #         "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_ankle_pitch_joint"),
+    #     },
+    # )
 
     # # G1_inspire_hand
     # joint_deviation_fingers = RewTerm(
@@ -175,7 +175,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # Rewards
         self.rewards.lin_vel_z_l2.weight = 0.0
         self.rewards.undesired_contacts = None
-        self.rewards.flat_orientation_l2.weight = -1.0
+        self.rewards.flat_orientation_l2.weight = -5.0
         self.rewards.action_rate_l2.weight = -0.005
         self.rewards.dof_acc_l2.weight = -1.25e-7
         self.rewards.dof_acc_l2.params["asset_cfg"] = SceneEntityCfg(
