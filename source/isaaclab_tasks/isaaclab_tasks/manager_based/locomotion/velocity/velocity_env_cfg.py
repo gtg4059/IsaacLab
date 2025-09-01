@@ -446,13 +446,12 @@ class EventCfg:
         params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
     )
 
-    randomize_com = EventTerm(
+    randomize_base_com = EventTerm(
         func=mdp.randomize_rigid_body_com,
-        mode="interval",
-        interval_range_s=(2.0,3.0),
+        mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=['torso_link']),
-            "com_range": {"x": (0.0, 0.02), "y": (-0.01, 0.01), "z": (-0.001, 0.001)},
+            "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
+            "com_range": {"x": (-0.00, 0.12), "y": (-0.06, 0.06), "z": (-0.06, 0.06)},
         },
     )
 
