@@ -35,7 +35,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.track_ang_vel_z_exp.weight = 1.0
         # Rewards
         self.rewards.lin_vel_z_l2.weight = -0.2
-        self.rewards.action_rate_l2.weight = -0.02
+        self.rewards.action_rate_l2.weight = -0.005
         self.rewards.dof_acc_l2.weight = -1.0e-7
         self.rewards.feet_air_time.weight = 0.75
         self.rewards.feet_air_time.params["threshold"] = 0.4
