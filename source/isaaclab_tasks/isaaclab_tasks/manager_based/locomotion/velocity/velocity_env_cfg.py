@@ -344,7 +344,7 @@ class ObservationsCfg:
             func=mdp.generated_commands,
             params={"command_name": "right_ee_pose"},
         )
-        object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
+        #object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
         # object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, params={
         #     "robot_cfg": SceneEntityCfg("robot",body_names="camera"),
         #     "object_cfg": SceneEntityCfg("object_init")})
@@ -449,7 +449,7 @@ class ObservationsCfg:
             func=mdp.generated_commands,
             params={"command_name": "right_ee_pose"},
         )
-        object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
+        #object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
         # object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, params={
         #     "robot_cfg": SceneEntityCfg("robot",body_names="camera"),
         #     "object_cfg": SceneEntityCfg("object_init")})
@@ -712,18 +712,18 @@ class EventCfg:
     # )
 
 
-    physics_material_obj = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("object"),
-            "static_friction_range": (0.2, 1.3),
-            "dynamic_friction_range": (0.2, 1.3),
-            "restitution_range": (0.0, 0.4),
-            "num_buckets": 64,
-            "make_consistent": True,
-        },
-    )
+    # physics_material_obj = EventTerm(
+    #     func=mdp.randomize_rigid_body_material,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("object"),
+    #         "static_friction_range": (0.2, 1.3),
+    #         "dynamic_friction_range": (0.2, 1.3),
+    #         "restitution_range": (0.0, 0.4),
+    #         "num_buckets": 64,
+    #         "make_consistent": True,
+    #     },
+    # )
 
     physics_material = EventTerm(
         func=mdp.randomize_rigid_body_material,
@@ -753,45 +753,45 @@ class EventCfg:
             "make_consistent": True,
         },
     )
-    reset_box_position = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("object"),
-            # 4-box
-            "pose_range": {"x": (-0.00, 0.00), "y": (-0.00, 0.00), "yaw": (-0.0, 0.0)},
-            # # white box
-            # "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
-            # "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
-            "velocity_range": {
-                "x": (-0.0, 0.0),
-                "y": (-0.0, 0.0),
-                "z": (-0.0, 0.0),
-                "roll": (-0.0, 0.0),
-                "pitch": (-0.0, 0.0),
-                "yaw": (-0.0, 0.0),
-            },
-        },
-    )
+    # reset_box_position = EventTerm(
+    #     func=mdp.reset_root_state_uniform,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("object"),
+    #         # 4-box
+    #         "pose_range": {"x": (-0.00, 0.00), "y": (-0.00, 0.00), "yaw": (-0.0, 0.0)},
+    #         # # white box
+    #         # "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
+    #         # "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
+    #         "velocity_range": {
+    #             "x": (-0.0, 0.0),
+    #             "y": (-0.0, 0.0),
+    #             "z": (-0.0, 0.0),
+    #             "roll": (-0.0, 0.0),
+    #             "pitch": (-0.0, 0.0),
+    #             "yaw": (-0.0, 0.0),
+    #         },
+    #     },
+    # )
 
-    randomize_object_collider = EventTerm(
-        func=mdp.randomize_rigid_body_collider_offsets,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("object"),
-            "contact_offset_distribution_params": (0.0, 0.05),
-            "distribution": "uniform",
-        },
-    ) 
+    # randomize_object_collider = EventTerm(
+    #     func=mdp.randomize_rigid_body_collider_offsets,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("object"),
+    #         "contact_offset_distribution_params": (0.0, 0.05),
+    #         "distribution": "uniform",
+    #     },
+    # ) 
     
-    randomize_object_com = EventTerm(
-        func=mdp.randomize_object_com,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("object"),
-            "com_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1), "z": (-0.1, 0.1)},
-        },
-    )
+    # randomize_object_com = EventTerm(
+    #     func=mdp.randomize_object_com,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("object"),
+    #         "com_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1), "z": (-0.1, 0.1)},
+    #     },
+    # )
 
 
 
@@ -828,13 +828,13 @@ class TerminationsCfg:
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 20.0},
     )
-    object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("object")}
-    )
+    # object_dropping = DoneTerm(
+    #     func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("object")}
+    # )
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.4, "asset_cfg": SceneEntityCfg("robot")}
     )
-    bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.6,"asset_cfg": SceneEntityCfg("object")})
+    # bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.6,"asset_cfg": SceneEntityCfg("object")})
 
 @configclass
 class CurriculumCfg:
