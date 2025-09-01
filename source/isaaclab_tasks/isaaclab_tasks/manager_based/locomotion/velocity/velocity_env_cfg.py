@@ -76,47 +76,47 @@ class MySceneCfg(InteractiveSceneCfg):
     )
 
     # #Set Cube as object
-    object = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(
-            # # white-box
-            # pos=[0.43, 0, 0.86],
-            # 2-box
-            pos=[0.37, 0, 0.82],
-            # # 3-box
-            # pos=[0.39, 0, 0.86],
-            # # 4-box
-            # pos=[0.43, 0, 0.93],
-            rot=[1.0, 0.0 ,0.0, 0.0]),
-        spawn=sim_utils.UsdFileCfg(
-            # # white box
-            # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
-            # scale=(4.37,5.9,3.0), # 262,350,180
-            # # 2-box
-            # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
-            # scale=((3.0,4.0,2.5)), # 180,240,150
-            # # 3-box
-            # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
-            # scale=((4.17,5.67,3.5)), # 250,340,210
-            # # 4-box
-            # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
-            # scale=((5.17,6.83,4.67)), # 310,410,280
-            # white wing-box
-            usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
-            scale=(11.5,8.93,5.357),# 380,250,150
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                # kinematic_enabled=True,
-                solver_position_iteration_count=16,
-                solver_velocity_iteration_count=1,
-                max_angular_velocity=1000.0,
-                max_linear_velocity=1000.0,
-                max_depenetration_velocity=5.0,
-                disable_gravity=False,
-            ),
-            # activate_contact_sensors=True,
-        ),
-    )
+    # object = RigidObjectCfg(
+    #     prim_path="{ENV_REGEX_NS}/Object",
+    #     init_state=RigidObjectCfg.InitialStateCfg(
+    #         # # white-box
+    #         # pos=[0.43, 0, 0.86],
+    #         # 2-box
+    #         pos=[0.37, 0, 0.82],
+    #         # # 3-box
+    #         # pos=[0.39, 0, 0.86],
+    #         # # 4-box
+    #         # pos=[0.43, 0, 0.93],
+    #         rot=[1.0, 0.0 ,0.0, 0.0]),
+    #     spawn=sim_utils.UsdFileCfg(
+    #         # # white box
+    #         # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
+    #         # scale=(4.37,5.9,3.0), # 262,350,180
+    #         # # 2-box
+    #         # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
+    #         # scale=((3.0,4.0,2.5)), # 180,240,150
+    #         # # 3-box
+    #         # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
+    #         # scale=((4.17,5.67,3.5)), # 250,340,210
+    #         # # 4-box
+    #         # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
+    #         # scale=((5.17,6.83,4.67)), # 310,410,280
+    #         # white wing-box
+    #         usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
+    #         scale=(11.5,8.93,5.357),# 380,250,150
+    #         mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
+    #             # kinematic_enabled=True,
+    #             solver_position_iteration_count=16,
+    #             solver_velocity_iteration_count=1,
+    #             max_angular_velocity=1000.0,
+    #             max_linear_velocity=1000.0,
+    #             max_depenetration_velocity=5.0,
+    #             disable_gravity=False,
+    #         ),
+    #         # activate_contact_sensors=True,
+    #     ),
+    # )
 
     # obj_init = AssetBaseCfg(
     #     prim_path="{ENV_REGEX_NS}/Object_init",
@@ -128,24 +128,24 @@ class MySceneCfg(InteractiveSceneCfg):
     # )
 
     # add cube
-    # object_init: RigidObjectCfg = RigidObjectCfg(
-    #     prim_path="{ENV_REGEX_NS}/object_init",
-    #     init_state=RigidObjectCfg.InitialStateCfg(
-    #         # # white-box
-    #         # pos=[0.43, 0, 0.86], 
-    #         # 4-box
-    #         pos=[0.37, 0, 0.93], 
-    #         rot=[1.0, 0.0 ,0.0, 0.0]),
-    #     spawn=sim_utils.CuboidCfg(
-    #         size=(0.1,0.1,0.1),
-    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(max_depenetration_velocity=1.0, 
-    #                                                      disable_gravity=True,
-    #                                                      kinematic_enabled=True),
-    #         # mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
-    #         # physics_material=sim_utils.RigidBodyMaterialCfg(),
-    #         # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.0, 0.0)),
-    #     ),
-    # )
+    object_init: RigidObjectCfg = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/object_init",
+        init_state=RigidObjectCfg.InitialStateCfg(
+            # # white-box
+            # pos=[0.43, 0, 0.86], 
+            # 4-box
+            pos=[0.37, 0, 0.93], 
+            rot=[1.0, 0.0 ,0.0, 0.0]),
+        spawn=sim_utils.CuboidCfg(
+            size=(0.1,0.1,0.1),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(max_depenetration_velocity=1.0, 
+                                                         disable_gravity=True,
+                                                         kinematic_enabled=True),
+            # mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+            # physics_material=sim_utils.RigidBodyMaterialCfg(),
+            # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.0, 0.0)),
+        ),
+    )
 
 
 ##
