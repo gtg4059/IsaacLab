@@ -115,7 +115,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # # 2-box
             # pos=[0.37, 0, 0.84], 
             # IKEA-box
-            pos=[0.38, 0, 0.82], 
+            pos=[0.33, 0, 0.82], 
             # # 3-box
             # pos=[0.39, 0, 0.86], 
             # # 4-box
