@@ -203,7 +203,7 @@ class MySceneCfg(InteractiveSceneCfg):
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
         init_state=AssetBaseCfg.InitialStateCfg(pos=(0.40, 0.15, 0.75), rot=[0.707, 0, 0, -0.707]),
-        spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table/table.usd",
+        spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table/thor_table.usd",
         # init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.0, 0.05), rot=[0.707, 0, 0, -0.707]),
         # spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table_inst.usd",
                 scale=(0.5, 0.8, 1.01),
