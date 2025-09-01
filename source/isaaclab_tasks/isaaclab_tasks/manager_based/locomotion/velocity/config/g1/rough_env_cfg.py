@@ -20,7 +20,7 @@ from isaaclab_assets import G1_DEX_FIX, G1_DEX_FIX_D  # isort: skip
 class G1Rewards(RewardsCfg):
     """Reward terms for the MDP."""
 
-    is_alive = RewTerm(func=mdp.is_alive, weight=5.0)
+    is_alive = RewTerm(func=mdp.is_alive, weight=1.0)
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
