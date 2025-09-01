@@ -184,11 +184,11 @@ class MySceneCfg(InteractiveSceneCfg):
 
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.40, 0.15, 0.78), rot=[0.707, 0, 0, -0.707]),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.50, 0.2, 0.78), rot=[0.707, 0, 0, -0.707]),
         spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table/table.usd",
         # init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.0, 0.05), rot=[0.707, 0, 0, -0.707]),
         # spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table_inst.usd",
-                scale=(0.5, 0.8, 0.1),
+                scale=(0.8, 0.8, 0.1),
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(
                     kinematic_enabled=True,
                     # solver_position_iteration_count=16,
@@ -200,6 +200,25 @@ class MySceneCfg(InteractiveSceneCfg):
                 ),
             ),
     )
+
+    # table = AssetBaseCfg(
+    # prim_path="{ENV_REGEX_NS}/Table",
+    # init_state=AssetBaseCfg.InitialStateCfg(pos=(0.45, 0.2, 0.75), rot=[0.707, 0, 0, -0.707]),
+    # spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table/thor_table.usd",
+    # # init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.0, 0.05), rot=[0.707, 0, 0, -0.707]),
+    # # spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table_inst.usd",
+    #         scale=(0.8, 0.8, 1.01),
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
+    #             kinematic_enabled=True,
+    #             solver_position_iteration_count=8,
+    #             solver_velocity_iteration_count=1,
+    #             max_angular_velocity=1000.0,
+    #             max_linear_velocity=1000.0,
+    #             max_depenetration_velocity=5.0,
+    #             disable_gravity=True,
+    #         ),
+    #     ),
+    # )
 
     # table = AssetBaseCfg(
     #     prim_path="{ENV_REGEX_NS}/Table",
@@ -412,9 +431,6 @@ class ObservationsCfg:
             params={"command_name": "right_ee_pose"},
         )
         object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
-        # object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, params={
-        #     "robot_cfg": SceneEntityCfg("robot",body_names="camera"),
-        #     "object_cfg": SceneEntityCfg("object_init")})
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -516,9 +532,7 @@ class ObservationsCfg:
             params={"command_name": "right_ee_pose"},
         )
         object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
-        # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
-        # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame, params={"object_cfg": SceneEntityCfg("object_init")})
-
+        
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
@@ -721,7 +735,7 @@ class EventCfg:
         func=mdp.reset_joints_by_offset,
         mode="reset",
         params={
-            "position_range": (-0.035, 0.035),
+            "position_range": (-0.2, 0.2),
             "velocity_range": (0.0, 0.0),
         },
     )
@@ -804,7 +818,7 @@ class EventCfg:
         params={
             "asset_cfg": SceneEntityCfg("object"),
             # 4-box
-            "pose_range": {"x": (-0.03, 0.03), "y": (-0.01, 0.01), "yaw": (-0.02, 0.02)},
+            "pose_range": {"x": (-0.03, 0.03), "y": (-0.01, 0.01), "yaw": (-0.05, 0.05)},
             # # white box
             # "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
             # "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
@@ -829,14 +843,14 @@ class EventCfg:
         },
     )
 
-    randomize_object_com = EventTerm(
-        func=mdp.randomize_object_com,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("object"),
-            "com_range": {"x": (-0.15, 0.15), "y": (-0.1, 0.1), "z": (-0.0, 0.0)},
-        },
-    )
+    # randomize_object_com = EventTerm(
+    #     func=mdp.randomize_object_com,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("object"),
+    #         "com_range": {"x": (-0.15, 0.15), "y": (-0.1, 0.1), "z": (-0.0, 0.0)},
+    #     },
+    # )
 
     randomize_object_collider = EventTerm(
         func=mdp.randomize_rigid_body_collider_offsets,
@@ -890,10 +904,10 @@ class TerminationsCfg:
 
     bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.6,"asset_cfg": SceneEntityCfg("object")})
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    # base_contact = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 500.0},
-    # )
+    base_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 20.0},
+    )
     base_contact2 = DoneTerm(
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 10.0},
@@ -921,14 +935,14 @@ class TerminationsCfg:
     #                                                               ]), "threshold": 20.0},
     # )
     object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.65, "asset_cfg": SceneEntityCfg("object")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.50, "asset_cfg": SceneEntityCfg("robot")}
     )
-    bad_position = DoneTerm(
-        func=mdp.bad_position, params={"limit_dist": 0.05, "asset_cfg": SceneEntityCfg("robot")}
-    )
+    # bad_position = DoneTerm(
+    #     func=mdp.bad_position, params={"limit_dist": 0.12, "asset_cfg": SceneEntityCfg("robot")}
+    # )
 
 
 @configclass
