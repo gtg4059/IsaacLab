@@ -184,7 +184,7 @@ class MySceneCfg(InteractiveSceneCfg):
 
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.50, 0.2, 0.78), rot=[0.707, 0, 0, -0.707]),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.42, 0.2, 0.78), rot=[0.707, 0, 0, -0.707]),
         spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table/table.usd",
         # init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.0, 0.05), rot=[0.707, 0, 0, -0.707]),
         # spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table_inst.usd",
