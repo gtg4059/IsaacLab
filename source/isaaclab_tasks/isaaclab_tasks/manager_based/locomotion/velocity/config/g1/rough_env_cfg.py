@@ -193,7 +193,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
 
         # terminations
-        self.terminations.base_contact.params["sensor_cfg"].body_names = "torso_link"
+        # self.terminations.base_contact.params["sensor_cfg"].body_names = "torso_link"
 
 
 @configclass

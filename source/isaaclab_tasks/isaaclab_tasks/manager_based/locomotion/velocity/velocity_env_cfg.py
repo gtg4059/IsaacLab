@@ -451,7 +451,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
-            "com_range": {"x": (-0.06, 0.06), "y": (-0.06, 0.06), "z": (-0.06, 0.06)},
+            "com_range": {"x": (0.00, 0.12), "y": (-0.06, 0.06), "z": (0.00, 0.12)},
         },
     )
 
@@ -509,7 +509,7 @@ class RewardsCfg:
         weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
     )
-    base_height = RewTerm(func=mdp.base_height_l2, weight=-10.0, params={"target_height": 0.82})
+    base_height = RewTerm(func=mdp.base_height_l2, weight=-10.0, params={"target_height": 0.80})
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
@@ -520,9 +520,8 @@ class TerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    base_contact = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
+    robot_dropping = DoneTerm(
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.50, "asset_cfg": SceneEntityCfg("robot")}
     )
 
 
