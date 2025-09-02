@@ -265,7 +265,7 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.30, 0.30),
+            pos_x=(0.32, 0.32),
             pos_y=(0.14, 0.14),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
@@ -279,7 +279,7 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.30, 0.30),
+            pos_x=(0.32, 0.32),
             pos_y=(-0.14, -0.14),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
@@ -896,7 +896,7 @@ class RewardsCfg:
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
-    alive = RewTerm(func=mdp.is_alive, weight=20.0)
+    alive = RewTerm(func=mdp.is_alive, weight=5.0)
 
 @configclass
 class TerminationsCfg:
