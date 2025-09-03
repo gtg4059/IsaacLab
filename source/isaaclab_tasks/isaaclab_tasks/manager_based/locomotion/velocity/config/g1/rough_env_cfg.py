@@ -51,13 +51,6 @@ class G1Rewards(RewardsCfg):
         }, 
     )
 
-    # table_contact = RewTerm(
-    #     func=mdp.table_not_contacted, 
-    #     weight=10.0,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_table")
-    #     }, 
-    # )
-
     flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=-30.0)
 
     # pickup reward
