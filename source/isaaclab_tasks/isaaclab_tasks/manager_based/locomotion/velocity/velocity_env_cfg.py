@@ -172,7 +172,7 @@ class ActionsCfg:
                     "right_wrist_yaw_joint",
                      ], 
         scale=0.25, 
-        use_default_offset=True,
+        use_default_offset=False,
         preserve_order=True,
     )
 
