@@ -131,9 +131,7 @@ class MySceneCfg(InteractiveSceneCfg):
     object_init: RigidObjectCfg = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/object_init",
         init_state=RigidObjectCfg.InitialStateCfg(
-            # # white-box
-            # pos=[0.43, 0, 0.86], 
-            # 4-box
+            #wing-box
             pos=[0.37, 0, 0.93], 
             rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.CuboidCfg(
@@ -177,9 +175,9 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.33, 0.33),
-            pos_y=(0.15, 0.15),
-            pos_z=(0.15, 0.15),
+            pos_x=(0.30, 0.30),
+            pos_y=(0.14, 0.14),
+            pos_z=(0.15, 0.15),# 0901_23: 0.33,0.15,0.15. inital_state: 0.25,0.14,0.2
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
             yaw=(math.pi / 2.0, math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
@@ -192,8 +190,8 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.33, 0.33),
-            pos_y=(-0.15, -0.15),
+            pos_x=(0.30, 0.30),
+            pos_y=(-0.14, -0.14),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
@@ -259,7 +257,7 @@ class ObservationsCfg:
             func=mdp.projected_gravity,
             noise=Unoise(n_min=-0.05, n_max=0.05),
         )
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel, 
+        joint_pos = ObsTerm(func=mdp.joint_pos, 
                             params={"asset_cfg": SceneEntityCfg("robot",
                                     joint_names=[
                                                 'left_hip_pitch_joint', 
@@ -364,7 +362,7 @@ class ObservationsCfg:
             func=mdp.projected_gravity,
             noise=Unoise(n_min=-0.05, n_max=0.05),
         )
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel, 
+        joint_pos = ObsTerm(func=mdp.joint_pos, 
                             params={"asset_cfg": SceneEntityCfg("robot",
                                     joint_names=[
                                                 'left_hip_pitch_joint', 
@@ -468,48 +466,47 @@ class EventCfg:
     """Configuration for events."""
 
     # startup
-    # randomize_friction = EventTerm(
-    #     func=mdp.randomize_rigid_body_material,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", body_names=['pelvis', 
-    #                                                          'left_hip_pitch_link', 
-    #                                                          'right_hip_pitch_link', 
-    #                                                          'waist_yaw_link', 
-    #                                                          'left_hip_roll_link', 
-    #                                                          'right_hip_roll_link', 
-    #                                                          'waist_roll_link', 
-    #                                                          'left_hip_yaw_link', 
-    #                                                          'right_hip_yaw_link', 
-    #                                                          'torso_link', 
-    #                                                          'left_knee_link', 
-    #                                                          'right_knee_link', 
-    #                                                          'left_shoulder_pitch_link', 
-    #                                                          'right_shoulder_pitch_link', 
-    #                                                          'left_ankle_pitch_link', 
-    #                                                          'right_ankle_pitch_link', 
-    #                                                          'left_shoulder_roll_link', 
-    #                                                          'right_shoulder_roll_link', 
-    #                                                          'left_ankle_roll_link', 
-    #                                                          'right_ankle_roll_link', 
-    #                                                          'left_shoulder_yaw_link', 
-    #                                                          'right_shoulder_yaw_link', 
-    #                                                          'left_elbow_link', 
-    #                                                          'right_elbow_link', 
-    #                                                          'left_wrist_roll_link', 
-    #                                                          'right_wrist_roll_link', 
-    #                                                          'left_wrist_pitch_link', 
-    #                                                          'right_wrist_pitch_link', 
-    #                                                          'left_wrist_yaw_link', 
-    #                                                          'right_wrist_yaw_link',
-    #                                                          "R_.*","L_.*",]),
-    #         "static_friction_range": (0.2, 1.3),
-    #         "dynamic_friction_range": (0.2, 1.3),
-    #         "restitution_range": (0.0, 0.4),
-    #         "num_buckets": 256,
-    #         "make_consistent": True
-    #     },
-    # )
+    randomize_friction = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=['pelvis', 
+                                                             'left_hip_pitch_link', 
+                                                             'right_hip_pitch_link', 
+                                                             'waist_yaw_link', 
+                                                             'left_hip_roll_link', 
+                                                             'right_hip_roll_link', 
+                                                             'waist_roll_link', 
+                                                             'left_hip_yaw_link', 
+                                                             'right_hip_yaw_link', 
+                                                             'torso_link', 
+                                                             'left_knee_link', 
+                                                             'right_knee_link', 
+                                                             'left_shoulder_pitch_link', 
+                                                             'right_shoulder_pitch_link', 
+                                                             'left_ankle_pitch_link', 
+                                                             'right_ankle_pitch_link', 
+                                                             'left_shoulder_roll_link', 
+                                                             'right_shoulder_roll_link', 
+                                                             'left_ankle_roll_link', 
+                                                             'right_ankle_roll_link', 
+                                                             'left_shoulder_yaw_link', 
+                                                             'right_shoulder_yaw_link', 
+                                                             'left_elbow_link', 
+                                                             'right_elbow_link', 
+                                                             'left_wrist_roll_link', 
+                                                             'right_wrist_roll_link', 
+                                                             'left_wrist_pitch_link', 
+                                                             'right_wrist_pitch_link', 
+                                                             'left_wrist_yaw_link', 
+                                                             'right_wrist_yaw_link']),
+            "static_friction_range": (0.2, 1.3),
+            "dynamic_friction_range": (0.2, 1.3),
+            "restitution_range": (0.0, 0.4),
+            "num_buckets": 256,
+            "make_consistent": True
+        },
+    )
 
     # interval
     push_robot = EventTerm(
@@ -576,48 +573,18 @@ class EventCfg:
         },
     )
 
-    # randomize_pd_gains = EventTerm(
-    #     func=mdp.randomize_actuator_gains,
-    #     min_step_count_between_reset=720,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", joint_names=[
-    #             'left_hip_pitch_joint', 
-    #             'left_hip_roll_joint', 
-    #             'left_hip_yaw_joint', 
-    #             'left_knee_joint', 
-    #             'left_ankle_pitch_joint', 
-    #             'left_ankle_roll_joint', 
-    #             'right_hip_pitch_joint', 
-    #             'right_hip_roll_joint', 
-    #             'right_hip_yaw_joint', 
-    #             'right_knee_joint', 
-    #             'right_ankle_pitch_joint', 
-    #             'right_ankle_roll_joint',
-    #             # G1_29_no_hand
-    #             "waist_yaw_joint",
-    #             "waist_roll_joint",
-    #             "waist_pitch_joint",
-    #             "left_shoulder_pitch_joint",
-    #             "left_shoulder_roll_joint",
-    #             "left_shoulder_yaw_joint",
-    #             "left_elbow_joint",
-    #             "left_wrist_roll_joint",
-    #             "left_wrist_pitch_joint",
-    #             "left_wrist_yaw_joint",
-    #             "right_shoulder_pitch_joint",
-    #             "right_shoulder_roll_joint",
-    #             "right_shoulder_yaw_joint",
-    #             "right_elbow_joint",
-    #             "right_wrist_roll_joint",
-    #             "right_wrist_pitch_joint",
-    #             "right_wrist_yaw_joint"]),
-    #         "stiffness_distribution_params": (0.8, 1.2),
-    #         "damping_distribution_params": (0.8, 1.2),
-    #         "operation": "scale",
-    #         "distribution": "uniform",
-    #     },
-    # )
+    randomize_pd_gains = EventTerm(
+        func=mdp.randomize_actuator_gains,
+        min_step_count_between_reset=720,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "stiffness_distribution_params": (0.8, 1.2),
+            "damping_distribution_params": (0.8, 1.2),
+            "operation": "scale",
+            "distribution": "uniform",
+        },
+    )
 
     # reset
     base_external_force_torque = EventTerm(
@@ -646,23 +613,36 @@ class EventCfg:
         },
     )
 
-    reset_robot_joints = EventTerm(
-        func=mdp.reset_joints_by_scale,
+    randomize_motor_zero_offset = EventTerm(
+        func=mdp.reset_joints_by_offset,
         mode="reset",
         params={
-            # "asset_cfg": SceneEntityCfg("robot", joint_names=[
-            #     '.*_proximal_joint'
-            #     ]),
-            "position_range": (1.0, 1.0),
+            "position_range": (-0.035, 0.035),
             "velocity_range": (0.0, 0.0),
         },
     )
 
-    # randomize_motor_zero_offset = EventTerm(
-    #     func=mdp.reset_joints_by_offset,
+    robot_joint_friction = EventTerm(
+        func=mdp.randomize_joint_parameters,
+        min_step_count_between_reset=720,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "friction_distribution_params": (0.01, 1.15),
+            "viscous_friction_distribution_params": (0.3, 1.5),
+            "operation": "scale",
+            "distribution": "uniform",
+        },
+    )
+
+    # reset_robot_joints = EventTerm(
+    #     func=mdp.reset_joints_by_scale,
     #     mode="reset",
     #     params={
-    #         "position_range": (-0.035, 0.035),
+    #         # "asset_cfg": SceneEntityCfg("robot", joint_names=[
+    #         #     '.*_proximal_joint'
+    #         #     ]),
+    #         "position_range": (1.0, 1.0),
     #         "velocity_range": (0.0, 0.0),
     #     },
     # )
@@ -725,34 +705,35 @@ class EventCfg:
     #     },
     # )
 
-    physics_material = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
-            "static_friction_range": (1.25, 2.25),
-            "dynamic_friction_range": (1.25, 2.25),
-            "restitution_range": (0.0, 0.0),
-            "num_buckets": 64,
-            "make_consistent": True
-        },
-    )
+    # physics_material = EventTerm(
+    #     func=mdp.randomize_rigid_body_material,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
+    #         "static_friction_range": (1.25, 2.25),
+    #         "dynamic_friction_range": (1.25, 2.25),
+    #         "restitution_range": (0.0, 0.0),
+    #         "num_buckets": 64,
+    #         "make_consistent": True
+    #     },
+    # )
 
-    physics_material_hand = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link",
-                                                            "R_.*",
-                                                            "L_.*",
-                                                            ]),
-            "static_friction_range": (1.25, 2.25),#(2.0, 2.0),
-            "dynamic_friction_range": (1.25, 2.25),#(2.0, 2.0),
-            "restitution_range": (0.0, 0.0),
-            "num_buckets": 64,
-            "make_consistent": True,
-        },
-    )
+    # physics_material_hand = EventTerm(
+    #     func=mdp.randomize_rigid_body_material,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link",
+    #                                                         "R_.*",
+    #                                                         "L_.*",
+    #                                                         ]),
+    #         "static_friction_range": (1.25, 2.25),#(2.0, 2.0),
+    #         "dynamic_friction_range": (1.25, 2.25),#(2.0, 2.0),
+    #         "restitution_range": (0.0, 0.0),
+    #         "num_buckets": 64,
+    #         "make_consistent": True,
+    #     },
+    # )
+
     # reset_box_position = EventTerm(
     #     func=mdp.reset_root_state_uniform,
     #     mode="reset",
@@ -784,14 +765,14 @@ class EventCfg:
     #     },
     # ) 
     
-    # randomize_object_com = EventTerm(
-    #     func=mdp.randomize_object_com,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("object"),
-    #         "com_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1), "z": (-0.1, 0.1)},
-    #     },
-    # )
+    randomize_object_com = EventTerm(
+        func=mdp.randomize_object_com,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "com_range": {"x": (-0.15, 0.15), "y": (-0.1, 0.1), "z": (-0.0, 0.0)},
+        },
+    )
 
 
 

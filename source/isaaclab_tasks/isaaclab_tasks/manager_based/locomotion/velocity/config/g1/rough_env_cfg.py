@@ -35,10 +35,10 @@ class G1Rewards(RewardsCfg):
     #         "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
     #         # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
     #     }, 
-    #     weight=0.2
+    #     weight=0.1
     # )
     
-    # flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=0.5)
+    # flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=0.7)
  
     # object_contact = RewTerm(
     #     func=mdp.object_is_contacted, 
@@ -65,7 +65,7 @@ class G1Rewards(RewardsCfg):
 
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=2.0,
+        weight=1.0,
         params={"command_name": "base_velocity", "std": 0.5},
     )
     track_ang_vel_z_exp = RewTerm(
