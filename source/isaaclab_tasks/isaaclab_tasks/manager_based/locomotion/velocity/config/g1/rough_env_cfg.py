@@ -21,9 +21,9 @@ from isaaclab_assets import G1_DEX_FIX  # isort: skip
 class G1Rewards(RewardsCfg):
     """Reward terms for the MDP."""
 
-    base_position_l2 = RewTerm(func=mdp.base_position_l2, weight=-10.0)
+    base_position_l2 = RewTerm(func=mdp.base_position_l2, weight=-100.0)
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
-    base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-10.0, params={
+    base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-50.0, params={
             "target_height": 0.78, 
         }
     )
@@ -61,10 +61,10 @@ class G1Rewards(RewardsCfg):
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
-        weight=1.0
+        weight=10.0
     )
     object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
-                               weight=2.0,
+                               weight=5.0,
                                params={"std": 0.2,
                                        "minimal_height": 0.84,
                                        "height": 0.88,
@@ -104,7 +104,7 @@ class G1Rewards(RewardsCfg):
 
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-2.0,
+        weight=-5.0,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
