@@ -389,6 +389,14 @@ class EventCfg:
     )
 
     # interval
+    push_robot_interval = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="interval",
+        interval_range_s=(5.0, 10.0),
+        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+    )
+
+    # interval
     push_robot = EventTerm(
         func=mdp.push_by_setting_velocity,
         mode="start",

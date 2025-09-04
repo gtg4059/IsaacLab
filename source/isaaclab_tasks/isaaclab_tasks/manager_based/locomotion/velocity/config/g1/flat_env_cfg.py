@@ -68,13 +68,13 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
         # disable randomization for play
-        self.observations.policy.enable_corruption = False
+        # self.observations.policy.enable_corruption = False
         # remove random pushing
-        self.events.randomize_friction = None
-        self.events.push_robot = None
-        self.events.randomize_base_mass = None
-        self.events.randomize_base_com = None
-        self.events.randomize_pd_gains = None
-        self.events.randomize_link_mass = None
-        self.events.randomize_motor_zero_offset = None
-        self.events.randomize_joint_param = None
+        # self.events.randomize_friction = None
+        # # self.events.push_robot = None
+        # self.events.randomize_base_mass = None
+        # self.events.randomize_base_com = None
+        # self.events.randomize_pd_gains = None
+        # self.events.randomize_link_mass = None
+        # self.events.randomize_motor_zero_offset = None
+        # self.events.randomize_joint_param = None
