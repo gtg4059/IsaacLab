@@ -155,7 +155,8 @@ class UniformVelocityCommand(CommandTerm):
         # resolve indices of envs
         angle = torch.atan2(self.vel_command_w[:, 1]-(self.robot.data.root_pos_w[:,1]-self.base_pos_w[:,1]),
                             self.vel_command_w[:, 0]-(self.robot.data.root_pos_w[:,0]-self.base_pos_w[:,0]))
-        vec_norm = torch.norm(self.vel_command_w[:, :2]-(self.robot.data.root_pos_w[:,:2]-self.base_pos_w[:,:2]),dim=1)
+        _vec_norm = torch.norm(self.vel_command_w[:, :2]-(self.robot.data.root_pos_w[:,:2]-self.base_pos_w[:,:2]),dim=1)
+        vec_norm = torch.where(_vec_norm<0.08,0,_vec_norm)
         self.vel_command_b[:, 0]=torch.cos(angle-self.robot.data.heading_w)*torch.tanh(5*vec_norm)
         self.vel_command_b[:, 1]=torch.sin(angle-self.robot.data.heading_w)*torch.tanh(5*vec_norm)
         
