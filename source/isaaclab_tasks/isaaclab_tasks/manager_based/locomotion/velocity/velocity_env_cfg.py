@@ -432,7 +432,7 @@ class EventCfg:
     push_robot = EventTerm(
         func=mdp.push_by_setting_velocity,
         mode="interval",
-        interval_range_s=(10.0, 15.0),
+        interval_range_s=(5.0, 10.0),
         params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
     )
 
@@ -489,7 +489,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
-            "com_range": {"x": (-0.06, 0.06), "y": (-0.06, 0.06), "z": (-0.06, 0.06)},
+            "com_range": {"x": (-0.06, 0.24), "y": (-0.06, 0.06), "z": (0.00, 0.12)},
         },
     )
 
@@ -538,11 +538,11 @@ class EventCfg:
         mode="reset",
         params={
             "position_range": (-0.035, 0.035),
-            "velocity_range": (0.0, 0.0),
+            "velocity_range": (-0.0, 0.0),
         },
     )
 
-    robot_joint_friction = EventTerm(
+    randomize_joint_param = EventTerm(
         func=mdp.randomize_joint_parameters,
         min_step_count_between_reset=720,
         mode="reset",
@@ -550,24 +550,12 @@ class EventCfg:
             "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
             "friction_distribution_params": (0.01, 1.15),
             "viscous_friction_distribution_params": (0.3, 1.5),
-            "operation": "scale",
+            "armature_distribution_params": (0.008,0.06),
+            "operation": "add",
             "distribution": "uniform",
         },
     )
 
-    # robot_joint_armature = EventTerm(
-    #     func=mdp.randomize_joint_parameters,
-    #     min_step_count_between_reset=720,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-    #         "friction_distribution_params": (0.01, 1.15),
-    #         "viscous_friction_distribution_params": (0.3, 1.5),
-    #         "armature_distribution_params": (0.008,0.06),
-    #         "operation": "abs",
-    #         "distribution": "uniform",
-    #     },
-    # )
 
 
 @configclass
