@@ -426,8 +426,8 @@ G1_DEX_FIX = ArticulationCfg(
             'right_wrist_pitch_joint': 0.0,
             'right_wrist_yaw_joint': 0.0,
             # finger
-            "R_.*":0.3,
-            "L_.*":0.3,
+            ".*_proximal_joint":0.3,
+            # "L_.*":0.3,
         },
         joint_vel={".*": 0.0},
     ),
