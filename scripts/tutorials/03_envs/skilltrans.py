@@ -112,10 +112,10 @@ def main():
         # action = policy_run(obs["Run"])
         # # print(env.keyboard.is_pressed("a"))
         # # print(obs["policy"][:, 93:96])
-        print("commands",env.gamepad.advance())
+        print("commands",env.gamepad.advance()[3],env.gamepad.advance()[5])
         # X, Y, A, B button: 3,4,5,6
-        if env.gamepad.advance()[3]>0.5:# and torch.norm(command)>0.4:
-            # if(abs(env.gamepad.advance()[0])+abs(env.gamepad.advance()[1])>0.2):
+        if env.gamepad.advance()[3]>0.5 and env.gamepad.advance()[5]>0:# and torch.norm(command)>0.4:
+            # if abs(env.gamepad.advance()[0])<0.1 and abs(env.gamepad.advance()[1])<0.1:
             action = policy_stop(torch.cat((obs["Run"][:,:93],command*0),dim=1))
         elif env.gamepad.advance()[3]<0 and env.gamepad.advance()[5]>0.5:# and torch.norm(command)<=0.4: 
             action = policy_run(obs["Run"])
