@@ -28,40 +28,40 @@ class G1Rewards(RewardsCfg):
         }
     )
     # # pickup reward
-    # reaching_object= RewTerm(
-    #     func=mdp.object_ee_distance, 
-    #     params={
-    #         "std": 0.12,
-    #         "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
-    #         # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
-    #     }, 
-    #     weight=0.1
-    # )
+    reaching_object= RewTerm(
+        func=mdp.object_ee_distance, 
+        params={
+            "std": 0.12,
+            "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
+            # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
+        }, 
+        weight=0.5
+    )
     
-    # flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=0.7)
+    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=0.7)
  
-    # object_contact = RewTerm(
-    #     func=mdp.object_is_contacted, 
-    #     weight=0.05,
-    #     params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
-    #                                                           [
-    #                                                               "left_wrist_yaw_link",
-    #                                                               "right_wrist_yaw_link",
-    #                                                             #   "left_wrist_pitch_link",
-    #                                                             #   "right_wrist_pitch_link",
-    #                                                             #   "L_thumb_proximal",
-    #                                                             #   "R_thumb_proximal",
-    #                                                             #   ".*_thumb_intermediate",
-    #                                                             #   ".*_index_intermediate",
-    #                                                             #   ".*_middle_intermediate",
-    #                                                             #   ".*_pinky_intermediate",
-    #                                                             #   ".*_ring_intermediate",
-    #                                                             #   "left_ankle_roll_link",
-    #                                                             #   "right_ankle_roll_link"
-    #                                                               ],preserve_order=True,
-    #         )
-    #     }, 
-    # )
+    object_contact = RewTerm(
+        func=mdp.object_is_contacted, 
+        weight=1.0,
+        params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
+                                                              [
+                                                                  "left_wrist_yaw_link",
+                                                                  "right_wrist_yaw_link",
+                                                                #   "left_wrist_pitch_link",
+                                                                #   "right_wrist_pitch_link",
+                                                                #   "L_thumb_proximal",
+                                                                #   "R_thumb_proximal",
+                                                                #   ".*_thumb_intermediate",
+                                                                #   ".*_index_intermediate",
+                                                                #   ".*_middle_intermediate",
+                                                                #   ".*_pinky_intermediate",
+                                                                #   ".*_ring_intermediate",
+                                                                #   "left_ankle_roll_link",
+                                                                #   "right_ankle_roll_link"
+                                                                  ],preserve_order=True,
+            )
+        }, 
+    )
 
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
@@ -69,7 +69,7 @@ class G1Rewards(RewardsCfg):
         params={"command_name": "base_velocity", "std": 0.5},
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "base_velocity", "std": 0.5}
+        func=mdp.track_ang_vel_z_world_exp, weight=1.0, params={"command_name": "base_velocity", "std": 0.5}
     )
     foot_clearance = RewTerm(
         func=mdp.foot_clearance_reward,
