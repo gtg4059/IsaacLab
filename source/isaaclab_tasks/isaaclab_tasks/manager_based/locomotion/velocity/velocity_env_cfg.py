@@ -498,7 +498,7 @@ class EventCfg:
         mode="reset",
         params={
             "position_range": (-0.035, 0.035),
-            "velocity_range": (-1.5, 1.5),
+            "velocity_range": (-0.0, 0.0),
         },
     )
 
