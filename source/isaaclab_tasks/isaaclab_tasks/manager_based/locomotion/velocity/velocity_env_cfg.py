@@ -449,7 +449,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
-            "com_range": {"x": (-0.06, 0.06), "y": (-0.06, 0.06), "z": (-0.06, 0.06)},
+            "com_range": {"x": (-0.12, 0.12), "y": (-0.06, 0.06), "z": (0.00, 0.12)},
         },
     )
 
@@ -498,7 +498,7 @@ class EventCfg:
         mode="reset",
         params={
             "position_range": (-0.035, 0.035),
-            "velocity_range": (0.0, 0.0),
+            "velocity_range": (-1.5, 1.5),
         },
     )
 
