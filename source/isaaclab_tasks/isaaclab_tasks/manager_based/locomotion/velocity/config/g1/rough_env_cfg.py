@@ -61,12 +61,12 @@ class G1Rewards(RewardsCfg):
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
-        weight=10.0
+        weight=5.0
     )
     object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
                                weight=5.0,
                                params={"std": 0.2,
-                                       "minimal_height": 0.84,
+                                       "minimal_height": 0.83,
                                        "height": 0.88,
         }, 
     )
