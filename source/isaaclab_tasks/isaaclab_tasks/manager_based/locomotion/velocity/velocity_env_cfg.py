@@ -47,7 +47,7 @@ def gamepad_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
         env.gamepad = Se2bGamepad(Se2bGamepadCfg(
             # pos_sensitivity=2.0,
             # rot_sensitivity=0.25,
-            v_x_sensitivity=1.0, v_y_sensitivity=1.0, omega_z_sensitivity=0.25, #dead_zone=0.01
+            v_x_sensitivity=1.0, v_y_sensitivity=1.0, omega_z_sensitivity=0.25, dead_zone=0.1
         ))
         env.gamepad.reset()
     command = env.gamepad.advance()

@@ -114,11 +114,12 @@ def main():
         # # print(obs["policy"][:, 93:96])
         print("commands",env.gamepad.advance())
         # X, Y, A, B button: 3,4,5,6
-        if env.gamepad.advance()[3]>0.5:# and torch.norm(command)>0.4: #run
-            action = policy_run(obs["Run"])
-        elif env.gamepad.advance()[3]<0 and env.gamepad.advance()[5]>0:# and torch.norm(command)<=0.4: #stop
+        if env.gamepad.advance()[3]>0.5:# and torch.norm(command)>0.4:
+            # if(abs(env.gamepad.advance()[0])+abs(env.gamepad.advance()[1])>0.2):
             action = policy_stop(torch.cat((obs["Run"][:,:93],command*0),dim=1))
-        elif env.gamepad.advance()[3]<0 and env.gamepad.advance()[5]<0: #pickup
+        elif env.gamepad.advance()[3]<0 and env.gamepad.advance()[5]>0.5:# and torch.norm(command)<=0.4: 
+            action = policy_run(obs["Run"])
+        elif env.gamepad.advance()[3]>0.5 and env.gamepad.advance()[5]<0: #pickup
             # robot = env.scene["robot"]
             # joint_indices, joint_names = robot.find_joints(['.*_proximal_joint'])
             # joint_idx = robot.set_joint_effort_target(torch.zeros_like(robot.data.default_joint_pos[:,joint_indices]),joint_indices)
