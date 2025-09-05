@@ -466,7 +466,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
-            "com_range": {"x": (-0.06, 0.06), "y": (-0.06, 0.06), "z": (-0.06, 0.06)},
+            "com_range": {"x": (-0.2, 0.2), "y": (-0.2, 0.2), "z": (-0.06, 0.06)},
         },
     )
 
