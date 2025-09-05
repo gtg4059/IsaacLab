@@ -104,18 +104,12 @@ class MySceneCfg(InteractiveSceneCfg):
             # pos=[0.43, 0, 0.93], 
             rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
-            # # white box
-            # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
-            # scale=(4.37,5.9,3.0), # 262,350,180
-            # # 2-box
-            # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            # scale=((3.0,4.0,2.5)), # 180,240,150
             # IKEA-box
-            # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            # scale=((6.33,4.17,2.5)), # 380,250,150
-            # white wing IKEA-box
-            usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
-            scale=(11.5, 8.93, 5.357), # 380,250,150
+            usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+            scale=((6.33,4.17,2.5)), # 380,250,150
+            # # white wing IKEA-box
+            # usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
+            # scale=(11.5, 8.93, 5.357), # 380,250,150
             mass_props=sim_utils.MassPropertiesCfg(mass=0.5),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 # kinematic_enabled=True,
@@ -191,7 +185,7 @@ class MySceneCfg(InteractiveSceneCfg):
                 scale=(0.5, 0.8, 0.1),
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(
                     kinematic_enabled=True,
-                    # solver_position_iteration_count=16,
+                    solver_position_iteration_count=8,
                     # solver_velocity_iteration_count=1,
                     # max_angular_velocity=1000.0,
                     # max_linear_velocity=1000.0,
