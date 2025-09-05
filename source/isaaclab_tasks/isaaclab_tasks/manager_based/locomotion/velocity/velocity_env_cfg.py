@@ -741,7 +741,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=["left_elbow_joint"]),
-            "position_range": (-0.4, 0.4),
+            "position_range": (-0.6, 0.2),
             "velocity_range": (0.0, 0.0),
         },
     )
@@ -751,7 +751,27 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=["right_elbow_joint"]),
-            "position_range": (-0.4, 0.4),
+            "position_range": (-0.6, 0.2),
+            "velocity_range": (0.0, 0.0),
+        },
+    )
+
+    randomize_left_SY_offset = EventTerm(
+        func=mdp.reset_joints_by_offset,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=["left_shoulder_yaw_joint"]),
+            "position_range": (0.0, 0.4),
+            "velocity_range": (0.0, 0.0),
+        },
+    )
+
+    randomize_right_SY_offset = EventTerm(
+        func=mdp.reset_joints_by_offset,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=["right_shoulder_yaw_joint"]),
+            "position_range": (-0.4, 0.0),
             "velocity_range": (0.0, 0.0),
         },
     )
