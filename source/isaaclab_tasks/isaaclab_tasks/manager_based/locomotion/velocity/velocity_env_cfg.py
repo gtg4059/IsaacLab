@@ -693,7 +693,7 @@ class EventCfg:
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=["left_wrist_yaw_link", 
                                                              "right_wrist_yaw_link"]),
-            "mass_distribution_params": (0.3, 0.9),
+            "mass_distribution_params": (0.9, 0.9),
             "operation": "add",
         },
     )
@@ -864,7 +864,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "com_range": {"x": (-0.15, 0.15), "y": (-0.1, 0.1), "z": (-0.0, 0.0)},
+            "com_range": {"x": (-0.1, 0.15), "y": (-0.05, 0.05), "z": (-0.0, 0.0)},
         },
     )
 
