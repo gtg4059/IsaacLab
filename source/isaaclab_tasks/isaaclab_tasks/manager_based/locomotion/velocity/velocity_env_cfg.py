@@ -687,6 +687,17 @@ class EventCfg:
         },
     )
 
+    randomize_hand_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=["left_wrist_yaw_link", 
+                                                             "right_wrist_yaw_link"]),
+            "mass_distribution_params": (0.1, 0.5),
+            "operation": "add",
+        },
+    )
+
     randomize_base_com = EventTerm(
         func=mdp.randomize_rigid_body_com,
         mode="startup",
