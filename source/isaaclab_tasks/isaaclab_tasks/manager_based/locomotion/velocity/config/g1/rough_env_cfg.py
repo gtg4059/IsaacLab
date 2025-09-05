@@ -68,7 +68,7 @@ class G1Rewards(RewardsCfg):
     
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.5,
+        weight=-1.0,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
