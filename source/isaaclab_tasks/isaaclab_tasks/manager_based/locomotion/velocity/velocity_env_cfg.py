@@ -693,7 +693,7 @@ class EventCfg:
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=["left_wrist_yaw_link", 
                                                              "right_wrist_yaw_link"]),
-            "mass_distribution_params": (0.1, 0.5),
+            "mass_distribution_params": (0.3, 0.9),
             "operation": "add",
         },
     )
@@ -1006,6 +1006,9 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physics_material = self.scene.terrain.physics_material
         self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
         self.sim.physx.bounce_threshold_velocity = 0.1
+        # eye: tuple[float, float, float] = (7.5, 7.5, 7.5),
+        # lookat: tuple[float, float, float] = (0, 0, 0),
+        self.viewer.eye = (-2.0, 0, 5.0)
         # update sensor update periods
         # we tick all the sensors based on the smallest update period (physics update period)
         if self.scene.contact_forces is not None:
