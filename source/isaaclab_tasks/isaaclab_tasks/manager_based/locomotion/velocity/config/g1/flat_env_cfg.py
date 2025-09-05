@@ -37,7 +37,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
         # New Rewards
-        self.rewards.joint_deviation_arms.weight = -1.0
+        self.rewards.joint_deviation_arms.weight = -0.5
         self.rewards.joint_deviation_torso.weight = -1.0
         
         # Commands
