@@ -864,7 +864,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "com_range": {"x": (-0.1, 0.15), "y": (-0.05, 0.05), "z": (-0.0, 0.0)},
+            "com_range": {"x": (-0.1, 0.1), "y": (-0.05, 0.05), "z": (-0.0, 0.0)},
         },
     )
 
