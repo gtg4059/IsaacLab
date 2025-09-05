@@ -129,11 +129,11 @@ class MySceneCfg(InteractiveSceneCfg):
             # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             # scale=((3.0,4.0,2.5)), # 180,240,150
             # IKEA-box
-            # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            # scale=((6.33,4.17,2.5)), # 380,250,150
-            # white wing IKEA-box
-            usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
-            scale=(13.57, 7.576, 5.357), # 380,250,150
+            usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+            scale=((6.33,4.17,2.5)), # 380,250,150
+            # # white wing IKEA-box
+            # usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
+            # scale=(13.57, 7.576, 5.357), # 380,250,150
             mass_props=sim_utils.MassPropertiesCfg(mass=0.5),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 # kinematic_enabled=True,
