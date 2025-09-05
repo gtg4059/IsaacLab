@@ -318,6 +318,22 @@ class EventCfg:
         },
     )
 
+    # interval
+    push_robot_interval = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="interval",
+        interval_range_s=(5.0, 10.0),
+        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+    )
+
+    # interval
+    push_robot = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="startup",
+        # interval_range_s=(10.0, 15.0),
+        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+    )
+
     randomize_link_mass = EventTerm(
         func=mdp.randomize_rigid_body_mass,
         mode="startup",
@@ -366,14 +382,14 @@ class EventCfg:
         },
     )
 
-    # randomize_base_com = EventTerm(
-    #     func=mdp.randomize_rigid_body_com,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
-    #         "com_range": {"x": (-0.06, 0.06), "y": (-0.06, 0.06), "z": (-0.06, 0.06)},
-    #     },
-    # )
+    randomize_base_com = EventTerm(
+        func=mdp.randomize_rigid_body_com,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
+            "com_range": {"x": (0.00, 0.24), "y": (-0.06, 0.06), "z": (0.00, 0.12)},
+        },
+    )
 
     randomize_pd_gains = EventTerm(
         func=mdp.randomize_actuator_gains,
@@ -420,7 +436,7 @@ class EventCfg:
         mode="reset",
         params={
             "position_range": (-0.035, 0.035),
-            "velocity_range": (0.0, 0.0),
+            "velocity_range": (-0.0, 0.0),
         },
     )
 
@@ -437,37 +453,6 @@ class EventCfg:
             "distribution": "uniform",
         },
     )
-
-    # interval
-    push_robot = EventTerm(
-        func=mdp.push_by_setting_velocity,
-        mode="interval",
-        interval_range_s=(10.0, 15.0),
-        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
-    )
-
-    randomize_base_com = EventTerm(
-        func=mdp.randomize_rigid_body_com,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
-            "com_range": {"x": (0.00, 0.12), "y": (-0.06, 0.06), "z": (0.00, 0.12)},
-        },
-    )
-
-    # robot_joint_armature = EventTerm(
-    #     func=mdp.randomize_joint_parameters,
-    #     min_step_count_between_reset=720,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-    #         "friction_distribution_params": (0.01, 1.15),
-    #         "viscous_friction_distribution_params": (0.3, 1.5),
-    #         "armature_distribution_params": (0.008,0.06),
-    #         "operation": "abs",
-    #         "distribution": "uniform",
-    #     },
-    # )
 
 
 @configclass
@@ -509,7 +494,6 @@ class RewardsCfg:
         weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
     )
-    base_height = RewTerm(func=mdp.base_height_l2, weight=-10.0, params={"target_height": 0.80})
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
