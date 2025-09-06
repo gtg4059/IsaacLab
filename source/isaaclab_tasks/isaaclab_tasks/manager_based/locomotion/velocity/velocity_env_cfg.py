@@ -924,9 +924,9 @@ class TerminationsCfg:
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
     )
-    bad_position = DoneTerm(
-        func=mdp.bad_position, params={"limit_dist": 0.05, "asset_cfg": SceneEntityCfg("robot")}
-    )
+    # bad_position = DoneTerm(
+    #     func=mdp.bad_position, params={"limit_dist": 0.05, "asset_cfg": SceneEntityCfg("robot")}
+    # )
 
 
 @configclass

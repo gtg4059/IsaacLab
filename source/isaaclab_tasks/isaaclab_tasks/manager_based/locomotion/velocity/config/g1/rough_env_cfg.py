@@ -30,7 +30,7 @@ class G1Rewards(RewardsCfg):
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=1.0,
+        weight=0.3,
         params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
                                                               [
                                                                   "left_wrist_yaw_link",
@@ -61,10 +61,10 @@ class G1Rewards(RewardsCfg):
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
-        weight=5.0
+        weight=1.2
     )
     object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
-                               weight=5.0,
+                               weight=1.0,
                                params={"std": 0.2,
                                        "minimal_height": 0.87,
                                        "height": 0.92,
