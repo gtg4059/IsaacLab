@@ -345,6 +345,22 @@ class ObservationsCfg:
 class EventCfg:
     """Configuration for events."""
 
+    # interval
+    push_robot_interval = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="interval",
+        interval_range_s=(5.0, 10.0),
+        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+    )
+
+    # interval
+    push_robot = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="startup",
+        # interval_range_s=(10.0, 15.0),
+        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+    )
+
     # startup
     randomize_friction = EventTerm(
         func=mdp.randomize_rigid_body_material,
@@ -386,22 +402,6 @@ class EventCfg:
             "num_buckets": 256,
             "make_consistent": True
         },
-    )
-
-    # interval
-    push_robot_interval = EventTerm(
-        func=mdp.push_by_setting_velocity,
-        mode="interval",
-        interval_range_s=(5.0, 10.0),
-        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
-    )
-
-    # interval
-    push_robot = EventTerm(
-        func=mdp.push_by_setting_velocity,
-        mode="startup",
-        # interval_range_s=(10.0, 15.0),
-        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
     )
 
     randomize_link_mass = EventTerm(
