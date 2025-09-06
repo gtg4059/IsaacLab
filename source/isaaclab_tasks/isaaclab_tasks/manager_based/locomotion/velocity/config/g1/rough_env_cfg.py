@@ -67,7 +67,7 @@ class G1Rewards(RewardsCfg):
                                weight=1.0,
                                params={"std": 0.2,
                                        "minimal_height": 0.87,
-                                       "height": 0.92,
+                                       "height": 0.90,
         }, 
     )
 

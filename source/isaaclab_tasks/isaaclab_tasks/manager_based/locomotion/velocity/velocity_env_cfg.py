@@ -240,7 +240,7 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.25, 0.25),
+            pos_x=(0.32, 0.32),
             pos_y=(0.14, 0.14),
             pos_z=(0.2, 0.2),
             roll=(-0.0, 0.0),
@@ -254,7 +254,7 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.25, 0.25),
+            pos_x=(0.32, 0.32),
             pos_y=(-0.14, -0.14),
             pos_z=(0.2, 0.2),
             roll=(-0.0, 0.0),
