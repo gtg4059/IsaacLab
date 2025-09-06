@@ -621,32 +621,26 @@ def randomize_joint_parameters(
     distribution: Literal["uniform", "log_uniform", "gaussian"] = "uniform",
 ):
     """Randomize the simulated joint parameters of an articulation by adding, scaling, or setting random values.
-
     This function allows randomizing the joint parameters of the asset. These correspond to the physics engine
     joint properties that affect the joint behavior. The properties include the joint friction coefficient, armature,
     and joint position limits.
-
     The function samples random values from the given distribution parameters and applies the operation to the
     joint properties. It then sets the values into the physics simulation. If the distribution parameters are
     not provided for a particular property, the function does not modify the property.
-
     .. tip::
         This function uses CPU tensors to assign the joint properties. It is recommended to use this function
         only during the initialization of the environment.
     """
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
-
     # resolve environment ids
     if env_ids is None:
         env_ids = torch.arange(env.scene.num_envs, device=asset.device)
-
     # resolve joint indices
     if asset_cfg.joint_ids == slice(None):
         joint_ids = slice(None)  # for optimization purposes
     else:
         joint_ids = torch.tensor(asset_cfg.joint_ids, dtype=torch.int, device=asset.device)
-
     # sample joint properties from the given ranges and set into the physics simulation
     # joint friction coefficient
     if friction_distribution_params is not None:
@@ -661,7 +655,6 @@ def randomize_joint_parameters(
         asset.write_joint_friction_coefficient_to_sim(
             friction_coeff[env_ids[:, None], joint_ids], joint_ids=joint_ids, env_ids=env_ids
         )
-
     # joint viscous_friction coefficient
     if viscous_friction_distribution_params is not None:
         viscous_friction_coeff = _randomize_prop_by_op(
@@ -675,7 +668,6 @@ def randomize_joint_parameters(
         asset.write_joint_viscous_friction_coefficient_to_sim(
             viscous_friction_coeff[env_ids[:, None], joint_ids], joint_ids=joint_ids, env_ids=env_ids
         )
-
     # joint armature
     if armature_distribution_params is not None:
         armature = _randomize_prop_by_op(
@@ -687,7 +679,6 @@ def randomize_joint_parameters(
             distribution=distribution,
         )
         asset.write_joint_armature_to_sim(armature[env_ids[:, None], joint_ids], joint_ids=joint_ids, env_ids=env_ids)
-
     # joint position limits
     if lower_limit_distribution_params is not None or upper_limit_distribution_params is not None:
         joint_pos_limits = asset.data.default_joint_pos_limits.clone()
@@ -711,7 +702,6 @@ def randomize_joint_parameters(
                 operation=operation,
                 distribution=distribution,
             )
-
         # extract the position limits for the concerned joints
         joint_pos_limits = joint_pos_limits[env_ids[:, None], joint_ids]
         if (joint_pos_limits[..., 0] > joint_pos_limits[..., 1]).any():

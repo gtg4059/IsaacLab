@@ -82,7 +82,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # # white-box
             # pos=[0.43, 0, 0.86],
             # 2-box
-            pos=[0.37, 0, 0.82],
+            pos=[0.37, 0, 0.86],# 0.37, 0, 0.82
             # # 3-box
             # pos=[0.39, 0, 0.86],
             # # 4-box
@@ -107,7 +107,7 @@ class MySceneCfg(InteractiveSceneCfg):
             mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 # kinematic_enabled=True,
-                solver_position_iteration_count=16,
+                solver_position_iteration_count=8, #16,
                 solver_velocity_iteration_count=1,
                 max_angular_velocity=1000.0,
                 max_linear_velocity=1000.0,
@@ -117,15 +117,6 @@ class MySceneCfg(InteractiveSceneCfg):
             # activate_contact_sensors=True,
         ),
     )
-
-    # obj_init = AssetBaseCfg(
-    #     prim_path="{ENV_REGEX_NS}/Object_init",
-    #     init_state=AssetBaseCfg.InitialStateCfg(pos=[0.36, 0, 0.70], rot=[1, 0, 0, 0]),
-    #     spawn=sim_utils.DomeLightCfg(
-    #         intensity=0.0,
-    #         texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
-    #     ),
-    # )
 
     # add cube
     # object_init: RigidObjectCfg = RigidObjectCfg(
@@ -509,12 +500,20 @@ class EventCfg:
     )
 
     # interval
-    push_robot = EventTerm(
+    push_robot_interval = EventTerm(
         func=mdp.push_by_setting_velocity,
         mode="interval",
         interval_range_s=(10.0, 15.0),
         params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
     )
+
+    push_robot = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="startup",
+        # interval_range_s=(10.0, 15.0),
+        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+    )
+
 
     randomize_link_mass = EventTerm(
         func=mdp.randomize_rigid_body_mass,
@@ -569,7 +568,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
-            "com_range": {"x": (-0.06, 0.06), "y": (-0.06, 0.06), "z": (-0.06, 0.06)},
+            "com_range": {"x": (0.00, 0.24), "y": (-0.06, 0.06), "z": (0.00, 0.12)},
         },
     )
 
@@ -635,63 +634,33 @@ class EventCfg:
         },
     )
 
-    reset_robot_joints = EventTerm(
-        func=mdp.reset_joints_by_scale,
-        mode="reset",
-        params={
-            # "asset_cfg": SceneEntityCfg("robot", joint_names=[
-            #     '.*_proximal_joint'
-            #     ]),
-            "position_range": (1.0, 1.0),
-            "velocity_range": (0.0, 0.0),
-        },
-    )
-
-    # randomize_joint_param = EventTerm(
-    #     func=mdp.randomize_joint_parameters,
-    #     min_step_count_between_reset=720,
+    # reset_robot_joints = EventTerm(
+    #     func=mdp.reset_joints_by_scale,
     #     mode="reset",
     #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", joint_names=[
-    #             'left_hip_pitch_joint', 
-    #             'left_hip_roll_joint', 
-    #             'left_hip_yaw_joint', 
-    #             'left_knee_joint', 
-    #             'left_ankle_pitch_joint', 
-    #             'left_ankle_roll_joint', 
-    #             'right_hip_pitch_joint', 
-    #             'right_hip_roll_joint', 
-    #             'right_hip_yaw_joint', 
-    #             'right_knee_joint', 
-    #             'right_ankle_pitch_joint', 
-    #             'right_ankle_roll_joint',
-    #             # G1_29_no_hand
-    #             "waist_yaw_joint",
-    #             "waist_roll_joint",
-    #             "waist_pitch_joint",
-    #             "left_shoulder_pitch_joint",
-    #             "left_shoulder_roll_joint",
-    #             "left_shoulder_yaw_joint",
-    #             "left_elbow_joint",
-    #             "left_wrist_roll_joint",
-    #             "left_wrist_pitch_joint",
-    #             "left_wrist_yaw_joint",
-    #             "right_shoulder_pitch_joint",
-    #             "right_shoulder_roll_joint",
-    #             "right_shoulder_yaw_joint",
-    #             "right_elbow_joint",
-    #             "right_wrist_roll_joint",
-    #             "right_wrist_pitch_joint",
-    #             "right_wrist_yaw_joint",]),
-    #         "friction_distribution_params": (0.01, 1.15),
-    #         "viscous_friction_distribution_params": (0.3, 1.5),
-    #         "armature_distribution_params": (0.008,0.06),
-    #         "operation": "add",
-    #         "distribution": "uniform",
+    #         # "asset_cfg": SceneEntityCfg("robot", joint_names=[
+    #         #     '.*_proximal_joint'
+    #         #     ]),
+    #         "position_range": (1.0, 1.0),
+    #         "velocity_range": (0.0, 0.0),
     #     },
     # )
 
+    randomize_joint_param = EventTerm(
+        func=mdp.randomize_joint_parameters,
+        min_step_count_between_reset=720,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "friction_distribution_params": (0.01, 1.15),
+            "viscous_friction_distribution_params": (0.3, 1.5),
+            "armature_distribution_params": (0.008,0.06),
+            "operation": "add",
+            "distribution": "uniform",
+        },
+    )
 
+################################################### physics_material & physics_material_hand   del?!
     physics_material_obj = EventTerm(
         func=mdp.randomize_rigid_body_material,
         mode="startup",
@@ -705,32 +674,61 @@ class EventCfg:
         },
     )
 
-    physics_material = EventTerm(
-        func=mdp.randomize_rigid_body_material,
+    randomize_hand_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
         mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
-            "static_friction_range": (1.25, 2.25),
-            "dynamic_friction_range": (1.25, 2.25),
-            "restitution_range": (0.0, 0.0),
-            "num_buckets": 64,
-            "make_consistent": True
+            "asset_cfg": SceneEntityCfg("robot", body_names=["left_wrist_yaw_link", 
+                                                             "right_wrist_yaw_link"]),
+            "mass_distribution_params": (0.3, 0.9),
+            "operation": "add",
         },
     )
+#     # physics_material = EventTerm(
+#     #     func=mdp.randomize_rigid_body_material,
+#     #     mode="startup",
+#     #     params={
+#     #         "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
+#     #         "static_friction_range": (1.25, 2.25),
+#     #         "dynamic_friction_range": (1.25, 2.25),
+#     #         "restitution_range": (0.0, 0.0),
+#     #         "num_buckets": 64,
+#     #         "make_consistent": True
+#     #     },
+#     # )
 
-    physics_material_hand = EventTerm(
-        func=mdp.randomize_rigid_body_material,
+#     # physics_material_hand = EventTerm(
+#     #     func=mdp.randomize_rigid_body_material,
+#     #     mode="startup",
+#     #     params={
+#     #         "asset_cfg": SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link",
+#     #                                                         "R_.*",
+#     #                                                         "L_.*",
+#     #                                                         ]),
+#     #         "static_friction_range": (1.25, 2.25),#(2.0, 2.0),
+#     #         "dynamic_friction_range": (1.25, 2.25),#(2.0, 2.0),
+#     #         "restitution_range": (0.0, 0.0),
+#     #         "num_buckets": 64,
+#     #         "make_consistent": True,
+#     #     },
+#     # )
+
+    # randomize_object_collider = EventTerm(
+    #     func=mdp.randomize_rigid_body_collider_offsets,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("object"),
+    #         "contact_offset_distribution_params": (0.0, 0.05),
+    #         "distribution": "uniform",
+    #     },
+    # ) 
+    
+    randomize_object_com = EventTerm(
+        func=mdp.randomize_object_com,
         mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link",
-                                                            "R_.*",
-                                                            "L_.*",
-                                                            ]),
-            "static_friction_range": (1.25, 2.25),#(2.0, 2.0),
-            "dynamic_friction_range": (1.25, 2.25),#(2.0, 2.0),
-            "restitution_range": (0.0, 0.0),
-            "num_buckets": 64,
-            "make_consistent": True,
+            "asset_cfg": SceneEntityCfg("object"),
+            "com_range": {"x": (-0.15, 0.15), "y": (-0.1, 0.1), "z": (-0.0, 0.0)},
         },
     )
 
@@ -752,25 +750,6 @@ class EventCfg:
                 "pitch": (-0.0, 0.0),
                 "yaw": (-0.0, 0.0),
             },
-        },
-    )
-
-    randomize_object_collider = EventTerm(
-        func=mdp.randomize_rigid_body_collider_offsets,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("object"),
-            "contact_offset_distribution_params": (0.0, 0.05),
-            "distribution": "uniform",
-        },
-    ) 
-    
-    randomize_object_com = EventTerm(
-        func=mdp.randomize_object_com,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("object"),
-            "com_range": {"x": (-0.15, 0.15), "y": (-0.1, 0.1), "z": (-0.0, 0.0)},
         },
     )
 
