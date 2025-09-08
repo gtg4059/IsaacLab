@@ -462,6 +462,7 @@ G1_DEX_FIX = ArticulationCfg(
             # '.*_proximal_joint':0.3,
             # "R_.*":0.2,
             # "L_.*":0.2,
+# 0.01 rad = 0.57 degree
 
             'left_hip_pitch_joint': -0.0097,
             'left_hip_roll_joint': -0.04,
