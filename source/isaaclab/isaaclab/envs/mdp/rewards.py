@@ -384,10 +384,11 @@ def delete_table(
         num_steps: The number of steps after which the change should be applied.
     """
     asset: RigidObject = env.scene[asset_cfg.name]
-    # print(env.max_episode_length)
-    if env.common_step_counter > 30000:
-        asset.data.root_pos_w[:, 2] -= 0.001*torch.ones_like(asset.data.root_pos_w[:, 2],device=asset.device)
-        asset.write_root_state_to_sim(asset.data.root_state_w)
-        asset.write_data_to_sim()
+    # print(env.episode_length_buf)
+    # if env.episode_length_buf > 6:
+    #     print(env.episode_length_buf)
+    asset.data.root_pos_w[:, 2] -= torch.where(env.episode_length_buf > 50,0,0.1*torch.ones_like(asset.data.root_pos_w[:, 2],device=asset.device)) 
+    asset.write_root_state_to_sim(asset.data.root_state_w)
+    asset.write_data_to_sim()
     # asset.data.root_pos_w[:, 1] -= 0.002*torch.ones_like(asset.data.root_pos_w[:, 2],device=asset.device)
     return torch.sum(asset.data.root_pos_w, dim=1)*0
