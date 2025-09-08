@@ -7,7 +7,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 
 from .rough_env_cfg import G1RoughEnvCfg
-from isaaclab_assets import G1_DEX_FIX, G1_DEX_FIX_D
+from isaaclab_assets import G1_DEX_FIX
 
 
 @configclass
