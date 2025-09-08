@@ -28,7 +28,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # Rewards
         self.rewards.track_ang_vel_z_exp.weight = 2.0
         self.rewards.lin_vel_z_l2.weight = -0.2
-        self.rewards.action_rate_l2.weight = -0.005
+        self.rewards.action_rate_l2.weight = -0.01
         self.rewards.dof_acc_l2.weight = -1.0e-7
         # self.rewards.feet_air_time.weight = 0.75
         # self.rewards.feet_air_time.params["threshold"] = 0.4
@@ -37,8 +37,8 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
         # New Rewards
-        self.rewards.joint_deviation_arms.weight = -1.0
-        self.rewards.joint_deviation_torso.weight = -2.5
+        self.rewards.joint_deviation_arms.weight = -0.5
+        self.rewards.joint_deviation_torso.weight = -0.5
         
         # Commands
         # self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
