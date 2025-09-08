@@ -153,47 +153,47 @@ class MySceneCfg(InteractiveSceneCfg):
     #     ),
     # )
 
-    # # mount
-    # table = RigidObjectCfg(
-    #     prim_path="{ENV_REGEX_NS}/Table",
-    #     init_state=RigidObjectCfg.InitialStateCfg(
-    #         pos=[0.39, 0, 0.74], 
-    #         rot=[1.0, 0.0 ,0.0, 0.0]),
-    #     spawn=sim_utils.UsdFileCfg(
-    #         usd_path="./source/isaaclab_assets/data/Assets/table/danny_inst.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", 
-    #         scale=(4.0, 4.0, 1.00),
-    #         mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
-    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
-    #             kinematic_enabled=True,
-    #             solver_position_iteration_count=16,
-    #             solver_velocity_iteration_count=1,
-    #             max_angular_velocity=1000.0,
-    #             max_linear_velocity=1000.0,
-    #             max_depenetration_velocity=5.0,
-    #             disable_gravity=True,
-    #         ),
-    #         activate_contact_sensors=True,
-    #     ),
-    # )
-
-    table = AssetBaseCfg(
+    # mount
+    table = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Table",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.40, 0.15, 0.78), rot=[0.707, 0, 0, -0.707]),
-        spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table/table.usd",
-        # init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.0, 0.05), rot=[0.707, 0, 0, -0.707]),
-        # spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table_inst.usd",
-                scale=(0.5, 0.8, 0.1),
-                rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                    kinematic_enabled=True,
-                    solver_position_iteration_count=8,
-                    # solver_velocity_iteration_count=1,
-                    # max_angular_velocity=1000.0,
-                    # max_linear_velocity=1000.0,
-                    # max_depenetration_velocity=5.0,
-                    disable_gravity=True,
-                ),
+        init_state=RigidObjectCfg.InitialStateCfg(
+            pos=[0.40, 0.0, 0.74], 
+            rot=[1.0, 0.0 ,0.0, 0.0]),
+        spawn=sim_utils.UsdFileCfg(
+            usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
+            scale=(4.0, 4.0, 1.00),
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                kinematic_enabled=True,
+                solver_position_iteration_count=16,
+                solver_velocity_iteration_count=1,
+                max_angular_velocity=1000.0,
+                max_linear_velocity=1000.0,
+                max_depenetration_velocity=5.0,
+                disable_gravity=True,
             ),
+            activate_contact_sensors=True,
+        ),
     )
+
+    # table = AssetBaseCfg(
+    #     prim_path="{ENV_REGEX_NS}/Table",
+    #     init_state=AssetBaseCfg.InitialStateCfg(pos=(0.40, 0.15, 0.78), rot=[0.707, 0, 0, -0.707]),
+    #     spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table/table.usd",
+    #     # init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.0, 0.05), rot=[0.707, 0, 0, -0.707]),
+    #     # spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table_inst.usd",
+    #             scale=(0.5, 0.8, 0.1),
+    #             rigid_props=sim_utils.RigidBodyPropertiesCfg(
+    #                 kinematic_enabled=True,
+    #                 solver_position_iteration_count=8,
+    #                 # solver_velocity_iteration_count=1,
+    #                 # max_angular_velocity=1000.0,
+    #                 # max_linear_velocity=1000.0,
+    #                 # max_depenetration_velocity=5.0,
+    #                 disable_gravity=True,
+    #             ),
+    #         ),
+    # )
 
     # table = AssetBaseCfg(
     #     prim_path="{ENV_REGEX_NS}/Table",

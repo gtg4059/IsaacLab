@@ -51,7 +51,7 @@ class G1Rewards(RewardsCfg):
         }, 
     )
 
-    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=-60.0)
+    # flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=-60.0)
 
     # pickup reward
     reaching_object= RewTerm(
@@ -64,7 +64,7 @@ class G1Rewards(RewardsCfg):
         weight=1.2
     )
     object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
-                               weight=0.8,
+                               weight=0.5,
                                params={"std": 0.3,
                                        "minimal_height": 0.87,
                                        "height": 0.92,
@@ -263,10 +263,10 @@ class G1Rewards(RewardsCfg):
         },
     )
 
-    # delete_table = RewTerm(
-    #     func=mdp.delete_table,
-    #     weight=-0.00001,
-    # )
+    delete_table = RewTerm(
+        func=mdp.delete_table,
+        weight=-0.00001,
+    )
 
 
 @configclass

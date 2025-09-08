@@ -146,9 +146,10 @@ def object_is_lifted(
     object: RigidObject = env.scene[object_cfg.name]
     # print(object.data.root_pos_w[:, 2])
     distance = torch.abs(object.data.root_pos_w[:,2]-height*torch.ones_like((object.data.root_pos_w[:,2])))
+    angle = torch.sum(torch.square(object.data.projected_gravity_b[:, :2]), dim=1)
     # return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
     # print(object.data.root_pos_w[:,2])
-    return ((1 - torch.tanh(torch.abs(distance)/std))+5*(1 - torch.tanh(torch.abs(distance)/std**2)))*torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
+    return ((1 - torch.tanh(torch.abs(distance)/std))+5*(1 - torch.tanh(torch.abs(distance)/std**2)))*torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(torch.abs(angle/std**2)))
 
 def object_is_contacted(
     env: ManagerBasedRLEnv,
