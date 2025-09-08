@@ -64,7 +64,7 @@ class G1Rewards(RewardsCfg):
         weight=1.2
     )
     object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
-                               weight=0.5,
+                               weight=0.8,
                                params={"std": 0.3,
                                        "minimal_height": 0.87,
                                        "height": 0.92,
