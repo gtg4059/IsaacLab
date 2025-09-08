@@ -808,7 +808,7 @@ class EventCfg:
         params={
             "asset_cfg": SceneEntityCfg("object"),
             # 4-box
-            "pose_range": {"x": (-0.03, 0.03), "y": (-0.01, 0.01), "yaw": (-0.02, 0.02)},
+            "pose_range": {"x": (-0.05, 0.05), "y": (-0.02, 0.02), "yaw": (-0.02, 0.02)},
             # # white box
             # "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
             # "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
