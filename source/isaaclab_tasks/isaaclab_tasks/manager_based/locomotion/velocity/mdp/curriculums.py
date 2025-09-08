@@ -53,24 +53,3 @@ def terrain_levels_vel(
     terrain.update_env_origins(env_ids, move_up, move_down)
     # return the mean terrain level
     return torch.mean(terrain.terrain_levels.float())
-
-def delete_table(
-        env: ManagerBasedRLEnv,
-        asset_cfg: SceneEntityCfg = SceneEntityCfg("table"),
-    ):
-    """Curriculum that modifies a reward weight a given number of steps.
-
-    Args:
-        env: The learning environment.
-        env_ids: Not used since all environments are affected.
-        term_name: The name of the reward term.
-        weight: The weight of the reward term.
-        num_steps: The number of steps after which the change should be applied.
-    """
-    asset: RigidObject = env.scene[asset_cfg.name]
-    print(env.common_step_counter)
-    if env.common_step_counter > 200:
-        asset.data.root_pos_w[:, 2] -= 0.01*torch.ones_like(asset.data.root_pos_w[:, 2],device=asset.device)
-    # asset.data.root_pos_w[:, 1] -= 0.002*torch.ones_like(asset.data.root_pos_w[:, 2],device=asset.device)
-    asset.write_root_state_to_sim(asset.data.root_state_w)
-    asset.write_data_to_sim()
