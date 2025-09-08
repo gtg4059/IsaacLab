@@ -163,11 +163,11 @@ class MySceneCfg(InteractiveSceneCfg):
     table = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Table",
         init_state=RigidObjectCfg.InitialStateCfg(
-            pos=[0.40, 0.0, 0.74], 
+            pos=[0.32, 0.0, 0.74], 
             rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
-            scale=(11.0, 12.0, 1.00),
+            scale=(8.0, 12.0, 1.00),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 kinematic_enabled=True,
@@ -802,6 +802,19 @@ class EventCfg:
         },
     )
 
+    physics_material_table = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("table"),
+            "static_friction_range": (0.1, 0.2),
+            "dynamic_friction_range": (0.1, 0.2),
+            "restitution_range": (0.0, 0.1),
+            "num_buckets": 64,
+            "make_consistent": True,
+        },
+    )
+
     reset_box_position = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
@@ -886,7 +899,7 @@ class RewardsCfg:
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
-    alive = RewTerm(func=mdp.is_alive, weight=20.0)
+    alive = RewTerm(func=mdp.is_alive, weight=10.0)
 
 @configclass
 class TerminationsCfg:
