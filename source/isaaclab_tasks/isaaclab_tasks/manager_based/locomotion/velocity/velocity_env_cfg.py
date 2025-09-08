@@ -49,6 +49,12 @@ from isaaclab.devices import Se2Keyboard
 #     command = env.keyboard.advance()
 #     return torch.tensor(command, device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
 
+# def replace_value(env, env_id, data, value, num_steps):
+#     if env.common_step_counter > num_steps and data != value:
+#         return value
+#     # use the sentinel to indicate “no change”
+#     return mdp.modify_env_param.NO_CHANGE
+
 @configclass
 class MySceneCfg(InteractiveSceneCfg):
     """Configuration for the terrain scene with a legged robot."""
@@ -934,7 +940,15 @@ class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
-
+    delete_table = CurrTerm(func=mdp.delete_table)
+    # modify_reset_joint_pos = CurrTerm(
+    #     func=mdp.modify_term_cfg,
+    #     params={
+    #         "address": "events.reset_cart_position.params.position_range",
+    #         "modify_fn": replace_value,
+    #         "modify_params": {"value": (-0.0, 0.0), "num_steps": 1},
+    #     },
+    # )
 
 ##
 # Environment configuration
