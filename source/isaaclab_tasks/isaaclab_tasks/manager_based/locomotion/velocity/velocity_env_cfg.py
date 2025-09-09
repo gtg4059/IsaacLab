@@ -34,6 +34,26 @@ from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
 ##
 # Scene definition
 ##
+import torch
+from collections.abc import Sequence
+from isaaclab.utils.math import quat_from_euler_xyz, quat_unique
+def sample_command(self, env_ids: Sequence[int]) -> torch.Tensor:
+    # sample new pose targets
+    # -- position
+    self.pose_command_b = torch.zeros(self.num_envs, 7, device=self.device)
+    r = torch.empty(len(env_ids), device=self.device)
+    self.pose_command_b[env_ids, 0] = r.uniform_(*self.cfg.ranges.pos_x)
+    self.pose_command_b[env_ids, 1] = r.uniform_(*self.cfg.ranges.pos_y)
+    self.pose_command_b[env_ids, 2] = r.uniform_(*self.cfg.ranges.pos_z)
+    # -- orientation
+    euler_angles = torch.zeros_like(self.pose_command_b[env_ids, :3])
+    euler_angles[:, 0].uniform_(*self.cfg.ranges.roll)
+    euler_angles[:, 1].uniform_(*self.cfg.ranges.pitch)
+    euler_angles[:, 2].uniform_(*self.cfg.ranges.yaw)
+    quat = quat_from_euler_xyz(euler_angles[:, 0], euler_angles[:, 1], euler_angles[:, 2])
+    # make sure the quaternion has real part as positive
+    self.pose_command_b[env_ids, 3:] = quat_unique(quat) if self.cfg.make_quat_unique else quat
+    return self.pose_command_b
 
 
 @configclass
