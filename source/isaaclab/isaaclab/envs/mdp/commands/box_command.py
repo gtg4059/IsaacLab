@@ -41,10 +41,10 @@ class BoxPoseCommand(CommandTerm):
 
     """
 
-    cfg: UniformPoseCommandCfg
+    cfg: BoxPoseCommandCfg
     """Configuration for the command generator."""
 
-    def __init__(self, cfg: UniformPoseCommandCfg, env: ManagerBasedEnv):
+    def __init__(self, cfg: BoxPoseCommandCfg, env: ManagerBasedEnv):
         """Initialize the command generator class.
 
         Args:
