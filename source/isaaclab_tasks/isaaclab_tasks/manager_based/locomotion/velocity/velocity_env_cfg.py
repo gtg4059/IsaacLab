@@ -116,7 +116,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # # white wing IKEA-box
             # usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
             # scale=(11.5, 8.93, 5.357), # 380,250,150
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.5),
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.4),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 # kinematic_enabled=True,
                 solver_position_iteration_count=8,
@@ -163,7 +163,7 @@ class MySceneCfg(InteractiveSceneCfg):
     table = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Table",
         init_state=RigidObjectCfg.InitialStateCfg(
-            pos=[0.32, 0.0, 0.74], 
+            pos=[0.34, 0.0, 0.74], 
             rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
@@ -841,7 +841,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "mass_distribution_params": (-0.4, 0.4),
+            "mass_distribution_params": (-0.3, 0.3),
             "operation": "add",
         },
     )
@@ -851,7 +851,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "com_range": {"x": (-0.1, 0.1), "y": (-0.05, 0.05), "z": (-0.0, 0.0)},
+            "com_range": {"x": (-0.08, 0.08), "y": (-0.04, 0.04), "z": (-0.0, 0.0)},
         },
     )
 
