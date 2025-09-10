@@ -19,7 +19,7 @@ Reference: https://github.com/unitreerobotics/unitree_ros
 """
 
 import isaaclab.sim as sim_utils
-from isaaclab.actuators import ActuatorNetMLPCfg, DCMotorCfg, ImplicitActuatorCfg, IdealPDActuatorCfg
+from isaaclab.actuators import ActuatorNetMLPCfg, DCMotorCfg, ImplicitActuatorCfg, IdealPDActuatorCfg, RemotizedPDActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
 
@@ -425,7 +425,7 @@ G1_DEX_FIX = ArticulationCfg(
             'right_wrist_pitch_joint': 0.0100,
             'right_wrist_yaw_joint': -0.0100,
             # finger
-            ".*_proximal_joint":0.3,
+            # ".*_proximal_joint":-0.09,
             # "L_.*":0.3,
         },
         joint_vel={".*": 0.0},

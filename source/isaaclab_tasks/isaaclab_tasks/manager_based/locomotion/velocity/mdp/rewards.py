@@ -149,7 +149,7 @@ def object_is_lifted(
     angle = torch.sum(torch.square(object.data.projected_gravity_b[:, :2]), dim=1)
     # return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
     # print(object.data.root_pos_w[:,2])
-    return ((1 - torch.tanh(torch.abs(distance)/std))+5*(1 - torch.tanh(torch.abs(distance)/std**2)))*torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(torch.abs(angle/std)))
+    return ((1 - torch.tanh(torch.abs(distance)/std)))*torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(torch.abs(angle/std)))
 
 def object_is_contacted(
     env: ManagerBasedRLEnv,
@@ -167,8 +167,8 @@ def object_is_contacted(
     # print("contact:",contact)
     # print("contact_force:",contact_force)
     # print(0.00005*not_allow_contact*contact_force**2)
-    # print(contact_force)
-    return torch.sum(contact.int()-0.0000001*(contact_force**2), dim=1)
+    # print("contact_force:",contact_force)
+    return torch.sum(contact.int(), dim=1)
 
 def table_not_contacted(
     env: ManagerBasedRLEnv,

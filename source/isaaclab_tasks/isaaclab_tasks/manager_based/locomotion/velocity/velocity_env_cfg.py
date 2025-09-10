@@ -167,18 +167,17 @@ class MySceneCfg(InteractiveSceneCfg):
             rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
-            scale=(8.0, 12.0, 1.00),
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
+            scale=(3.0, 3.0, 1.00),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 kinematic_enabled=True,
-                solver_position_iteration_count=4,
+                solver_position_iteration_count=1,
                 solver_velocity_iteration_count=1,
                 max_angular_velocity=1000.0,
                 max_linear_velocity=1000.0,
                 max_depenetration_velocity=5.0,
                 disable_gravity=True,
             ),
-            activate_contact_sensors=True,
+            # activate_contact_sensors=True,
         ),
     )
 
@@ -584,7 +583,7 @@ class EventCfg:
                                                              "R_.*","L_.*",]),
             "static_friction_range": (0.6, 1.1),
             "dynamic_friction_range": (0.6, 1.1),
-            "restitution_range": (0.0, 0.4),
+            "restitution_range": (0.0, 0.1),
             "num_buckets": 256,
             "make_consistent": True
         },
@@ -860,7 +859,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "contact_offset_distribution_params": (0.0, 0.03),
+            "contact_offset_distribution_params": (0.04, 0.08),
             "distribution": "uniform",
         },
     ) 
@@ -907,10 +906,11 @@ class TerminationsCfg:
 
     bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.6,"asset_cfg": SceneEntityCfg("object")})
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    # base_contact = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 500.0},
-    # )
+
+    base_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 50.0},
+    )
     base_contact2 = DoneTerm(
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 10.0},
@@ -919,29 +919,23 @@ class TerminationsCfg:
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 10.0},
     )
-    # base_contact4 = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_pitch_link"), "threshold": 10.0},
-    # )
-    # base_contact5 = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_elbow_link"), "threshold": 10.0},
-    # )
-    # base_contact6 = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=[
-    #                                                               ".*_thumb_intermediate",
-    #                                                               ".*_index_intermediate",
-    #                                                               ".*_middle_intermediate",
-    #                                                               ".*_pinky_intermediate",
-    #                                                               ".*_ring_intermediate",
-    #                                                               ]), "threshold": 20.0},
-    # )
+    hand_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_yaw_link"), "threshold": 100.0},
+    )
     object_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.65, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
+    )
+    fingertip_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_intermediate"), "threshold": 100.0},
+    )
+    finger_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_proximal"), "threshold": 100.0},
     )
     # bad_position = DoneTerm(
     #     func=mdp.bad_position, params={"limit_dist": 0.05, "asset_cfg": SceneEntityCfg("robot")}
