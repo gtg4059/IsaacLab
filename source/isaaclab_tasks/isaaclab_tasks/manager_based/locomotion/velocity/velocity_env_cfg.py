@@ -859,7 +859,17 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "contact_offset_distribution_params": (0.04, 0.08),
+            "contact_offset_distribution_params": (0.01, 0.01),
+            "distribution": "uniform",
+        },
+    ) 
+
+    randomize_object_rest = EventTerm(
+        func=mdp.randomize_rigid_body_collider_offsets,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "rest_offset_distribution_params": (0.009, 0.009),
             "distribution": "uniform",
         },
     ) 
