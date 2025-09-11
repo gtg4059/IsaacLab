@@ -167,7 +167,7 @@ class CommandsCfg:
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.32, 0.32),
-            pos_y=(0.16, 0.16),
+            pos_y=(0.14, 0.14),
             pos_z=(0.15, 0.15),# 0901_23: 0.33,0.15,0.15. inital_state: 0.25,0.14,0.2
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
@@ -182,7 +182,7 @@ class CommandsCfg:
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
             pos_x=(0.32, 0.32),
-            pos_y=(-0.16, -0.16),
+            pos_y=(-0.14, -0.14),
             pos_z=(0.15, 0.15),
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
@@ -324,7 +324,7 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}, scale=(2.0,2.0,0.25))# 3
         left_ee_pose_command = ObsTerm(
             func=mdp.generated_commands,
             params={"command_name": "left_ee_pose"},
@@ -429,7 +429,7 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}, scale=(2.0,2.0,0.25))# 3
         left_ee_pose_command = ObsTerm(
             func=mdp.generated_commands,
             params={"command_name": "left_ee_pose"},
@@ -455,6 +455,21 @@ class ObservationsCfg:
 @configclass
 class EventCfg:
     """Configuration for events."""
+
+    # interval
+    push_robot_interval = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="interval",
+        interval_range_s=(10.0, 15.0),
+        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+    )
+
+    push_robot = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="startup",
+        # interval_range_s=(10.0, 15.0),
+        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+    )
 
     # startup
     randomize_friction = EventTerm(
@@ -498,22 +513,6 @@ class EventCfg:
             "make_consistent": True
         },
     )
-
-    # interval
-    push_robot_interval = EventTerm(
-        func=mdp.push_by_setting_velocity,
-        mode="interval",
-        interval_range_s=(10.0, 15.0),
-        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
-    )
-
-    push_robot = EventTerm(
-        func=mdp.push_by_setting_velocity,
-        mode="startup",
-        # interval_range_s=(10.0, 15.0),
-        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
-    )
-
 
     randomize_link_mass = EventTerm(
         func=mdp.randomize_rigid_body_mass,
@@ -563,12 +562,23 @@ class EventCfg:
         },
     )
 
+    randomize_hand_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=["left_wrist_yaw_link", 
+                                                             "right_wrist_yaw_link"]),
+            "mass_distribution_params": (0.3, 0.9),
+            "operation": "add",
+        },
+    )
+
     randomize_base_com = EventTerm(
         func=mdp.randomize_rigid_body_com,
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
-            "com_range": {"x": (0.00, 0.24), "y": (-0.06, 0.06), "z": (0.00, 0.12)},
+            "com_range": {"x": (-0.2, 0.2), "y": (-0.2, 0.2), "z": (-0.06, 0.06)},
         },
     )
 
@@ -620,32 +630,6 @@ class EventCfg:
             "velocity_range": (0.0, 0.0),
         },
     )
-
-    robot_joint_friction = EventTerm(
-        func=mdp.randomize_joint_parameters,
-        min_step_count_between_reset=720,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-            "friction_distribution_params": (0.01, 1.15),
-            "viscous_friction_distribution_params": (0.3, 1.5),
-            "operation": "scale",
-            "distribution": "uniform",
-        },
-    )
-
-    # reset_robot_joints = EventTerm(
-    #     func=mdp.reset_joints_by_scale,
-    #     mode="reset",
-    #     params={
-    #         # "asset_cfg": SceneEntityCfg("robot", joint_names=[
-    #         #     '.*_proximal_joint'
-    #         #     ]),
-    #         "position_range": (1.0, 1.0),
-    #         "velocity_range": (0.0, 0.0),
-    #     },
-    # )
-
     randomize_joint_param = EventTerm(
         func=mdp.randomize_joint_parameters,
         min_step_count_between_reset=720,
@@ -660,7 +644,7 @@ class EventCfg:
         },
     )
 
-################################################### physics_material & physics_material_hand   del?!
+################################################### 
     physics_material_obj = EventTerm(
         func=mdp.randomize_rigid_body_material,
         mode="startup",
@@ -674,16 +658,6 @@ class EventCfg:
         },
     )
 
-    randomize_hand_mass = EventTerm(
-        func=mdp.randomize_rigid_body_mass,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=["left_wrist_yaw_link", 
-                                                             "right_wrist_yaw_link"]),
-            "mass_distribution_params": (0.3, 0.9),
-            "operation": "add",
-        },
-    )
 #     # physics_material = EventTerm(
 #     #     func=mdp.randomize_rigid_body_material,
 #     #     mode="startup",
@@ -713,16 +687,36 @@ class EventCfg:
 #     #     },
 #     # )
 
-    # randomize_object_collider = EventTerm(
-    #     func=mdp.randomize_rigid_body_collider_offsets,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("object"),
-    #         "contact_offset_distribution_params": (0.0, 0.05),
-    #         "distribution": "uniform",
-    #     },
-    # ) 
-    
+    randomize_object_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "mass_distribution_params": (-0.4, 0.4),
+            "operation": "add",
+        },
+    )
+
+    randomize_object_collider = EventTerm(
+        func=mdp.randomize_rigid_body_collider_offsets,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "contact_offset_distribution_params": (0.0, 0.05),
+            "distribution": "uniform",
+        },
+    ) 
+
+    randomize_object_rest = EventTerm(
+        func=mdp.randomize_rigid_body_collider_offsets,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "rest_offset_distribution_params": (0.004, 0.004),
+            "distribution": "uniform",
+        },
+    )     
+
     randomize_object_com = EventTerm(
         func=mdp.randomize_object_com,
         mode="startup",
@@ -752,6 +746,46 @@ class EventCfg:
             },
         },
     )
+
+    randomize_friction_hand = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=[
+                                                             'left_wrist_yaw_link', 
+                                                             'right_wrist_yaw_link',
+                                                             "R_.*","L_.*",]),
+            "static_friction_range": (0.6, 1.1),
+            "dynamic_friction_range": (0.6, 1.1),
+            "restitution_range": (0.0, 0.02),
+            "num_buckets": 256,
+            "make_consistent": True
+        },
+    )
+    # robot_joint_friction = EventTerm(
+    #     func=mdp.randomize_joint_parameters,
+    #     min_step_count_between_reset=720,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+    #         "friction_distribution_params": (0.01, 1.15),
+    #         "viscous_friction_distribution_params": (0.3, 1.5),
+    #         "operation": "scale",
+    #         "distribution": "uniform",
+    #     },
+    # )
+
+    # reset_robot_joints = EventTerm(
+    #     func=mdp.reset_joints_by_scale,
+    #     mode="reset",
+    #     params={
+    #         # "asset_cfg": SceneEntityCfg("robot", joint_names=[
+    #         #     '.*_proximal_joint'
+    #         #     ]),
+    #         "position_range": (1.0, 1.0),
+    #         "velocity_range": (0.0, 0.0),
+    #     },
+    # )
 
 
 
@@ -794,8 +828,21 @@ class TerminationsCfg:
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.4, "asset_cfg": SceneEntityCfg("robot")}
     )
-    bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.6,"asset_cfg": SceneEntityCfg("object")})
+    bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.26,"asset_cfg": SceneEntityCfg("object")})
 
+    hand_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_yaw_link"), "threshold": 100.0},
+    )
+    fingertip_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_intermediate"), "threshold": 100.0},
+    )
+    finger_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_proximal"), "threshold": 100.0},
+    )
+    
 @configclass
 class CurriculumCfg:
     """Curriculum terms for the MDP."""
