@@ -532,6 +532,22 @@ class ObservationsCfg:
 class EventCfg:
     """Configuration for events."""
 
+    # interval
+    push_robot_interval = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="interval",
+        interval_range_s=(5.0, 10.0),
+        params={"velocity_range": {"x": (-1.0, 1.0), "y": (-1.0, 1.0)}},
+    )
+
+    # interval
+    push_robot = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="startup",
+        # interval_range_s=(10.0, 15.0),
+        params={"velocity_range": {"x": (-1.0, 1.0), "y": (-1.0, 1.0)}},
+    )
+
     # startup
     randomize_friction = EventTerm(
         func=mdp.randomize_rigid_body_material,
@@ -922,23 +938,23 @@ class TerminationsCfg:
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 50.0},
     )
-    base_contact2 = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 10.0},
-    )
-    base_contact3 = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 10.0},
-    )
+    # base_contact2 = DoneTerm(
+    #     func=mdp.illegal_contact,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 10.0},
+    # )
+    # base_contact3 = DoneTerm(
+    #     func=mdp.illegal_contact,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 10.0},
+    # )
     hand_contact = DoneTerm(
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_yaw_link"), "threshold": 80.0},
     )
     object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.65, "asset_cfg": SceneEntityCfg("object")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.40, "asset_cfg": SceneEntityCfg("robot")}
     )
     fingertip_contact = DoneTerm(
         func=mdp.illegal_contact,
