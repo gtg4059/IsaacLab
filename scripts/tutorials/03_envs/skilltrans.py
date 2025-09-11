@@ -170,11 +170,11 @@ def main():
 
         data_row = {}
 
-        for i in range(len(obs["Run"][0])):
-            data_row[f'obs_{i}'] = float(obs["Run"][0,i])
+        # for i in range(len(obs["Run"][0])):
+        #     data_row[f'obs_{i}'] = float(obs["Run"][0,i])
         
-        # for i in range(len(action[0])):
-        #     data_row[f'action_{i}'] = float(action[0,i])
+        for i in range(len(action[0])):
+            data_row[f'action_{i}'] = float(action[0,i])
 
         robot_data.append(data_row)
 
@@ -185,7 +185,7 @@ def main():
         # print(float(action[0,2]))
 
         k += 1
-        if k >= 100:
+        if k >= 250:
             break
 
 
