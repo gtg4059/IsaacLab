@@ -61,6 +61,39 @@ import carb.input
 #     omega_z_sensitivity=1.0,
 # )
 
+robot_data = []
+
+def save_data_to_csv(self, filename=None):
+    """
+    수집된 로봇 데이터를 CSV 파일로 저장
+    """
+    if not robot_data:
+        print("No data to save.")
+        return
+    
+    if filename is None:
+        # 현재 시간을 포함한 파일명 생성
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"robot_data_{timestamp}.csv"
+    
+    # DataFrame 생성
+    df = pd.DataFrame(robot_data)
+    # CSV 파일로 저장
+    df.to_csv(filename, index=False)
+    
+    # action 통계 (처음 5개 관절)
+    print("Action (first 5 joints):")
+    for j in range(min(5, 23)):
+        col = f'action_{j}'
+        if col in df.columns:
+            mean_val = df[col].mean()
+            std_val = df[col].std()
+            min_val = df[col].min()
+            max_val = df[col].max()
+            print(f"  joint_{j}: mean={mean_val:.6f}, std={std_val:.6f}, range=[{min_val:.6f}, {max_val:.6f}]")
+    
+    return filename
+
 def main():
     """Main function."""
     # load the trained jit policy
@@ -106,6 +139,7 @@ def main():
     # command = env_cfg.keyboard.advance()
     # env_cfg.gamepad.add_callback(carb.input.GamepadInput.X, print_cb)
     obs, _ = env.reset()
+    data_row = {}
     while simulation_app.is_running():
         command = obs["Run"][:, 93:96]
         
@@ -132,11 +166,19 @@ def main():
             # robot.write_data_to_sim()
             print("Pickup")
             action = policy_pickup(obs["Pickup"])
-        # run inference
-        # print("command",obs["Run"][:, 93:96])
+
+        # obs 위치 추가
+        # for i in range(len(self.obs)):
+        #     data_row[f'obs_{i}'] = float(self.obs[i])
+
+        # robot_data.append(data_row)
+
         obs, _, _, _, _ = env.step(action)
 
 
 if __name__ == "__main__":
     main()
+    # print("Saving robot data...")
+    # csv_filename = controller.save_data_to_csv()
+    # print(f"Data saved to: {csv_filename}")
     simulation_app.close()
