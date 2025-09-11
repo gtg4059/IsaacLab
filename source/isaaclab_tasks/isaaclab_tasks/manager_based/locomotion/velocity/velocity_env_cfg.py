@@ -112,7 +112,8 @@ class MySceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.UsdFileCfg(
             # IKEA-box
             usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            scale=((6.33,4.17,2.5)), # 380,250,150
+            # scale=((6.33,4.17,2.5)), # 380,250,150
+            scale=((6.33-0.3,4.17-0.3,2.5-0.3)), # 380,250,150
             # # white wing IKEA-box
             # usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
             # scale=(11.5, 8.93, 5.357), # 380,250,150
@@ -583,7 +584,7 @@ class EventCfg:
                                                              "R_.*","L_.*",]),
             "static_friction_range": (0.6, 1.1),
             "dynamic_friction_range": (0.6, 1.1),
-            "restitution_range": (0.0, 0.1),
+            "restitution_range": (0.0, 0.02),
             "num_buckets": 256,
             "make_consistent": True
         },
@@ -795,7 +796,7 @@ class EventCfg:
             "asset_cfg": SceneEntityCfg("object"),
             "static_friction_range": (0.6, 1.1),
             "dynamic_friction_range": (0.6, 1.1),
-            "restitution_range": (0.0, 0.1),
+            "restitution_range": (0.0, 0.02),
             "num_buckets": 64,
             "make_consistent": True,
         },
@@ -869,7 +870,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "rest_offset_distribution_params": (0.009, 0.009),
+            "rest_offset_distribution_params": (0.005, 0.009),
             "distribution": "uniform",
         },
     ) 
@@ -931,7 +932,7 @@ class TerminationsCfg:
     )
     hand_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_yaw_link"), "threshold": 100.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_yaw_link"), "threshold": 80.0},
     )
     object_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.65, "asset_cfg": SceneEntityCfg("object")}
@@ -941,11 +942,11 @@ class TerminationsCfg:
     )
     fingertip_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_intermediate"), "threshold": 100.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_intermediate"), "threshold": 80.0},
     )
     finger_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_proximal"), "threshold": 100.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_proximal"), "threshold": 80.0},
     )
     # bad_position = DoneTerm(
     #     func=mdp.bad_position, params={"limit_dist": 0.05, "asset_cfg": SceneEntityCfg("robot")}

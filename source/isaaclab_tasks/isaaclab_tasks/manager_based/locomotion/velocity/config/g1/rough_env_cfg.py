@@ -30,7 +30,7 @@ class G1Rewards(RewardsCfg):
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=8.0,
+        weight=6.0,
         params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
                                                               [
                                                                   "left_wrist_yaw_link",
@@ -61,10 +61,10 @@ class G1Rewards(RewardsCfg):
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
-        weight=8.0
+        weight=12.0
     )
     object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
-                               weight=8.0,
+                               weight=12.0,
                                params={"std": 0.3,
                                        "minimal_height": 0.87,
                                        "height": 0.90,
@@ -113,9 +113,9 @@ class G1Rewards(RewardsCfg):
                     # ".*_shoulder_pitch_joint",
                     # ".*_shoulder_yaw_joint",
                     # ".*_elbow_joint",
-                    # ".*_wrist_yaw_joint",
+                    ".*_wrist_yaw_joint",
                     # ".*_wrist_pitch_joint",
-                    # ".*_wrist_roll_joint",
+                    ".*_wrist_roll_joint",
                 ],
             )
         },
@@ -263,10 +263,10 @@ class G1Rewards(RewardsCfg):
         },
     )
 
-    delete_table = RewTerm(
-        func=mdp.delete_table,
-        weight=-0.00001,
-    )
+    # delete_table = RewTerm(
+    #     func=mdp.delete_table,
+    #     weight=-0.00001,
+    # )
 
 
 @configclass
