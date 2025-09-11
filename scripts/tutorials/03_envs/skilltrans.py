@@ -55,6 +55,8 @@ from isaaclab.devices.keyboard.se2_keyboard import Se2KeyboardCfg
 from isaaclab.devices.gamepad import Se2Gamepad, Se2GamepadCfg
 import carb.input
 
+import pandas as pd
+import datetime
 # keyboard_cfg = Se2KeyboardCfg(
 #     v_x_sensitivity=0.8,
 #     v_y_sensitivity=0.4,
@@ -63,7 +65,7 @@ import carb.input
 
 robot_data = []
 
-def save_data_to_csv(self, filename=None):
+def save_data_to_csv(filename=None):
     """
     수집된 로봇 데이터를 CSV 파일로 저장
     """
@@ -139,10 +141,10 @@ def main():
     # command = env_cfg.keyboard.advance()
     # env_cfg.gamepad.add_callback(carb.input.GamepadInput.X, print_cb)
     obs, _ = env.reset()
-    data_row = {}
+    
+    k = 0
     while simulation_app.is_running():
         command = obs["Run"][:, 93:96]
-        
         # action = policy_run(obs["Run"])
         # # print(env.keyboard.is_pressed("a"))
         # # print(obs["policy"][:, 93:96])
@@ -164,21 +166,38 @@ def main():
             # efforts[:, joint_idx] = 0.02
             # robot.set_joint_effort_target(efforts)
             # robot.write_data_to_sim()
-            print("Pickup")
             action = policy_pickup(obs["Pickup"])
 
-        # obs 위치 추가
-        # for i in range(len(self.obs)):
-        #     data_row[f'obs_{i}'] = float(self.obs[i])
+        data_row = {}
 
-        # robot_data.append(data_row)
+        for i in range(len(obs["Run"][0])):
+            data_row[f'obs_{i}'] = float(obs["Run"][0,i])
+        
+        # for i in range(len(action[0])):
+        #     data_row[f'action_{i}'] = float(action[0,i])
+
+        robot_data.append(data_row)
 
         obs, _, _, _, _ = env.step(action)
+
+        # print(action.shape)
+        # action 위치 추가
+        # print(float(action[0,2]))
+
+        k += 1
+        if k >= 100:
+            break
 
 
 if __name__ == "__main__":
     main()
-    # print("Saving robot data...")
-    # csv_filename = controller.save_data_to_csv()
-    # print(f"Data saved to: {csv_filename}")
+    print("Saving robot data...")
+    # print(robot_data)
+    #  print(robot_data[0,2])
+    csv_filename = save_data_to_csv()
+    print(f"Data saved to: {csv_filename}")
+    simulation_app.update()
+    simulation_app.update()
+    simulation_app.update()
     simulation_app.close()
+    
