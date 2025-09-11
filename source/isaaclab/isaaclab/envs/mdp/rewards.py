@@ -374,23 +374,36 @@ def delete_table(
         env: ManagerBasedRLEnv,
         asset_cfg: SceneEntityCfg = SceneEntityCfg("table"),
     )-> torch.Tensor:
-    """Curriculum that modifies a reward weight a given number of steps.
+    """Table management function that makes table disappear after 3 seconds and reappear on reset.
 
     Args:
         env: The learning environment.
-        env_ids: Not used since all environments are affected.
-        term_name: The name of the reward term.
-        weight: The weight of the reward term.
-        num_steps: The number of steps after which the change should be applied.
+        asset_cfg: Configuration for the table asset.
     """
     asset: RigidObject = env.scene[asset_cfg.name]
-    # print(env.episode_length_buf)
-    # if env.episode_length_buf > 6:
-    #     print(env.episode_length_buf)
-    # print(env.episode_length_buf)
-    env.sim
-    asset.data.root_pos_w[:, 2] -= torch.where(env.episode_length_buf < 100,0,torch.ones_like(asset.data.root_pos_w[:, 2],device=asset.device)) 
+    
+    # 3초 = 300 스텝 (step_dt가 0.01초라고 가정)
+    table_disappear_steps = int(3.0 / env.step_dt)  # 3초를 스텝으로 변환
+    
+    # 테이블이 사라져야 하는 조건: episode_length_buf >= table_disappear_steps
+    should_disappear = env.episode_length_buf >= table_disappear_steps
+    
+    # 테이블의 원래 위치를 유지하면서 Z축만 조정
+    # should_disappear가 True일 때는 아래로 이동, False일 때는 원래 위치 유지
+    original_z_pos = asset.data.default_root_state[:, 2]  # 원래 Z 위치
+    
+    # 테이블이 사라져야 할 때는 원래 위치에서 2미터 아래로, 그렇지 않으면 원래 위치
+    target_z_pos = torch.where(
+        should_disappear,
+        original_z_pos - 2.0,  # 원래 위치에서 2미터 아래
+        original_z_pos         # 원래 위치 유지
+    )
+    
+    # Z 위치만 업데이트
+    asset.data.root_pos_w[:, 2] = target_z_pos
+    
+    # 시뮬레이션에 상태 업데이트
     asset.write_root_state_to_sim(asset.data.root_state_w)
     asset.write_data_to_sim()
-    # asset.data.root_pos_w[:, 1] -= 0.002*torch.ones_like(asset.data.root_pos_w[:, 2],device=asset.device)
+    
     return torch.sum(asset.data.root_pos_w, dim=1)*0

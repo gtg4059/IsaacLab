@@ -282,10 +282,10 @@ class G1Rewards(RewardsCfg):
         },
     )
 
-    # delete_table = RewTerm(
-    #     func=mdp.delete_table,
-    #     weight=-0.00001,
-    # )
+    delete_table = RewTerm(
+        func=mdp.delete_table,
+        weight=-0.00001,
+    )
 
 
 @configclass
