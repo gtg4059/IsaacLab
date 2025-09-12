@@ -34,26 +34,6 @@ from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
 ##
 # Scene definition
 ##
-import torch
-from collections.abc import Sequence
-from isaaclab.utils.math import quat_from_euler_xyz, quat_unique
-def sample_command(self, env_ids: Sequence[int]) -> torch.Tensor:
-    # sample new pose targets
-    # -- position
-    self.pose_command_b = torch.zeros(self.num_envs, 7, device=self.device)
-    r = torch.empty(len(env_ids), device=self.device)
-    self.pose_command_b[env_ids, 0] = r.uniform_(*self.cfg.ranges.pos_x)
-    self.pose_command_b[env_ids, 1] = r.uniform_(*self.cfg.ranges.pos_y)
-    self.pose_command_b[env_ids, 2] = r.uniform_(*self.cfg.ranges.pos_z)
-    # -- orientation
-    euler_angles = torch.zeros_like(self.pose_command_b[env_ids, :3])
-    euler_angles[:, 0].uniform_(*self.cfg.ranges.roll)
-    euler_angles[:, 1].uniform_(*self.cfg.ranges.pitch)
-    euler_angles[:, 2].uniform_(*self.cfg.ranges.yaw)
-    quat = quat_from_euler_xyz(euler_angles[:, 0], euler_angles[:, 1], euler_angles[:, 2])
-    # make sure the quaternion has real part as positive
-    self.pose_command_b[env_ids, 3:] = quat_unique(quat) if self.cfg.make_quat_unique else quat
-    return self.pose_command_b
 
 
 @configclass
@@ -81,7 +61,7 @@ class MySceneCfg(InteractiveSceneCfg):
         debug_vis=False,
     )
     # robots
-    robot: ArticulationCfg = MISSING
+    robot: ArticulationCfg = MISSING  # type: ignore
 
     
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
@@ -100,14 +80,14 @@ class MySceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Object",
         init_state=RigidObjectCfg.InitialStateCfg(
             # # white-box
-            # pos=[0.43, 0, 0.86],
+            # pos=(0.43, 0, 0.86),
             # 2-box
-            pos=[0.37, 0, 0.86],# 0.37, 0, 0.82
+            pos=(0.37, 0, 0.86),# 0.37, 0, 0.82
             # # 3-box
-            # pos=[0.39, 0, 0.86],
+            # pos=(0.39, 0, 0.86),
             # # 4-box
-            # pos=[0.43, 0, 0.93],
-            rot=[1.0, 0.0 ,0.0, 0.0]),
+            # pos=(0.43, 0, 0.93),
+            rot=(1.0, 0.0 ,0.0, 0.0)),
         spawn=sim_utils.UsdFileCfg(
             # # white box
             # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
@@ -179,34 +159,19 @@ class CommandsCfg:
         ),
     )
 
-# pos=[0.37, 0, 0.82] # 380,250,150
-    left_ee_pose = mdp.UniformPoseCommandCfg(
+    dual_ee_pose = mdp.DualPoseCommandCfg(
         asset_name="robot",
-        body_name="L_middle_proximal",
+        left_body_name="L_middle_proximal",
+        right_body_name="R_middle_proximal",
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
-        ranges=mdp.UniformPoseCommandCfg.Ranges(
+        ranges=mdp.DualPoseCommandCfg.Ranges(
             pos_x=(0.32, 0.32),
             pos_y=(0.16, 0.16),
             pos_z=(0.15, 0.15),# 0901_23: 0.33,0.15,0.15. inital_state: 0.25,0.14,0.2
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
             yaw=(math.pi / 2.0, math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
-        ),
-    )
-
-    right_ee_pose = mdp.UniformPoseCommandCfg(
-        asset_name="robot",
-        body_name="R_middle_proximal",
-        resampling_time_range=(30.0, 30.0),
-        debug_vis=True,
-        ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.32, 0.32),
-            pos_y=(-0.16, -0.16),
-            pos_z=(0.15, 0.15),
-            roll=(-0.0, 0.0),
-            pitch=(-0.0, 0.0),
-            yaw=(-math.pi / 2.0, -math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
         ),
     )
 
@@ -345,13 +310,9 @@ class ObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
-        left_ee_pose_command = ObsTerm(
+        dual_ee_pose_command = ObsTerm(
             func=mdp.generated_commands,
-            params={"command_name": "left_ee_pose"},
-        )
-        right_ee_pose_command = ObsTerm(
-            func=mdp.generated_commands,
-            params={"command_name": "right_ee_pose"},
+            params={"command_name": "dual_ee_pose"},
         )
         #object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
         # object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, params={
@@ -450,13 +411,9 @@ class ObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
-        left_ee_pose_command = ObsTerm(
+        dual_ee_pose_command = ObsTerm(
             func=mdp.generated_commands,
-            params={"command_name": "left_ee_pose"},
-        )
-        right_ee_pose_command = ObsTerm(
-            func=mdp.generated_commands,
-            params={"command_name": "right_ee_pose"},
+            params={"command_name": "dual_ee_pose"},
         )
         #object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
         # object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, params={
@@ -770,6 +727,16 @@ class EventCfg:
                 "pitch": (-0.0, 0.0),
                 "yaw": (-0.0, 0.0),
             },
+        },
+    )
+
+    position_object_between_hands = EventTerm(
+        func=mdp.position_object_between_hands_event,
+        mode="reset",
+        params={
+            "object_name": "object",
+            "object_pos_x": 0.37,
+            "object_pos_z": 0.1,
         },
     )
 

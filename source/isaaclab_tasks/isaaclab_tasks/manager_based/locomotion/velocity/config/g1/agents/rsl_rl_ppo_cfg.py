@@ -16,7 +16,7 @@ class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     experiment_name = "g1_rough"
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
-        init_noise_std=1.0,
+        init_noise_std=0.1,
         #actor_hidden_dims=[512, 256, 128],
         #critic_hidden_dims=[512, 256, 128],
         actor_hidden_dims=[1024, 512, 256, 128],

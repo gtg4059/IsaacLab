@@ -53,7 +53,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # self.rewards.action_rate_l2.weight = -0.005
         # self.rewards.feet_air_time.weight = 5.0
         # self.rewards.base_height_l2.weight = -20.0
-        self.rewards.feet_air_time.params["threshold"] = 0.6
+        # self.rewards.feet_air_time.params["threshold"] = 0.6
         self.rewards.dof_torques_l2.weight = -2.0e-6
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
@@ -76,7 +76,7 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         # post init of parent
         super().__post_init__()
 
-        self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot = G1_DEX_FIX_D.replace(prim_path="{ENV_REGEX_NS}/Robot")
         # make a smaller scene for play
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
