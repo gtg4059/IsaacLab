@@ -383,11 +383,11 @@ def delete_table(
     asset: RigidObject = env.scene[asset_cfg.name]
     
     # 3초 = 300 스텝 (step_dt가 0.01초라고 가정)
-    table_disappear_steps = int(3.0 / env.step_dt)  # 3초를 스텝으로 변환
+    table_disappear_steps = int(0.5 / env.step_dt)  # 3초를 스텝으로 변환
     
     # 테이블이 사라져야 하는 조건: episode_length_buf >= table_disappear_steps
     should_disappear = env.episode_length_buf >= table_disappear_steps
-    
+    # print("should_disappear:",should_disappear)
     # 테이블의 원래 위치를 유지하면서 Z축만 조정
     # should_disappear가 True일 때는 아래로 이동, False일 때는 원래 위치 유지
     original_z_pos = asset.data.default_root_state[:, 2]  # 원래 Z 위치
@@ -395,7 +395,7 @@ def delete_table(
     # 테이블이 사라져야 할 때는 원래 위치에서 2미터 아래로, 그렇지 않으면 원래 위치
     target_z_pos = torch.where(
         should_disappear,
-        original_z_pos - 2.0,  # 원래 위치에서 2미터 아래
+        original_z_pos - 5.0,  # 원래 위치에서 2미터 아래
         original_z_pos         # 원래 위치 유지
     )
     
