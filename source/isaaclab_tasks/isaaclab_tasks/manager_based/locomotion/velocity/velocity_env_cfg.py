@@ -974,7 +974,13 @@ class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
-    # delete_table = CurrTerm(func=mdp.delete_table, params={"asset_cfg": SceneEntityCfg("table")})
+    delete_table = CurrTerm(
+        func=mdp.delete_table_curriculum, 
+        params={
+            "asset_cfg": SceneEntityCfg("table"),
+            "num_steps": 1000
+        }
+    )
     # modify_reset_joint_pos = CurrTerm(
     #     func=mdp.modify_term_cfg,
     #     params={

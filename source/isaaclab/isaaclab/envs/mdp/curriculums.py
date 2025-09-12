@@ -12,10 +12,11 @@ the curriculum introduced by the function.
 from __future__ import annotations
 
 import re
+import torch
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, ClassVar
 
-from isaaclab.managers import CurriculumTermCfg, ManagerTermBase
+from isaaclab.managers import CurriculumTermCfg, ManagerTermBase, SceneEntityCfg
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -290,3 +291,66 @@ class modify_term_cfg(modify_env_param):
         super().__init__(cfg, env)
         # overwrite the simplified address with the full manager path
         self._address = self._address.replace("s.", "_manager.cfg.", 1)
+
+
+class delete_table_curriculum(ManagerTermBase):
+    """Curriculum that makes table disappear after 3 seconds and reappear on reset.
+    
+    This curriculum is activated after a specified number of training steps.
+    """
+    
+    def __init__(self, cfg, env):
+        super().__init__(cfg, env)
+        
+    def __call__(
+        self,
+        env: ManagerBasedRLEnv,
+        env_ids: Sequence[int],
+        asset_cfg: SceneEntityCfg = SceneEntityCfg("table"),
+        num_steps: int = 1000,
+    ) -> float:
+        """Table management curriculum function.
+        
+        Args:
+            env: The learning environment.
+            env_ids: Environment indices (not used in this implementation).
+            asset_cfg: Configuration for the table asset.
+            num_steps: Number of training steps before activating this curriculum.
+            
+        Returns:
+            Current curriculum state for logging.
+        """
+        # Only activate after specified number of training steps
+        if env.common_step_counter < num_steps:
+            return 0.0
+            
+        from isaaclab.assets import RigidObject
+        
+        asset: RigidObject = env.scene[asset_cfg.name]
+        
+        # 3초 = 300 스텝 (step_dt가 0.01초라고 가정)
+        table_disappear_steps = int(0.5 / env.step_dt)  # 0.5초를 스텝으로 변환
+        
+        # 테이블이 사라져야 하는 조건: episode_length_buf >= table_disappear_steps
+        should_disappear = env.episode_length_buf >= table_disappear_steps
+        
+        # 테이블의 원래 위치를 유지하면서 Z축만 조정
+        # should_disappear가 True일 때는 아래로 이동, False일 때는 원래 위치 유지
+        original_z_pos = asset.data.default_root_state[:, 2]  # 원래 Z 위치
+        
+        # 테이블이 사라져야 할 때는 원래 위치에서 5미터 아래로, 그렇지 않으면 원래 위치
+        target_z_pos = torch.where(
+            should_disappear,
+            original_z_pos - 5.0,  # 원래 위치에서 5미터 아래
+            original_z_pos         # 원래 위치 유지
+        )
+        
+        # Z 위치만 업데이트
+        asset.data.root_pos_w[:, 2] = target_z_pos
+        
+        # 시뮬레이션에 상태 업데이트
+        asset.write_root_state_to_sim(asset.data.root_state_w)
+        asset.write_data_to_sim()
+        
+        # Return curriculum state for logging (1.0 if active, 0.0 if not)
+        return float(1.0 if env.common_step_counter >= num_steps else 0.0)
