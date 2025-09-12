@@ -598,8 +598,8 @@ class EventCfg:
                                                              'left_wrist_yaw_link', 
                                                              'right_wrist_yaw_link',
                                                              "R_.*","L_.*",]),
-            "static_friction_range": (0.6, 1.1),
-            "dynamic_friction_range": (0.6, 1.1),
+            "static_friction_range": (0.3, 1.1),
+            "dynamic_friction_range": (0.3, 1.1),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 256,
             "make_consistent": True
@@ -810,8 +810,8 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "static_friction_range": (0.6, 1.1),
-            "dynamic_friction_range": (0.6, 1.1),
+            "static_friction_range": (0.3, 1.1),
+            "dynamic_friction_range": (0.3, 1.1),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
             "make_consistent": True,
