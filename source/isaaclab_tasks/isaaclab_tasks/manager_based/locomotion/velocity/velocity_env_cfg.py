@@ -103,7 +103,8 @@ class MySceneCfg(InteractiveSceneCfg):
     #         # scale=((5.17,6.83,4.67)), # 310,410,280
     #         # white wing-box
     #         usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
-    #         scale=(11.5,8.93,5.357),# 380,250,150
+    #         # scale=(11.5,8.93,5.357),# 380,250,150
+    #         scale=(11.5,7.78,5.357),# 380,250,150
     #         mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
     #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
     #             # kinematic_enabled=True,
@@ -191,6 +192,20 @@ class CommandsCfg:
     )
 
 
+    # dual_ee_pose = mdp.DualPoseCommandCfg(
+    #     asset_name="robot",
+    #     left_body_name="L_middle_proximal",
+    #     right_body_name="R_middle_proximal",
+    #     resampling_time_range=(30.0, 30.0),
+    #     debug_vis=True,
+    #     ranges=mdp.DualPoseCommandCfg.Ranges(
+    #         pos_x=(0.32, 0.32),
+    #         pos_y=(0.16, 0.16),
+    #         pos_z=(0.15, 0.15),
+    #     ),
+    # )
+
+
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
@@ -211,8 +226,8 @@ class ActionsCfg:
                      'right_ankle_roll_joint',
                      # G1_29_no_hand
                     "waist_yaw_joint",
-                    "waist_roll_joint",
-                    "waist_pitch_joint",
+                    # "waist_roll_joint",
+                    # "waist_pitch_joint",
                     "left_shoulder_pitch_joint",
                     "left_shoulder_roll_joint",
                     "left_shoulder_yaw_joint",
@@ -265,8 +280,8 @@ class ObservationsCfg:
                                                 'right_ankle_roll_joint',
                                                 # G1_29_no_hand
                                                 "waist_yaw_joint",
-                                                "waist_roll_joint",
-                                                "waist_pitch_joint",
+                                                # "waist_roll_joint",
+                                                # "waist_pitch_joint",
                                                 "left_shoulder_pitch_joint",
                                                 "left_shoulder_roll_joint",
                                                 "left_shoulder_yaw_joint",
@@ -302,8 +317,8 @@ class ObservationsCfg:
                                                 'right_ankle_roll_joint',
                                                 # G1_29_no_hand
                                                 "waist_yaw_joint",
-                                                "waist_roll_joint",
-                                                "waist_pitch_joint",
+                                                # "waist_roll_joint",
+                                                # "waist_pitch_joint",
                                                 "left_shoulder_pitch_joint",
                                                 "left_shoulder_roll_joint",
                                                 "left_shoulder_yaw_joint",
@@ -333,6 +348,10 @@ class ObservationsCfg:
             func=mdp.generated_commands,
             params={"command_name": "right_ee_pose"},
         )
+        # dual_ee_pose_command = ObsTerm(
+        #     params={"command_name": "dual_ee_pose"},
+        # )
+
         #object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
         # object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, params={
         #     "robot_cfg": SceneEntityCfg("robot",body_names="camera"),
@@ -438,6 +457,11 @@ class ObservationsCfg:
             func=mdp.generated_commands,
             params={"command_name": "right_ee_pose"},
         )
+
+        # dual_ee_pose_command = ObsTerm(
+        #     params={"command_name": "dual_ee_pose"},
+        # )
+
         #object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
         # object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, params={
         #     "robot_cfg": SceneEntityCfg("robot",body_names="camera"),
@@ -744,6 +768,16 @@ class EventCfg:
     #             "pitch": (-0.0, 0.0),
     #             "yaw": (-0.0, 0.0),
     #         },
+    #     },
+    # )
+
+    # position_object_between_hands = EventTerm(
+    #     func=mdp.position_object_between_hands_event,
+    #     mode="reset",
+    #     params={
+    #         "object_name": "object",
+    #         "object_pos_x": 0.37,
+    #         "object_pos_z": 0.1,
     #     },
     # )
 
