@@ -168,25 +168,18 @@ def main():
             # robot.write_data_to_sim()
             action = policy_pickup(obs["Pickup"])
 
-        data_row = {}
-
-        # for i in range(len(obs["Run"][0])):
-        #     data_row[f'obs_{i}'] = float(obs["Run"][0,i])
-        
-        for i in range(len(action[0])):
-            data_row[f'action_{i}'] = float(action[0,i])
-
-        robot_data.append(data_row)
+        # data_row = {}
+        # # for i in range(len(obs["Run"][0])):
+        # #     data_row[f'obs_{i}'] = float(obs["Run"][0,i])
+        # for i in range(len(action[0])):
+        #     data_row[f'action_{i}'] = float(action[0,i])
+        # robot_data.append(data_row)
 
         obs, _, _, _, _ = env.step(action)
 
-        # print(action.shape)
-        # action 위치 추가
-        # print(float(action[0,2]))
-
-        k += 1
-        if k >= 250:
-            break
+        # k += 1
+        # if k >= 250:
+        #     break
 
 
 if __name__ == "__main__":
