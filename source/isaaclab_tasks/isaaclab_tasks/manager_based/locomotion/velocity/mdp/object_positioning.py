@@ -21,8 +21,8 @@ def set_object_position_between_hands(
     object_name: str = "object",
     left_hand_pos_y: torch.Tensor | None = None,
     right_hand_pos_y: torch.Tensor | None = None,
-    object_pos_x: float = 0.37,
-    object_pos_z: float = 0.86,
+    object_pos_x: float | None = None,
+    object_pos_z: float | None = None,
 ) -> None:
     """Set object position to be between the two hands in y-axis.
     
@@ -45,15 +45,43 @@ def set_object_position_between_hands(
         # Default to center if hand positions are not provided
         middle_y = torch.zeros(len(env_ids), device=env.device)
     
+    # Get DualPoseCommandCfg distribution values for pos_x and pos_z
+    if hasattr(env.command_manager, "dual_ee_pose"):
+        dual_command = env.command_manager["dual_ee_pose"]
+        pos_x_range = dual_command.cfg.ranges.pos_x
+        pos_z_range = dual_command.cfg.ranges.pos_z
+        
+        # Sample random values within the distribution ranges
+        if object_pos_x is None:
+            object_pos_x_tensor = torch.empty(len(env_ids), device=env.device).uniform_(*pos_x_range)
+        else:
+            object_pos_x_tensor = torch.full((len(env_ids),), object_pos_x, device=env.device)
+            
+        if object_pos_z is None:
+            object_pos_z_tensor = torch.empty(len(env_ids), device=env.device).uniform_(*pos_z_range)
+        else:
+            object_pos_z_tensor = torch.full((len(env_ids),), object_pos_z, device=env.device)
+    else:
+        # Fallback to default values if dual_ee_pose is not available
+        if object_pos_x is None:
+            object_pos_x_tensor = torch.full((len(env_ids),), 0.37, device=env.device)
+        else:
+            object_pos_x_tensor = torch.full((len(env_ids),), object_pos_x, device=env.device)
+            
+        if object_pos_z is None:
+            object_pos_z_tensor = torch.full((len(env_ids),), 0.86, device=env.device)
+        else:
+            object_pos_z_tensor = torch.full((len(env_ids),), object_pos_z, device=env.device)
+    
     # Simple approach: Set object position directly in world frame
     # Get robot position and add object position offset
     robot = env.scene["robot"]
     
     # Set object position in world frame (simple addition)
     object_pos_w = robot.data.root_pos_w[env_ids].clone()
-    object_pos_w[:, 0] += object_pos_x  # x offset
+    object_pos_w[:, 0] += object_pos_x_tensor  # x offset
     object_pos_w[:, 1] += middle_y      # y offset (between hands)
-    object_pos_w[:, 2] += object_pos_z  # z offset
+    object_pos_w[:, 2] += object_pos_z_tensor  # z offset
     
     # Use robot's orientation for object
     object_quat_w = robot.data.root_quat_w[env_ids].clone()
@@ -62,10 +90,11 @@ def set_object_position_between_hands(
     object_pose_w = torch.cat([object_pos_w, object_quat_w], dim=1)
     
     # Set object pose in world frame for specific environments
-    object_asset.write_root_pose_to_sim(object_pose_w, env_ids)
+    # Directly set the pose data instead of using write_root_pose_to_sim
+    object_asset.data.root_link_pose_w[env_ids] = object_pose_w
 
 
-def position_object_between_hands_event(env, env_ids: torch.Tensor, object_name: str = "object", object_pos_x: float = 0.37, object_pos_z: float = 0.86) -> None:
+def position_object_between_hands_event(env, env_ids: torch.Tensor, object_name: str = "object", object_pos_x: float | None = None, object_pos_z: float | None = None) -> None:
     """Event function for positioning object between hands.
     
     Args:

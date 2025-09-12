@@ -166,9 +166,9 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.DualPoseCommandCfg.Ranges(
-            pos_x=(0.32, 0.32),
+            pos_x=(0.30, 0.34),
             pos_y=(0.16, 0.16),
-            pos_z=(0.15, 0.15),# 0901_23: 0.33,0.15,0.15. inital_state: 0.25,0.14,0.2
+            pos_z=(0.13, 0.17),# 0901_23: 0.33,0.15,0.15. inital_state: 0.25,0.14,0.2
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
             yaw=(math.pi / 2.0, math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
@@ -735,8 +735,7 @@ class EventCfg:
         mode="reset",
         params={
             "object_name": "object",
-            "object_pos_x": 0.37,
-            "object_pos_z": 0.1,
+            # object_pos_x and object_pos_z will be sampled from DualPoseCommandCfg ranges
         },
     )
 
