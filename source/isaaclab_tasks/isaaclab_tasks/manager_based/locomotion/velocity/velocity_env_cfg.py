@@ -485,8 +485,8 @@ class ObservationsCfg:
                                                 'right_ankle_roll_joint',
                                                 # G1_29_no_hand
                                                 "waist_yaw_joint",
-                                                "waist_roll_joint",
-                                                "waist_pitch_joint",
+                                                # "waist_roll_joint",
+                                                # "waist_pitch_joint",
                                                 "left_shoulder_pitch_joint",
                                                 "left_shoulder_roll_joint",
                                                 "left_shoulder_yaw_joint",
@@ -559,10 +559,8 @@ class EventCfg:
                                                              'waist_yaw_link', 
                                                              'left_hip_roll_link', 
                                                              'right_hip_roll_link', 
-                                                             'waist_roll_link', 
                                                              'left_hip_yaw_link', 
                                                              'right_hip_yaw_link', 
-                                                             'torso_link', 
                                                              'left_knee_link', 
                                                              'right_knee_link', 
                                                              'left_shoulder_pitch_link', 
@@ -645,10 +643,8 @@ class EventCfg:
                                                              'waist_yaw_link', 
                                                              'left_hip_roll_link', 
                                                              'right_hip_roll_link', 
-                                                             'waist_roll_link', 
                                                              'left_hip_yaw_link', 
                                                              'right_hip_yaw_link', 
-                                                             'torso_link', 
                                                              'left_knee_link', 
                                                              'right_knee_link', 
                                                              'left_shoulder_pitch_link', 
@@ -936,7 +932,7 @@ class TerminationsCfg:
 
     base_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 50.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="waist_yaw_link"), "threshold": 50.0},
     )
     # base_contact2 = DoneTerm(
     #     func=mdp.illegal_contact,
