@@ -17,6 +17,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_FIX_D  # isort: skip
 
 
+
 @configclass
 class G1Rewards(RewardsCfg):
     """Reward terms for the MDP."""
@@ -69,7 +70,7 @@ class G1Rewards(RewardsCfg):
         params={"command_name": "base_velocity", "std": 0.5},# std = 0.5
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=1.5, params={"command_name": "base_velocity", "std": 0.5}#1.5-no obj
+        func=mdp.track_ang_vel_z_world_exp, weight=1.0, params={"command_name": "base_velocity", "std": 0.5}#1.5-no obj
     )
     foot_clearance = RewTerm(
         func=mdp.foot_clearance_reward,
@@ -175,11 +176,11 @@ class G1Rewards(RewardsCfg):
                 "robot",
                 joint_names=[
                     #".*_shoulder_roll_joint",
-                    # ".*_shoulder_pitch_joint",
-                    ".*_shoulder_yaw_joint",
+                    ".*_shoulder_pitch_joint",
+                    # ".*_shoulder_yaw_joint",
                     ".*_elbow_joint",
                     ".*_wrist_yaw_joint",
-                    ".*_wrist_pitch_joint",
+                    # ".*_wrist_pitch_joint",
                     ".*_wrist_roll_joint",
                 ],
             )
@@ -194,11 +195,11 @@ class G1Rewards(RewardsCfg):
                 "robot",
                 joint_names=[
                     ".*_shoulder_roll_joint",
-                    ".*_shoulder_pitch_joint",
-                    # ".*_shoulder_yaw_joint",
+                    # ".*_shoulder_pitch_joint",
+                    ".*_shoulder_yaw_joint",
                     # ".*_elbow_joint",
                     # ".*_wrist_yaw_joint",
-                    # ".*_wrist_pitch_joint",
+                    ".*_wrist_pitch_joint",
                     # ".*_wrist_roll_joint",
                 ],
             )
@@ -222,8 +223,8 @@ class G1Rewards(RewardsCfg):
         func=mdp.joint_deviation_l1,
         weight=-0.8,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
-            "waist_roll_joint",
-            "waist_pitch_joint",
+            # "waist_roll_joint",
+            # "waist_pitch_joint",
             "waist_yaw_joint",
         ])},
     )
@@ -259,53 +260,53 @@ class G1Rewards(RewardsCfg):
     )
 
     left_ee_pos_tracking = RewTerm(
-        func=manipulation_mdp.position_command_error,
-        weight=-0.6,
+        func=manipulation_mdp.dual_position_command_error_right,
+        weight=-1.0,
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
-            "command_name": "left_ee_pose",
+            "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
+            "command_name": "dual_ee_pose",
         },
     )
     left_ee_pos_tracking_fine_grained = RewTerm(
-        func=manipulation_mdp.position_command_error_tanh,
+        func=manipulation_mdp.dual_position_command_error_tanh_left,
         weight=0.4,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
             "std": 0.05,
-            "command_name": "left_ee_pose",
+            "command_name": "dual_ee_pose",
         },
     )
     left_end_effector_orientation_tracking = RewTerm(
-        func=manipulation_mdp.orientation_command_error,
-        weight=-0.4,
+        func=manipulation_mdp.dual_orientation_command_error_left,
+        weight=-0.6,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
-            "command_name": "left_ee_pose",
+            "command_name": "dual_ee_pose",
         },
     )
     right_ee_pos_tracking = RewTerm(
-        func=manipulation_mdp.position_command_error,
-        weight=-0.6,
+        func=manipulation_mdp.dual_position_command_error_right,
+        weight=-1.0,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
-            "command_name": "right_ee_pose",
+            "command_name": "dual_ee_pose",
         },
     )
     right_ee_pos_tracking_fine_grained = RewTerm(
-        func=manipulation_mdp.position_command_error_tanh,
+        func=manipulation_mdp.dual_position_command_error_tanh_right,
         weight=0.4,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
             "std": 0.05,
-            "command_name": "right_ee_pose",
+            "command_name": "dual_ee_pose",
         },
     )
     right_end_effector_orientation_tracking = RewTerm(
-        func=manipulation_mdp.orientation_command_error,
-        weight=-0.5,
+        func=manipulation_mdp.dual_orientation_command_error_right,
+        weight=-0.6,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
-            "command_name": "right_ee_pose",
+            "command_name": "dual_ee_pose",
         },
     )
 
@@ -324,7 +325,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # self.events.push_robot = None
         # self.events.add_base_mass = None
         # self.events.reset_robot_joints.params["position_range"] = (1.0, 1.0)
-        self.events.base_external_force_torque.params["asset_cfg"].body_names = ["torso_link"]
+        self.events.base_external_force_torque.params["asset_cfg"].body_names = ["pelvis"]
         self.events.reset_base.params = {
             "pose_range": {"x": (-0.00, 0.00), "y": (-0.00, 0.00), "yaw": (-0.0, 0.0)},
             "velocity_range": {
