@@ -599,6 +599,9 @@ class TerminationsCfg:
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
     )
+    robot_dropping = DoneTerm(
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.40, "asset_cfg": SceneEntityCfg("robot")}
+    )
 
 
 @configclass
