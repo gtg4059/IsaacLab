@@ -168,7 +168,7 @@ class MySceneCfg(InteractiveSceneCfg):
             rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
             usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",
-            scale=(4.0, 4.0, 1.00),
+            scale=(6.0, 4.0, 1.00),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 kinematic_enabled=True,
                 solver_position_iteration_count=1,
