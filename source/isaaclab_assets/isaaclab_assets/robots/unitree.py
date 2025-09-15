@@ -376,8 +376,8 @@ G1_CFG = ArticulationCfg(
 
 G1_DEX_FIX = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_DFQ_lock/g1_29dof_rev_1_0_with_inspire_hand_DFQ_lock.usd",
-        # usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_th/g1_29dof_rev_1_0_with_inspire_hand_th.usd",
+        # usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_DFQ_lock/g1_29dof_rev_1_0_with_inspire_hand_DFQ_lock.usd",
+        usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_th/g1_29dof_rev_1_0_with_inspire_hand_th.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -445,20 +445,20 @@ G1_DEX_FIX = ArticulationCfg(
             # "waist_roll_joint":0.0,
             "waist_yaw_joint":0.0,
 
-            'left_shoulder_pitch_joint': 0.4,#0.0
+            'left_shoulder_pitch_joint': 0.4,
             'left_shoulder_roll_joint': 0.05,
             'left_shoulder_yaw_joint': 0.1,
-            'left_elbow_joint': -0.5,#-0.0
+            'left_elbow_joint': -0.5,
             'left_wrist_roll_joint': -0.1,
-            'left_wrist_pitch_joint': 0.4,#0.0
-            'left_wrist_yaw_joint': 0.2,#0.0
-            'right_shoulder_pitch_joint': 0.4,#0.0
+            'left_wrist_pitch_joint': 0.4,
+            'left_wrist_yaw_joint': 0.2,
+            'right_shoulder_pitch_joint': 0.4,
             'right_shoulder_roll_joint': -0.05,
             'right_shoulder_yaw_joint': -0.1,
-            'right_elbow_joint': -0.5,#-0.0
+            'right_elbow_joint': -0.5,
             'right_wrist_roll_joint': 0.1,
-            'right_wrist_pitch_joint': 0.4,#0.0
-            'right_wrist_yaw_joint': -0.2,#-0.0
+            'right_wrist_pitch_joint': 0.4,
+            'right_wrist_yaw_joint': -0.2,
             '.*_proximal_joint':0.3,
             # "R_.*":0.2,
             # "L_.*":0.2,
@@ -585,8 +585,8 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_shoulder_roll_joint": 37.0,
                 ".*_shoulder_yaw_joint": 37.0,
                 ".*_elbow_joint": 37.0,
-                # ".*_wrist_roll_joint": 37.0,
-                # ".*_wrist_pitch_joint": 22.0,
+                ".*_wrist_roll_joint": 37.0,
+                ".*_wrist_pitch_joint": 22.0,
                 ".*_wrist_yaw_joint": 22.0,
             },
             stiffness={
@@ -594,8 +594,8 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_shoulder_roll_joint": 50.0,
                 ".*_shoulder_yaw_joint": 50.0,
                 ".*_elbow_joint": 50.0,
-                # ".*_wrist_roll_joint": 30.0,
-                # ".*_wrist_pitch_joint": 30.0,
+                ".*_wrist_roll_joint": 30.0,
+                ".*_wrist_pitch_joint": 30.0,
                 ".*_wrist_yaw_joint": 30.0,
             },
             damping={
@@ -603,8 +603,8 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_shoulder_roll_joint": 2.0,
                 ".*_shoulder_yaw_joint": 2.0,
                 ".*_elbow_joint": 2.0,
-                # ".*_wrist_roll_joint": 2.0,
-                # ".*_wrist_pitch_joint": 2.0,
+                ".*_wrist_roll_joint": 2.0,
+                ".*_wrist_pitch_joint": 2.0,
                 ".*_wrist_yaw_joint": 2.0,
             },
             armature={
