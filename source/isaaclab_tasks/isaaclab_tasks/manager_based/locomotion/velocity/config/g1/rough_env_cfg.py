@@ -31,7 +31,9 @@ class G1Rewards(RewardsCfg):
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
         weight=6.0,
-        params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
+        params={"threshold": 0.4,
+
+        "sensor_cfg": SceneEntityCfg("contact_forces", body_names=
                                                               [
                                                                   "left_wrist_yaw_link",
                                                                   "right_wrist_yaw_link",
@@ -51,7 +53,7 @@ class G1Rewards(RewardsCfg):
         }, 
     )
 
-    # flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=-60.0)
+    flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=-10.0)
 
     # pickup reward
     reaching_object= RewTerm(
@@ -63,13 +65,23 @@ class G1Rewards(RewardsCfg):
         }, 
         weight=12.0
     )
-    object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
+    
+    # object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
+    #                            weight=12.0,
+    #                            params={"std": 0.3,
+    #                                    "minimal_height": 0.87,
+    #                                    "height": 0.90,
+    #     }, 
+    # )
+
+    object_is_lifted = RewTerm(func=mdp.table_not_contacted, 
                                weight=12.0,
                                params={"std": 0.3,
                                        "minimal_height": 0.87,
                                        "height": 0.90,
         }, 
     )
+    
 
     # object_goal_distance = RewTerm(func=mdp.object_goal_distance, 
     #                            weight=2.0,
@@ -207,10 +219,20 @@ class G1Rewards(RewardsCfg):
         },
     )
 
+    # 왼쪽 손 tracking
+    dual_ee_pos_tracking_left = RewTerm(
+        func=manipulation_mdp.dual_position_command_error_left,
+        weight=-0.4,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
+            "command_name": "dual_ee_pose",
+        },
+    )
+
     # 오른쪽 손 tracking
     dual_ee_pos_tracking_right = RewTerm(
         func=manipulation_mdp.dual_position_command_error_right,
-        weight=-0.6,
+        weight=-0.4,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
             "command_name": "dual_ee_pose",

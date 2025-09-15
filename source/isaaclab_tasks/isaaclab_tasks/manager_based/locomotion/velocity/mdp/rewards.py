@@ -141,15 +141,19 @@ lift
 def object_is_lifted(
     env: ManagerBasedRLEnv,std:float,minimal_height: float, height: float, 
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_table"),
 ) -> torch.Tensor:
     """Reward the agent for lifting the object above the minimal height."""
     object: RigidObject = env.scene[object_cfg.name]
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    discontact = torch.norm(contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids],dim=2) < 1e-8
     # print(object.data.root_pos_w[:, 2])
     distance = torch.abs(object.data.root_pos_w[:,2]-height*torch.ones_like((object.data.root_pos_w[:,2])))
     angle = torch.sum(torch.square(object.data.projected_gravity_b[:, :2]), dim=1)
     # return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
     # print(object.data.root_pos_w[:,2])
-    return ((1 - torch.tanh(torch.abs(distance)/std)))*torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)*(1 - torch.tanh(torch.abs(angle/std)))
+    # print("discontact:",((1 - torch.tanh(torch.abs(distance)/std)))*(1 - torch.tanh(torch.abs(angle/std)))*discontact.squeeze_())
+    return ((1 - torch.tanh(torch.abs(distance)/std)))*(1 - torch.tanh(torch.abs(angle/std)))*discontact.squeeze_()
 
 def object_is_contacted(
     env: ManagerBasedRLEnv,

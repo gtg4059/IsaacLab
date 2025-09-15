@@ -178,7 +178,7 @@ class MySceneCfg(InteractiveSceneCfg):
                 max_depenetration_velocity=5.0,
                 disable_gravity=True,
             ),
-            # activate_contact_sensors=True,
+            activate_contact_sensors=True,
         ),
     )
 
@@ -223,13 +223,13 @@ class MySceneCfg(InteractiveSceneCfg):
     #     offset=TiledCameraCfg.OffsetCfg(pos=(0.0, 0.0, 0.0), rot=(0.5, -0.5, 0.5, -0.5), convention="ros"),
     # )
 
-    # contact_table = ContactSensorCfg(
-    #         prim_path="{ENV_REGEX_NS}/Table",
-    #         debug_vis=False,
-    #         history_length=3,
-    #         update_period=0.0,
-    #         track_air_time=True,
-    #     )
+    contact_table = ContactSensorCfg(
+            prim_path="{ENV_REGEX_NS}/Table",
+            debug_vis=False,
+            history_length=3,
+            update_period=0.0,
+            track_air_time=True,
+        )
 
 
 ##
@@ -247,9 +247,9 @@ class CommandsCfg:
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
         ranges=mdp.DualPoseCommandCfg.Ranges(
-            pos_x=(0.32, 0.32),
+            pos_x=(0.24, 0.32),
             pos_y=(0.14, 0.14),
-            pos_z=(0.16, 0.16),
+            pos_z=(0.02, 0.18),# 0.02
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
             yaw=(math.pi / 2.0, math.pi / 2.0),
@@ -603,8 +603,8 @@ class EventCfg:
                                                              'left_wrist_yaw_link', 
                                                              'right_wrist_yaw_link',
                                                              "R_.*","L_.*",]),
-            "static_friction_range": (0.3, 1.1),
-            "dynamic_friction_range": (0.3, 1.1),
+            "static_friction_range": (0.2, 1.1),
+            "dynamic_friction_range": (0.2, 1.1),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 256,
             "make_consistent": True
@@ -813,8 +813,8 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "static_friction_range": (0.3, 1.1),
-            "dynamic_friction_range": (0.3, 1.1),
+            "static_friction_range": (0.2, 1.1),
+            "dynamic_friction_range": (0.2, 1.1),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
             "make_consistent": True,
@@ -928,7 +928,7 @@ class RewardsCfg:
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
-    alive = RewTerm(func=mdp.is_alive, weight=10.0)
+    alive = RewTerm(func=mdp.is_alive, weight=12.0)
 
 @configclass
 class TerminationsCfg:
