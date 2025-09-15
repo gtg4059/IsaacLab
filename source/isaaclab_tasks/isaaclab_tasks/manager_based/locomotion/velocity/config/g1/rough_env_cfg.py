@@ -66,11 +66,11 @@ class G1Rewards(RewardsCfg):
 
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=1.7,#1.8-no obj
+        weight=1.5,#1.8-no obj
         params={"command_name": "base_velocity", "std": 0.5},# std = 0.5
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=1.3, params={"command_name": "base_velocity", "std": 0.5}#1.5-no obj
+        func=mdp.track_ang_vel_z_world_exp, weight=1.2, params={"command_name": "base_velocity", "std": 0.5}#1.5-no obj
     )
     foot_clearance = RewTerm(
         func=mdp.foot_clearance_reward,
@@ -352,7 +352,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint", ".*_ankle_.*"]
         )
-
+        self.rewards.action_rate_arm.weight = -0.002
 
 
 @configclass

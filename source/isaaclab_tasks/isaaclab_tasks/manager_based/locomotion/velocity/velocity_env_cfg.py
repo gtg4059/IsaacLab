@@ -848,6 +848,7 @@ class RewardsCfg:
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
 
+    action_rate_arm = RewTerm(func=mdp.action_rate_arm, weight=-0.001)
 
 @configclass
 class TerminationsCfg:
