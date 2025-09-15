@@ -319,6 +319,10 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #########################################################################################
+        dual_ee_pose_command = ObsTerm(
+            func=mdp.generated_commands,
+            params={"command_name": "dual_ee_pose"},
+        )
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))# 3
         # left_ee_pose_command = ObsTerm(
         #     func=mdp.generated_commands,
@@ -418,6 +422,10 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #########################################################################################
+        dual_ee_pose_command = ObsTerm(
+            func=mdp.generated_commands,
+            params={"command_name": "dual_ee_pose"},
+        )
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))# 3
         # left_ee_pose_command = ObsTerm(
         #     func=mdp.generated_commands,
@@ -609,6 +617,79 @@ class EventCfg:
             "viscous_friction_distribution_params": (0.3, 1.5),
             "armature_distribution_params": (0.008,0.06),
             "operation": "add",
+            "distribution": "uniform",
+        },
+    )
+
+    physics_material_obj = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "static_friction_range": (0.3, 1.1),
+            "dynamic_friction_range": (0.3, 1.1),
+            "restitution_range": (0.0, 0.0),
+            "num_buckets": 64,
+            "make_consistent": True,
+        },
+    )
+
+    reset_box_position = EventTerm(
+        func=mdp.reset_root_state_uniform,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            # 4-box
+            "pose_range": {"x": (-0.02, 0.02), "y": (-0.02, 0.02), "yaw": (-0.02, 0.02)},
+            # # white box
+            # "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
+            # "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
+            "velocity_range": {
+                "x": (-0.0, 0.0),
+                "y": (-0.0, 0.0),
+                "z": (-0.0, 0.0),
+                "roll": (-0.0, 0.0),
+                "pitch": (-0.0, 0.0),
+                "yaw": (-0.0, 0.0),
+            },
+        },
+    )
+
+    randomize_object_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "mass_distribution_params": (-0.3, 0.3),
+            "operation": "add",
+        },
+    )
+
+    randomize_object_com = EventTerm(
+        func=mdp.randomize_object_com,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "com_range": {"x": (-0.08, 0.08), "y": (-0.04, 0.04), "z": (-0.0, 0.0)},
+        },
+    )
+
+    randomize_object_collider = EventTerm(
+        func=mdp.randomize_rigid_body_collider_offsets,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "contact_offset_distribution_params": (0.01, 0.01),
+            "distribution": "uniform",
+        },
+    ) 
+
+    randomize_object_rest = EventTerm(
+        func=mdp.randomize_rigid_body_collider_offsets,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "rest_offset_distribution_params": (0.005, 0.009),
             "distribution": "uniform",
         },
     )

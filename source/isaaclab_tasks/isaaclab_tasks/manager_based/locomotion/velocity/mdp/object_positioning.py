@@ -49,7 +49,8 @@ def set_object_position_between_hands(
     if hasattr(env.command_manager, "dual_ee_pose"):
         dual_command = env.command_manager["dual_ee_pose"]
         pos_x_range = dual_command.cfg.ranges.pos_x
-        pos_z_range = dual_command.cfg.ranges.pos_z
+        pos_z_range = tuple(x + 0.2 for x in dual_command.cfg.ranges.pos_z)
+        print("pos_z_range:",pos_z_range)
         
         # Sample random values within the distribution ranges
         if object_pos_x is None:
