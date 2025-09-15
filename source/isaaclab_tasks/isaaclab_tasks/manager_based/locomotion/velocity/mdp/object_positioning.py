@@ -46,8 +46,8 @@ def set_object_position_between_hands(
         middle_y = torch.zeros(len(env_ids), device=env.device)
     
     # Get DualPoseCommandCfg distribution values for pos_x and pos_z
-    if hasattr(env.command_manager, "dual_ee_pose"):
-        dual_command = env.command_manager["dual_ee_pose"] 
+    if "dual_ee_pose" in env.command_manager._terms:
+        dual_command = env.command_manager.get_term("dual_ee_pose") 
         pos_x_range = dual_command.cfg.ranges.pos_x
         pos_z_range = dual_command.cfg.ranges.pos_z
         
@@ -105,8 +105,8 @@ def position_object_between_hands_event(env, env_ids: torch.Tensor, object_name:
         object_pos_z: Object z position in base frame.
     """
     # Get hand positions from dual pose command
-    if hasattr(env.command_manager, "dual_ee_pose"):
-        dual_command = env.command_manager["dual_ee_pose"]
+    if "dual_ee_pose" in env.command_manager._terms:
+        dual_command = env.command_manager.get_term("dual_ee_pose")
         left_hand_pos_y = dual_command.left_pose_command_b[:, 1]
         right_hand_pos_y = dual_command.right_pose_command_b[:, 1]
     else:
