@@ -240,34 +240,49 @@ class MySceneCfg(InteractiveSceneCfg):
 @configclass
 class CommandsCfg:
     """Command specifications for the MDP."""
-    left_ee_pose = mdp.UniformPoseCommandCfg(
+    dual_ee_pose = mdp.DualPoseCommandCfg(
         asset_name="robot",
-        body_name="L_middle_proximal",
+        left_body_name="L_middle_proximal",
+        right_body_name="R_middle_proximal",
         resampling_time_range=(30.0, 30.0),
         debug_vis=True,
-        ranges=mdp.UniformPoseCommandCfg.Ranges(
+        ranges=mdp.DualPoseCommandCfg.Ranges(
             pos_x=(0.32, 0.32),
             pos_y=(0.14, 0.14),
             pos_z=(0.16, 0.16),
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
-            yaw=(math.pi / 2.0, math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
+            yaw=(math.pi / 2.0, math.pi / 2.0),
         ),
     )
-    right_ee_pose = mdp.UniformPoseCommandCfg(
-        asset_name="robot",
-        body_name="R_middle_proximal",
-        resampling_time_range=(30.0, 30.0),
-        debug_vis=True,
-        ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.32, 0.32),
-            pos_y=(-0.14, -0.14),
-            pos_z=(0.16, 0.16),
-            roll=(-0.0, 0.0),
-            pitch=(-0.0, 0.0),
-            yaw=(-math.pi / 2.0, -math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
-        ),
-    )
+    # left_ee_pose = mdp.UniformPoseCommandCfg(
+    #     asset_name="robot",
+    #     body_name="L_middle_proximal",
+    #     resampling_time_range=(30.0, 30.0),
+    #     debug_vis=True,
+    #     ranges=mdp.UniformPoseCommandCfg.Ranges(
+    #         pos_x=(0.32, 0.32),
+    #         pos_y=(0.14, 0.14),
+    #         pos_z=(0.16, 0.16),
+    #         roll=(-0.0, 0.0),
+    #         pitch=(-0.0, 0.0),
+    #         yaw=(math.pi / 2.0, math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
+    #     ),
+    # )
+    # right_ee_pose = mdp.UniformPoseCommandCfg(
+    #     asset_name="robot",
+    #     body_name="R_middle_proximal",
+    #     resampling_time_range=(30.0, 30.0),
+    #     debug_vis=True,
+    #     ranges=mdp.UniformPoseCommandCfg.Ranges(
+    #         pos_x=(0.32, 0.32),
+    #         pos_y=(-0.14, -0.14),
+    #         pos_z=(0.16, 0.16),
+    #         roll=(-0.0, 0.0),
+    #         pitch=(-0.0, 0.0),
+    #         yaw=(-math.pi / 2.0, -math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
+    #     ),
+    # )
 
 @configclass
 class ActionsCfg:
@@ -403,13 +418,9 @@ class ObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
         # velocity_commands = ObsTerm(func=keyboard_commands)
-        left_ee_pose_command = ObsTerm(
+        dual_ee_pose_command = ObsTerm(
             func=mdp.generated_commands,
-            params={"command_name": "left_ee_pose"},
-        )
-        right_ee_pose_command = ObsTerm(
-            func=mdp.generated_commands,
-            params={"command_name": "right_ee_pose"},
+            params={"command_name": "dual_ee_pose"},
         )
         object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
         # object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, params={
@@ -507,13 +518,9 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        left_ee_pose_command = ObsTerm(
+        dual_ee_pose_command = ObsTerm(
             func=mdp.generated_commands,
-            params={"command_name": "left_ee_pose"},
-        )
-        right_ee_pose_command = ObsTerm(
-            func=mdp.generated_commands,
-            params={"command_name": "right_ee_pose"},
+            params={"command_name": "dual_ee_pose"},
         )
         object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
         # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
