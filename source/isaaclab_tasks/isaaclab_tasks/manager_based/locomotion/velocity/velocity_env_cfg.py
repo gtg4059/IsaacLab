@@ -282,6 +282,10 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #########################################################################################
+        dual_ee_pose_command = ObsTerm(
+            func=mdp.generated_commands,
+            params={"command_name": "dual_ee_pose"},
+        )
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))# 3
         # left_ee_pose_command = ObsTerm(
         #     func=mdp.generated_commands,
@@ -381,6 +385,10 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #########################################################################################
+        dual_ee_pose_command = ObsTerm(
+            func=mdp.generated_commands,
+            params={"command_name": "dual_ee_pose"},
+        )
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))# 3
         # left_ee_pose_command = ObsTerm(
         #     func=mdp.generated_commands,
