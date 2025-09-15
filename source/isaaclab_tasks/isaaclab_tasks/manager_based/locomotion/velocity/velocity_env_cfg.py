@@ -85,25 +85,12 @@ class MySceneCfg(InteractiveSceneCfg):
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
         init_state=RigidObjectCfg.InitialStateCfg(
-            # # white-box
-            # pos=[0.43, 0, 0.86], 
-            # # 2-box
-            # pos=[0.37, 0, 0.84], 
-            # IKEA-box
-            pos=[0.38, 0, 0.82], 
-            # # 3-box
-            # pos=[0.39, 0, 0.86], 
-            # # 4-box
-            # pos=[0.43, 0, 0.93], 
+            pos=[0.38, 0, 0.82],  
             rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
             # IKEA-box
             usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            # scale=((6.33,4.17,2.5)), # 380,250,150
             scale=((6.33-0.3,4.17-0.3,2.5-0.3)), # 380,250,150
-            # # white wing IKEA-box
-            # usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
-            # scale=(11.5, 8.93, 5.357), # 380,250,150
             mass_props=sim_utils.MassPropertiesCfg(mass=0.4),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 # kinematic_enabled=True,

@@ -47,7 +47,7 @@ def set_object_position_between_hands(
     
     # Get DualPoseCommandCfg distribution values for pos_x and pos_z
     if hasattr(env.command_manager, "dual_ee_pose"):
-        dual_command = env.command_manager["dual_ee_pose"]
+        dual_command = env.command_manager["dual_ee_pose"] 
         pos_x_range = dual_command.cfg.ranges.pos_x
         pos_z_range = dual_command.cfg.ranges.pos_z
         
