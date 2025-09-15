@@ -24,7 +24,7 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
-
+from .mdp.dual_pose_command_cfg import DualPoseCommandCfg
 ##
 # Pre-defined configs
 ##
@@ -101,6 +101,21 @@ class CommandsCfg:
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
             lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
+        ),
+    )
+    dual_ee_pose = mdp.DualPoseCommandCfg(
+        asset_name="robot",
+        left_body_name="L_middle_proximal",
+        right_body_name="R_middle_proximal",
+        resampling_time_range=(30.0, 30.0),
+        debug_vis=True,
+        ranges=mdp.DualPoseCommandCfg.Ranges(
+            pos_x=(0.30, 0.34),
+            pos_y=(0.106, 0.106),
+            pos_z=(0.13, 0.17),# 0901_23: 0.33,0.15,0.15. inital_state: 0.25,0.14,0.2
+            roll=(-0.0, 0.0),
+            pitch=(-0.0, 0.0),
+            yaw=(math.pi / 2.0, math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
         ),
     )
 
