@@ -20,6 +20,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers.manager_base import ManagerTermBase
 from isaaclab.managers.manager_term_cfg import ObservationTermCfg
 from isaaclab.sensors import Camera, Imu, RayCaster, RayCasterCamera, TiledCamera
+from isaaclab.utils.math import subtract_frame_transforms, quat_apply
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
@@ -245,7 +246,7 @@ def object_position_in_robot_body_frame(
     # print("object_pos_w:",object_pos_w)
     # print("object_pos_b:",object_pos_b)
     return object_pos_b
-    
+
 """
 Sensors.
 """
