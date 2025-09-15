@@ -723,7 +723,7 @@ class RewardsCfg:
 @configclass
 class TerminationsCfg:
     """Termination terms for the MDP."""
-
+    bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.6,"asset_cfg": SceneEntityCfg("object")})
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     base_contact = DoneTerm(
         func=mdp.illegal_contact,
