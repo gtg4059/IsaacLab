@@ -50,7 +50,9 @@ def set_object_position_between_hands(
         dual_command = env.command_manager.get_term("dual_ee_pose") 
         pos_x_range = dual_command.cfg.ranges.pos_x
         pos_z_range = dual_command.cfg.ranges.pos_z
+        # pos_z_range = tuple(x + 0.1 for x in dual_command.cfg.ranges.pos_z)
         
+        # print("pos_z_range:",pos_z_range)
         # Sample random values within the distribution ranges
         if object_pos_x is None:
             object_pos_x_tensor = torch.empty(len(env_ids), device=env.device).uniform_(*pos_x_range)
@@ -92,6 +94,9 @@ def set_object_position_between_hands(
     # Set object pose in world frame for specific environments
     # Directly set the pose data instead of using write_root_pose_to_sim
     object_asset.data.root_link_pose_w[env_ids] = object_pose_w
+
+    # set into the physics simulation
+    object_asset.write_root_pose_to_sim(object_pose_w, env_ids=env_ids)
 
 
 def position_object_between_hands_event(env, env_ids: torch.Tensor, object_name: str = "object", object_pos_x: float | None = None, object_pos_z: float | None = None) -> None:
