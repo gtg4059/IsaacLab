@@ -7,7 +7,7 @@ import math
 from dataclasses import MISSING
 
 import isaaclab.sim as sim_utils
-from isaaclab.assets import ArticulationCfg, AssetBaseCfg
+from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab.managers import EventTermCfg as EventTerm
@@ -78,6 +78,43 @@ class MySceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.DomeLightCfg(
             intensity=750.0,
             texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+        ),
+    )
+    
+    # Set Cube as object
+    object = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/Object",
+        init_state=RigidObjectCfg.InitialStateCfg(
+            # # white-box
+            # pos=[0.43, 0, 0.86], 
+            # # 2-box
+            # pos=[0.37, 0, 0.84], 
+            # IKEA-box
+            pos=[0.38, 0, 0.82], 
+            # # 3-box
+            # pos=[0.39, 0, 0.86], 
+            # # 4-box
+            # pos=[0.43, 0, 0.93], 
+            rot=[1.0, 0.0 ,0.0, 0.0]),
+        spawn=sim_utils.UsdFileCfg(
+            # IKEA-box
+            usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+            # scale=((6.33,4.17,2.5)), # 380,250,150
+            scale=((6.33-0.3,4.17-0.3,2.5-0.3)), # 380,250,150
+            # # white wing IKEA-box
+            # usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
+            # scale=(11.5, 8.93, 5.357), # 380,250,150
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.4),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                # kinematic_enabled=True,
+                solver_position_iteration_count=4,
+                solver_velocity_iteration_count=1,
+                max_angular_velocity=1000.0,
+                max_linear_velocity=1000.0,
+                max_depenetration_velocity=5.0,
+                disable_gravity=False,
+            ),
+            # activate_contact_sensors=True,
         ),
     )
 
@@ -575,6 +612,15 @@ class EventCfg:
             "distribution": "uniform",
         },
     )
+    
+    position_object_between_hands = EventTerm(
+        func=mdp.position_object_between_hands_event,
+        mode="reset",
+        params={
+            "object_name": "object",
+            # object_pos_x and object_pos_z will be sampled from DualPoseCommandCfg ranges
+        },
+    )
 
 
 
@@ -617,6 +663,22 @@ class TerminationsCfg:
     )
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.40, "asset_cfg": SceneEntityCfg("robot")}
+    )
+    hand_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_yaw_link"), "threshold": 80.0},
+    )
+    object_dropping = DoneTerm(
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("object")}
+    )
+    
+    fingertip_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_intermediate"), "threshold": 80.0},
+    )
+    finger_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_proximal"), "threshold": 80.0},
     )
 
 

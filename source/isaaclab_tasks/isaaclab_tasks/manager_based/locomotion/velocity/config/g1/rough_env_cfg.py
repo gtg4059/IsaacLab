@@ -10,7 +10,7 @@ from isaaclab.utils import configclass
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 import isaaclab_tasks.manager_based.manipulation.reach.mdp as manipulation_mdp
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg, RewardsCfg
-import isaaclab_tasks.manager_based.manipulation.reach.mdp as manipulation_mdp
+
 ##
 # Pre-defined configs
 ##
@@ -113,6 +113,42 @@ class G1Rewards(RewardsCfg):
             # "waist_pitch_joint",
             "waist_yaw_joint",
         ])},
+    )
+    
+    object_contact = RewTerm(
+        func=mdp.object_is_contacted, 
+        weight=2.0,
+        params={"threshold": 0.4,"sensor_cfg": SceneEntityCfg("contact_forces", body_names=
+                                                              [
+                                                                  "left_wrist_yaw_link",
+                                                                  "right_wrist_yaw_link",
+                                                                #   "left_wrist_pitch_link",
+                                                                #   "right_wrist_pitch_link",
+                                                                #   "L_thumb_proximal",
+                                                                #   "R_thumb_proximal",
+                                                                #   ".*_thumb_intermediate",
+                                                                #   ".*_index_intermediate",
+                                                                #   ".*_middle_intermediate",
+                                                                #   ".*_pinky_intermediate",
+                                                                #   ".*_ring_intermediate",
+                                                                #   "left_ankle_roll_link",
+                                                                #   "right_ankle_roll_link"
+                                                                  ],preserve_order=True,
+            )
+        }, 
+    )
+
+    # flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=-60.0)
+
+    # pickup reward
+    reaching_object= RewTerm(
+        func=mdp.object_ee_distance, 
+        params={
+            "std": 0.2,
+            "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
+            # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
+        }, 
+        weight=4.0
     )
 
     # 왼쪽 손 tracking
