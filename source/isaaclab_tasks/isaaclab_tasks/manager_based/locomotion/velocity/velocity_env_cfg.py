@@ -929,7 +929,7 @@ class RewardsCfg:
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.005)
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.05)
 
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
@@ -993,6 +993,16 @@ class CurriculumCfg:
         params={
             "asset_cfg": SceneEntityCfg("table"),
             "num_steps": 1000
+        }
+    )
+    
+    # Increase action_rate_l2 weight by 10x after 2000 steps
+    action_rate_l2_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={
+            "term_name": "action_rate_l2",
+            "weight": -0.5,  # 10x increase from -0.05
+            "num_steps": 2000
         }
     )
     # modify_reset_joint_pos = CurrTerm(
