@@ -992,7 +992,7 @@ class CurriculumCfg:
         func=mdp.delete_table_curriculum, 
         params={
             "asset_cfg": SceneEntityCfg("table"),
-            "num_steps": 1000
+            "num_steps": 10000
         }
     )
     
@@ -1002,7 +1002,7 @@ class CurriculumCfg:
         params={
             "term_name": "action_rate_l2",
             "weight": -0.5,  # 10x increase from -0.05
-            "num_steps": 2000
+            "num_steps": 20000
         }
     )
     # modify_reset_joint_pos = CurrTerm(
