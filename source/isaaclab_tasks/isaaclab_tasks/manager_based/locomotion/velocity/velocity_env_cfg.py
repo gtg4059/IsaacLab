@@ -761,11 +761,8 @@ class EventCfg:
     #     mode="reset",
     #     params={
     #         "asset_cfg": SceneEntityCfg("object"),
-    #         # 4-box
-    #         "pose_range": {"x": (-0.00, 0.00), "y": (-0.00, 0.00), "yaw": (-0.0, 0.0)},
-    #         # # white box
-    #         # "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
-    #         # "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
+    #         "pose_range": {"x": (-0.02, 0.02), "y": (-0.02, 0.02), "yaw": (-0.02, 0.02)},
+    #         # "pose_range": {"x": (-0.00, 0.00), "y": (-0.00, 0.00), "yaw": (-0.0, 0.0)},
     #         "velocity_range": {
     #             "x": (-0.0, 0.0),
     #             "y": (-0.0, 0.0),
@@ -802,18 +799,18 @@ class EventCfg:
             "make_consistent": True
         },
     )
-    robot_joint_friction = EventTerm(
-        func=mdp.randomize_joint_parameters,
-        min_step_count_between_reset=720,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-            "friction_distribution_params": (0.01, 1.15),
-            "viscous_friction_distribution_params": (0.3, 1.5),
-            "operation": "scale",
-            "distribution": "uniform",
-        },
-    )
+    # robot_joint_friction = EventTerm(
+    #     func=mdp.randomize_joint_parameters,
+    #     min_step_count_between_reset=720,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+    #         "friction_distribution_params": (0.01, 1.15),
+    #         "viscous_friction_distribution_params": (0.3, 1.5),
+    #         "operation": "scale",
+    #         "distribution": "uniform",
+    #     },
+    # )
 
     # reset_robot_joints = EventTerm(
     #     func=mdp.reset_joints_by_scale,

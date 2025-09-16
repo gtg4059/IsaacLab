@@ -445,24 +445,25 @@ G1_DEX_FIX = ArticulationCfg(
             # "waist_roll_joint":0.0,
             "waist_yaw_joint":0.0,
 
-            'left_shoulder_pitch_joint': 0.4,
-            'left_shoulder_roll_joint': 0.05,
+            'left_shoulder_pitch_joint': 0.0, #0.4,
+            'left_shoulder_roll_joint': 0.2, # 0.05,
             'left_shoulder_yaw_joint': 0.1,
-            'left_elbow_joint': -0.5,
+            'left_elbow_joint': -0.1,
             'left_wrist_roll_joint': -0.1,
             'left_wrist_pitch_joint': 0.4,
             'left_wrist_yaw_joint': 0.2,
-            'right_shoulder_pitch_joint': 0.4,
-            'right_shoulder_roll_joint': -0.05,
+
+            'right_shoulder_pitch_joint': 0.0, #0.4,
+            'right_shoulder_roll_joint': -0.2, #-0.05,
             'right_shoulder_yaw_joint': -0.1,
-            'right_elbow_joint': -0.5,
+            'right_elbow_joint': -0.1,#-0.35
             'right_wrist_roll_joint': 0.1,
             'right_wrist_pitch_joint': 0.4,
             'right_wrist_yaw_joint': -0.2,
             '.*_proximal_joint':0.3,
             # "R_.*":0.2,
             # "L_.*":0.2,
-        # 0.01 rad = 0.57 degree
+        # 0.01 rad = 0.57 degree 
 
             # 'left_hip_pitch_joint': -0.0097,
             # 'left_hip_roll_joint': -0.04,

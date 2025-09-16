@@ -24,7 +24,7 @@ class G1Rewards(RewardsCfg):
 
     # base_position_l2 = RewTerm(func=mdp.base_position_l2, weight=-100.0)
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
-    base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-100.0, params={
+    base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-80.0, params={
             "target_height": 0.78, 
         }
     )
@@ -36,7 +36,7 @@ class G1Rewards(RewardsCfg):
     #         "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
     #         # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
     #     }, 
-    #     weight=0.1
+    #     weight=1.0
     # )
     
     # flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=0.5)
@@ -170,16 +170,16 @@ class G1Rewards(RewardsCfg):
 
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.1,#-0.1
+        weight=-0.0001,#-0.1
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
                 joint_names=[
                     #".*_shoulder_roll_joint",
-                    ".*_shoulder_pitch_joint",
+                    # ".*_shoulder_pitch_joint",
                     # ".*_shoulder_yaw_joint",
                     ".*_elbow_joint",
-                    ".*_wrist_yaw_joint",
+                    # ".*_wrist_yaw_joint",
                     ".*_wrist_pitch_joint",
                     # ".*_wrist_roll_joint",
                 ],
@@ -189,16 +189,16 @@ class G1Rewards(RewardsCfg):
 
     joint_deviation_arms2 = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.05,#-0.05
+        weight=-0.0002,#-0.05
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
                 joint_names=[
                     ".*_shoulder_roll_joint",
-                    # ".*_shoulder_pitch_joint",
+                    ".*_shoulder_pitch_joint",
                     ".*_shoulder_yaw_joint",
                     # ".*_elbow_joint",
-                    # ".*_wrist_yaw_joint",
+                    ".*_wrist_yaw_joint",
                     # ".*_wrist_pitch_joint",
                     ".*_wrist_roll_joint",
                 ],
@@ -260,16 +260,16 @@ class G1Rewards(RewardsCfg):
     )
 
     left_ee_pos_tracking = RewTerm(
-        func=manipulation_mdp.dual_position_command_error_right,
+        func=manipulation_mdp.dual_position_command_error_left,
         weight=-1.0,
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
+            "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
             "command_name": "dual_ee_pose",
         },
     )
     left_ee_pos_tracking_fine_grained = RewTerm(
         func=manipulation_mdp.dual_position_command_error_tanh_left,
-        weight=0.6,
+        weight=0.4,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
             "std": 0.05,
@@ -278,7 +278,7 @@ class G1Rewards(RewardsCfg):
     )
     left_end_effector_orientation_tracking = RewTerm(
         func=manipulation_mdp.dual_orientation_command_error_left,
-        weight=-0.55,
+        weight=-0.5,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
             "command_name": "dual_ee_pose",
@@ -343,7 +343,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.lin_vel_z_l2.weight = 0.0
         self.rewards.undesired_contacts = None
         self.rewards.flat_orientation_l2.weight = -10.0
-        self.rewards.action_rate_l2.weight = -0.005
+        self.rewards.action_rate_l2.weight = -0.02
         self.rewards.dof_acc_l2.weight = -1.25e-7
         self.rewards.dof_acc_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
@@ -352,7 +352,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint", ".*_ankle_.*"]
         )
-        self.rewards.action_rate_arm.weight = -0.002
+        self.rewards.action_rate_arm.weight = -0.005
 
 
 @configclass
