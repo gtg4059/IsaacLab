@@ -75,7 +75,7 @@ class G1Rewards(RewardsCfg):
     # )
 
     object_is_lifted = RewTerm(func=mdp.table_not_contacted, 
-                               weight=2.0,
+                               weight=4.0,
     )
     
 
