@@ -11,7 +11,7 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
 @configclass
 class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
-    max_iterations = 3000
+    max_iterations = 2000
     save_interval = 50
     experiment_name = "g1_rough"
     empirical_normalization = False
@@ -43,5 +43,5 @@ class G1FlatPPORunnerCfg(G1RoughPPORunnerCfg):
         super().__post_init__()
         self.max_iterations = 30000
         self.experiment_name = "g1_flat"
-        self.policy.actor_hidden_dims = [512, 512, 256, 128, 64]
-        self.policy.critic_hidden_dims = [512, 512, 256, 128, 64]
+        self.policy.actor_hidden_dims = [1024, 512, 256, 128, 64]
+        self.policy.critic_hidden_dims = [1024, 512, 256, 128, 64]

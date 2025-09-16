@@ -855,6 +855,17 @@ class EventCfg:
         },
     )
 
+    reset_table_position = EventTerm(
+        func=mdp.reset_root_state_uniform,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("table"),
+            "pose_range": {"z": (-0.05, 0.01)},
+            "velocity_range": {
+            },
+        },
+    )
+
     randomize_object_mass = EventTerm(
         func=mdp.randomize_rigid_body_mass,
         mode="startup",
@@ -937,14 +948,14 @@ class TerminationsCfg:
     bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.6,"asset_cfg": SceneEntityCfg("object")})
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
 
-    base_contact = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="waist_yaw_link"), "threshold": 50.0},
-    )
-    # base_contact2 = DoneTerm(
+    # base_contact = DoneTerm(
     #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 10.0},
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="waist_yaw_link"), "threshold": 10.0},
     # )
+    base_contact2 = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 10.0},
+    )
     # base_contact3 = DoneTerm(
     #     func=mdp.illegal_contact,
     #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 10.0},
@@ -957,7 +968,7 @@ class TerminationsCfg:
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("object")}
     )
     robot_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.40, "asset_cfg": SceneEntityCfg("robot")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.4, "asset_cfg": SceneEntityCfg("robot")}
     )
     fingertip_contact = DoneTerm(
         func=mdp.illegal_contact,

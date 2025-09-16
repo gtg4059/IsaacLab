@@ -30,7 +30,7 @@ class G1Rewards(RewardsCfg):
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=6.0,
+        weight=1.0,
         params={"threshold": 0.4,
 
         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=
@@ -63,7 +63,7 @@ class G1Rewards(RewardsCfg):
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
-        weight=12.0
+        weight=3.0
     )
     
     # object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
@@ -75,7 +75,7 @@ class G1Rewards(RewardsCfg):
     # )
 
     object_is_lifted = RewTerm(func=mdp.table_not_contacted, 
-                               weight=12.0,
+                               weight=2.0,
     )
     
 
@@ -166,59 +166,59 @@ class G1Rewards(RewardsCfg):
     # )
 
 
-    # same motion
-    motion_equality_shoulder1 = RewTerm(
-        func=mdp.motion_equality_cons,
-        weight=-0.5,
-        params={
-            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_yaw_joint"),
-        },
-    )
+    # # same motion
+    # motion_equality_shoulder1 = RewTerm(
+    #     func=mdp.motion_equality_cons,
+    #     weight=-0.5,
+    #     params={
+    #         "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_yaw_joint"),
+    #     },
+    # )
 
-    motion_equality_shoulder2 = RewTerm(
-        func=mdp.motion_equality_pros,
-        weight=-0.5,
-        params={
-            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_pitch_joint"),
-        },
-    )
+    # motion_equality_shoulder2 = RewTerm(
+    #     func=mdp.motion_equality_pros,
+    #     weight=-0.5,
+    #     params={
+    #         "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_shoulder_pitch_joint"),
+    #     },
+    # )
 
-    motion_equality_elbow = RewTerm(
-        func=mdp.motion_equality_pros,
-        weight=-0.5,
-        params={
-            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_elbow_joint"),
-        },
-    )
+    # motion_equality_elbow = RewTerm(
+    #     func=mdp.motion_equality_pros,
+    #     weight=-0.5,
+    #     params={
+    #         "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_elbow_joint"),
+    #     },
+    # )
 
-    motion_equality_wrist1 = RewTerm(
-        func=mdp.motion_equality_cons,
-        weight=-0.5,
-        params={
-            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_roll_joint"),
-        },
-    )
+    # motion_equality_wrist1 = RewTerm(
+    #     func=mdp.motion_equality_cons,
+    #     weight=-0.5,
+    #     params={
+    #         "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_roll_joint"),
+    #     },
+    # )
 
-    motion_equality_wrist2 = RewTerm(
-        func=mdp.motion_equality_pros,
-        weight=-0.5,
-        params={
-            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_pitch_joint"),
-        },
-    )
+    # motion_equality_wrist2 = RewTerm(
+    #     func=mdp.motion_equality_pros,
+    #     weight=-0.5,
+    #     params={
+    #         "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_pitch_joint"),
+    #     },
+    # )
 
-    motion_equality_wrist3 = RewTerm(
-        func=mdp.motion_equality_cons,
-        weight=-0.5,
-        params={
-            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_yaw_joint"),
-        },
-    )
+    # motion_equality_wrist3 = RewTerm(
+    #     func=mdp.motion_equality_cons,
+    #     weight=-0.5,
+    #     params={
+    #         "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_wrist_yaw_joint"),
+    #     },
+    # )
 
     # 왼쪽 손 tracking
     dual_ee_pos_tracking_left = RewTerm(
         func=manipulation_mdp.dual_position_command_error_left,
-        weight=-0.4,
+        weight=-1.2,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
             "command_name": "dual_ee_pose",
@@ -228,7 +228,7 @@ class G1Rewards(RewardsCfg):
     # 오른쪽 손 tracking
     dual_ee_pos_tracking_right = RewTerm(
         func=manipulation_mdp.dual_position_command_error_right,
-        weight=-0.4,
+        weight=-1.2,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
             "command_name": "dual_ee_pose",
@@ -236,7 +236,7 @@ class G1Rewards(RewardsCfg):
     )   
     dual_ee_pos_tracking_fine_grained_left = RewTerm(
         func=manipulation_mdp.dual_position_command_error_tanh_left,
-        weight=0.4,
+        weight=0.8,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
             "std": 0.05,
@@ -245,7 +245,7 @@ class G1Rewards(RewardsCfg):
     )
     dual_ee_pos_tracking_fine_grained_right = RewTerm(
         func=manipulation_mdp.dual_position_command_error_tanh_right,
-        weight=0.4,
+        weight=0.8,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
             "std": 0.05,
@@ -254,7 +254,7 @@ class G1Rewards(RewardsCfg):
     )
     dual_ee_orientation_tracking_left = RewTerm(
         func=manipulation_mdp.dual_orientation_command_error_left,
-        weight=-0.4,
+        weight=-0.8,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
             "command_name": "dual_ee_pose",
@@ -262,7 +262,7 @@ class G1Rewards(RewardsCfg):
     )
     dual_ee_orientation_tracking_right = RewTerm(
         func=manipulation_mdp.dual_orientation_command_error_right,
-        weight=-0.4,
+        weight=-0.8,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
             "command_name": "dual_ee_pose",
