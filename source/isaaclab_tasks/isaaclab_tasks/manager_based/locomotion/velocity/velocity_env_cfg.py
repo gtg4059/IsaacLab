@@ -988,13 +988,13 @@ class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
-    delete_table = CurrTerm(
-        func=mdp.delete_table_curriculum, 
-        params={
-            "asset_cfg": SceneEntityCfg("table"),
-            "num_steps": 10000
-        }
-    )
+    # delete_table = CurrTerm(
+    #     func=mdp.delete_table_curriculum, 
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("table"),
+    #         "num_steps": 10000
+    #     }
+    # )
     
     # Increase action_rate_l2 weight by 10x after 2000 steps
     action_rate_l2_weight = CurrTerm(
