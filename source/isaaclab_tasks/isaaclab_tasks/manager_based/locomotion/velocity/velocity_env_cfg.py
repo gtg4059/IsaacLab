@@ -860,7 +860,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("table"),
-            "pose_range": {"z": (-0.05, 0.01)},
+            "pose_range": {"z": (-0.06, 0.06)},
             "velocity_range": {
             },
         },
@@ -992,7 +992,7 @@ class CurriculumCfg:
         func=mdp.delete_table_curriculum, 
         params={
             "asset_cfg": SceneEntityCfg("table"),
-            "num_steps": 20000
+            "num_steps": 40000
         }
     )
     
