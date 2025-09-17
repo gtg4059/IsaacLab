@@ -172,7 +172,8 @@ def object_is_contacted(
     # print("contact_force:",contact_force)
     # print(0.00005*not_allow_contact*contact_force**2)
     # print("contact_force:",contact_force)
-    return torch.sum(contact.int()-0.000001*contact_force**2, dim=1)
+    return torch.sum(contact.int(), dim=1)
+    # return torch.sum(contact.int()-0.000001*contact_force**2, dim=1)
 
 def table_not_contacted(
     env: ManagerBasedRLEnv,
