@@ -20,12 +20,12 @@ from isaaclab_assets import G1_DEX_FIX  # isort: skip
 class G1Rewards(RewardsCfg):
     """Reward terms for the MDP."""
 
-    base_height = RewTerm(func=mdp.base_height_l2, weight=-100.0, params={"target_height": 0.78})
+    base_height = RewTerm(func=mdp.base_height_l2, weight=-100.0, params={"target_height": 0.74})
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=2.0,
-        params={"command_name": "base_velocity", "std": 1.0},
+        weight=4.0,
+        params={"command_name": "base_velocity", "std": 0.2},
     )
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "base_velocity", "std": 1.0}
@@ -94,30 +94,30 @@ class G1Rewards(RewardsCfg):
         ])},
     )
 
-    # # same motion
-    # motion_equality_hip = RewTerm(
-    #     func=mdp.motion_equality_cons,
-    #     weight=-0.5,
-    #     params={
-    #         "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_hip_pitch_joint"),
-    #     },
-    # )
+    # same motion
+    motion_equality_hip = RewTerm(
+        func=mdp.motion_equality_cons,
+        weight=-0.5,
+        params={
+            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_hip_pitch_joint"),
+        },
+    )
 
-    # motion_equality_knee = RewTerm(
-    #     func=mdp.motion_equality_pros,
-    #     weight=-0.5,
-    #     params={
-    #         "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_knee_joint"),
-    #     },
-    # )
+    motion_equality_knee = RewTerm(
+        func=mdp.motion_equality_pros,
+        weight=-0.5,
+        params={
+            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_knee_joint"),
+        },
+    )
 
-    # motion_equality_ankle = RewTerm(
-    #     func=mdp.motion_equality_pros,
-    #     weight=-0.5,
-    #     params={
-    #         "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_ankle_pitch_joint"),
-    #     },
-    # )
+    motion_equality_ankle = RewTerm(
+        func=mdp.motion_equality_pros,
+        weight=-0.5,
+        params={
+            "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_ankle_pitch_joint"),
+        },
+    )
 
     # # G1_inspire_hand
     # joint_deviation_fingers = RewTerm(
