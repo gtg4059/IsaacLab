@@ -456,7 +456,10 @@ G1_DEX_FIX = ArticulationCfg(
             # 'right_wrist_pitch_joint': -0.0,
             # 'right_wrist_yaw_joint': 0.01,
             # finger
-            ".*_proximal_joint":0.3,
+            ".*_index_proximal_joint":0.3,
+            ".*_middle_proximal_joint":0.0,
+            ".*_pinky_proximal_joint":0.3,
+            ".*_ring_proximal_joint":0.3,
         },
         joint_vel={".*": 0.0},
     ),
@@ -595,10 +598,10 @@ G1_DEX_FIX = ArticulationCfg(
             joint_names_expr=[
                 '.*_proximal_joint'
             ],
-            effort_limit=1,
-            velocity_limit=0.5,
-            stiffness=40.0,
-            damping=2.0,
+            effort_limit=10.0,
+            velocity_limit=5.0,
+            stiffness=50.0,
+            damping=4.0,
             armature={
                 '.*_proximal_joint': 0.001,
             },

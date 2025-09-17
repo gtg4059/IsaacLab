@@ -165,14 +165,14 @@ def object_is_contacted(
     # compute the reward
     contact_force = torch.norm(contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids],dim=2)
     # not_allow_contact = contact_force > 12
-    contact = torch.norm(contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids],dim=2)>0.01
+    contact = torch.norm(contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids],dim=2)>1.0
     # return torch.sum(contact.int()-0.00002*contact_force**2, dim=1)
     # print("body_names:",sensor_cfg.body_names)
     # print("contact:",contact)
     # print("contact_force:",contact_force)
     # print(0.00005*not_allow_contact*contact_force**2)
     # print("contact_force:",contact_force)
-    return torch.sum(contact.int(), dim=1)
+    return torch.sum(contact.int()-0.000001*contact_force**2, dim=1)
 
 def table_not_contacted(
     env: ManagerBasedRLEnv,

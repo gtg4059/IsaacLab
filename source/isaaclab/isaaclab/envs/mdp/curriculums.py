@@ -329,7 +329,7 @@ class delete_table_curriculum(ManagerTermBase):
         asset: RigidObject = env.scene[asset_cfg.name]
         
         # 3초 = 300 스텝 (step_dt가 0.01초라고 가정)
-        table_disappear_steps = int(0.5 / env.step_dt)  # 0.5초를 스텝으로 변환
+        table_disappear_steps = int(1.0 / env.step_dt)  # 1.0초를 스텝으로 변환
         
         # 테이블이 사라져야 하는 조건: episode_length_buf >= table_disappear_steps
         should_disappear = env.episode_length_buf >= table_disappear_steps

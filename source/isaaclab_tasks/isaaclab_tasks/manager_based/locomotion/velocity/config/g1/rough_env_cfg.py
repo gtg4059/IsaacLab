@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from isaaclab.managers import RewardTermCfg as RewTerm
+from isaaclab.managers import RewardTermCfg as RewTerm, CurriculumTermCfg as CurrTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 
@@ -30,7 +30,7 @@ class G1Rewards(RewardsCfg):
  
     object_contact = RewTerm(
         func=mdp.object_is_contacted, 
-        weight=1.0,
+        weight=2.0,
         params={"threshold": 0.4,
 
         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=
@@ -59,11 +59,11 @@ class G1Rewards(RewardsCfg):
     reaching_object= RewTerm(
         func=mdp.object_ee_distance, 
         params={
-            "std": 0.2,
+            "std": 0.1,
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
-        weight=3.0
+        weight=8.0
     )
     
     # object_is_lifted = RewTerm(func=mdp.object_is_lifted, 
@@ -215,20 +215,39 @@ class G1Rewards(RewardsCfg):
         },
     )
 
-    # 왼쪽 손 tracking
+    set_robot_joints_targets = RewTerm(
+        func=mdp.reset_joints_targets,
+        weight=-0.00001,
+        params={
+            "asset_cfg": SceneEntityCfg("robot",
+                joint_names=[
+                    ".*_proximal_joint",
+                    # ".*_index_proximal_joint",
+                    # ".*_middle_proximal_joint",
+                    # ".*_pinky_proximal_joint",
+                    # ".*_ring_proximal_joint",
+                    # "R_thumb_.*",
+                    # "L_thumb_.*",
+                            ],
+                preserve_order=True,
+            )
+        },
+    )
+
+    # 왼쪽 손 tracking (initially disabled, enabled after 2000 steps)
     dual_ee_pos_tracking_left = RewTerm(
         func=manipulation_mdp.dual_position_command_error_left,
-        weight=-4,
+        weight=0,  # Initially 0, will be set to -4 after 2000 steps
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
             "command_name": "dual_ee_pose",
         },
     )
 
-    # 오른쪽 손 tracking
+    # 오른쪽 손 tracking (initially disabled, enabled after 2000 steps)
     dual_ee_pos_tracking_right = RewTerm(
         func=manipulation_mdp.dual_position_command_error_right,
-        weight=-4,
+        weight=0,  # Initially 0, will be set to -4 after 2000 steps
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
             "command_name": "dual_ee_pose",
@@ -236,7 +255,7 @@ class G1Rewards(RewardsCfg):
     )   
     dual_ee_pos_tracking_fine_grained_left = RewTerm(
         func=manipulation_mdp.dual_position_command_error_tanh_left,
-        weight=2,
+        weight=0,  # Initially 0, will be set to 2 after 2000 steps
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
             "std": 0.05,
@@ -245,7 +264,7 @@ class G1Rewards(RewardsCfg):
     )
     dual_ee_pos_tracking_fine_grained_right = RewTerm(
         func=manipulation_mdp.dual_position_command_error_tanh_right,
-        weight=2,
+        weight=0,  # Initially 0, will be set to 2 after 2000 steps
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
             "std": 0.05,
@@ -254,7 +273,7 @@ class G1Rewards(RewardsCfg):
     )
     dual_ee_orientation_tracking_left = RewTerm(
         func=manipulation_mdp.dual_orientation_command_error_left,
-        weight=-2,
+        weight=0,  # Initially 0, will be set to -2 after 2000 steps
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
             "command_name": "dual_ee_pose",
@@ -262,11 +281,76 @@ class G1Rewards(RewardsCfg):
     )
     dual_ee_orientation_tracking_right = RewTerm(
         func=manipulation_mdp.dual_orientation_command_error_right,
-        weight=-2,
+        weight=0,  # Initially 0, will be set to -2 after 2000 steps
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
             "command_name": "dual_ee_pose",
         },
+    )
+
+
+@configclass
+class CurriculumCfg:
+    """Curriculum terms for the MDP."""
+    
+    # Enable dual_ee_pos_tracking_left after 2000 steps
+    dual_ee_pos_tracking_left_curriculum = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={
+            "term_name": "dual_ee_pos_tracking_left",
+            "weight": -4,  # Original weight
+            "num_steps": 20000
+        }
+    )
+    
+    # Enable dual_ee_pos_tracking_right after 2000 steps
+    dual_ee_pos_tracking_right_curriculum = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={
+            "term_name": "dual_ee_pos_tracking_right",
+            "weight": -4,  # Original weight
+            "num_steps": 20000
+        }
+    )
+    
+    # Enable dual_ee_pos_tracking_fine_grained_left after 2000 steps
+    dual_ee_pos_tracking_fine_grained_left_curriculum = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={
+            "term_name": "dual_ee_pos_tracking_fine_grained_left",
+            "weight": 2,  # Original weight
+            "num_steps": 20000
+        }
+    )
+    
+    # Enable dual_ee_pos_tracking_fine_grained_right after 2000 steps
+    dual_ee_pos_tracking_fine_grained_right_curriculum = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={
+            "term_name": "dual_ee_pos_tracking_fine_grained_right",
+            "weight": 2,  # Original weight
+            "num_steps": 20000
+        }
+    )
+    
+    # Enable dual_ee_orientation_tracking_left after 2000 steps
+    dual_ee_orientation_tracking_left_curriculum = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={
+            "term_name": "dual_ee_orientation_tracking_left",
+            "weight": -2,  # Original weight
+            "num_steps": 20000
+        }
+    )
+    
+    # Enable dual_ee_orientation_tracking_right after 2000 steps
+    dual_ee_orientation_tracking_right_curriculum = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={
+            "term_name": "dual_ee_orientation_tracking_right",
+            "weight": -2,  # Original weight
+            "num_steps": 20000
+        }
     )
 
     # left_ee_pos_tracking = RewTerm(
@@ -325,30 +409,14 @@ class G1Rewards(RewardsCfg):
     #     },
     # )
     
-    set_robot_joints_targets = RewTerm(
-        func=mdp.reset_joints_targets,
-        weight=-0.00001,
-        params={
-            "asset_cfg": SceneEntityCfg("robot",
-                joint_names=[
-                    ".*_proximal_joint",
-                    # ".*_index_proximal_joint",
-                    # ".*_middle_proximal_joint",
-                    # ".*_pinky_proximal_joint",
-                    # ".*_ring_proximal_joint",
-                    # "R_thumb_.*",
-                    # "L_thumb_.*",
-                            ],
-                preserve_order=True,
-            )
-        },
-    )
+    
 
 
 
 @configclass
 class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
     rewards: G1Rewards = G1Rewards()
+    curriculum: CurriculumCfg = CurriculumCfg()
 
     def __post_init__(self):
         # post init of parent
@@ -378,7 +446,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # Rewards
         self.rewards.lin_vel_z_l2.weight = 0.0
         self.rewards.undesired_contacts = None
-        self.rewards.flat_orientation_l2.weight = -20.0
+        self.rewards.flat_orientation_l2.weight = -200.0
         self.rewards.dof_acc_l2.weight = -1.25e-7
         self.rewards.dof_acc_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]

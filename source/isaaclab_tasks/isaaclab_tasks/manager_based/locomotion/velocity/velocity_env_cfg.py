@@ -244,12 +244,12 @@ class CommandsCfg:
         asset_name="robot",
         left_body_name="L_middle_proximal",
         right_body_name="R_middle_proximal",
-        resampling_time_range=(30.0, 30.0),
+        resampling_time_range=(5.0, 10.0),
         debug_vis=True,
         ranges=mdp.DualPoseCommandCfg.Ranges(
-            pos_x=(0.24, 0.32),
+            pos_x=(0.30, 0.34),
             pos_y=(0.14, 0.14),
-            pos_z=(0.02, 0.18),# 0.02
+            pos_z=(0.06, 0.18),# 0.02
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
             yaw=(math.pi / 2.0, math.pi / 2.0),
@@ -539,21 +539,21 @@ class ObservationsCfg:
 class EventCfg:
     """Configuration for events."""
 
-    # interval
-    push_robot_interval = EventTerm(
-        func=mdp.push_by_setting_velocity,
-        mode="interval",
-        interval_range_s=(5.0, 10.0),
-        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
-    )
+    # # interval
+    # push_robot_interval = EventTerm(
+    #     func=mdp.push_by_setting_velocity,
+    #     mode="interval",
+    #     interval_range_s=(5.0, 10.0),
+    #     params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
+    # )
 
-    # interval
-    push_robot = EventTerm(
-        func=mdp.push_by_setting_velocity,
-        mode="startup",
-        # interval_range_s=(10.0, 15.0),
-        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
-    )
+    # # interval
+    # push_robot = EventTerm(
+    #     func=mdp.push_by_setting_velocity,
+    #     mode="startup",
+    #     # interval_range_s=(10.0, 15.0),
+    #     params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
+    # )
 
     # startup
     randomize_friction = EventTerm(
@@ -939,7 +939,7 @@ class RewardsCfg:
     # -- optional penalties
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
-    alive = RewTerm(func=mdp.is_alive, weight=12.0)
+    alive = RewTerm(func=mdp.is_alive, weight=4.0)
 
 @configclass
 class TerminationsCfg:
@@ -962,7 +962,7 @@ class TerminationsCfg:
     # )
     hand_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_yaw_link"), "threshold": 80.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_yaw_link"), "threshold": 100.0},
     )
     object_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("object")}
@@ -972,11 +972,11 @@ class TerminationsCfg:
     )
     fingertip_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_intermediate"), "threshold": 80.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_intermediate"), "threshold": 100.0},
     )
     finger_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_proximal"), "threshold": 80.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_proximal"), "threshold": 100.0},
     )
     # bad_position = DoneTerm(
     #     func=mdp.bad_position, params={"limit_dist": 0.05, "asset_cfg": SceneEntityCfg("robot")}
@@ -988,23 +988,24 @@ class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
-    # delete_table = CurrTerm(
-    #     func=mdp.delete_table_curriculum, 
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("table"),
-    #         "num_steps": 10000
-    #     }
-    # )
-    
-    # Increase action_rate_l2 weight by 10x after 2000 steps
-    action_rate_l2_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
+    delete_table = CurrTerm(
+        func=mdp.delete_table_curriculum, 
         params={
-            "term_name": "action_rate_l2",
-            "weight": -0.5,  # 10x increase from -0.05
+            "asset_cfg": SceneEntityCfg("table"),
             "num_steps": 20000
         }
     )
+    
+    # # Increase action_rate_l2 weight by 10x after 2000 steps
+    # action_rate_l2_weight = CurrTerm(
+    #     func=mdp.modify_reward_weight,
+    #     params={
+    #         "term_name": "action_rate_l2",
+    #         "weight": -0.2,  # 10x increase from -0.05
+    #         "num_steps": 50000
+    #     }
+    # )
+
     # modify_reset_joint_pos = CurrTerm(
     #     func=mdp.modify_term_cfg,
     #     params={
