@@ -38,6 +38,16 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
+        # # disable randomization for play
+        # self.observations.policy.enable_corruption = False
+        # self.events.randomize_friction_hand.params["static_friction_range"] = (0.6, 1.1)
+        # self.events.randomize_friction_hand.params["dynamic_friction_range"] = (0.6, 1.1)
+        # self.events.randomize_friction_hand.params["make_consistent"] = True
+        # self.events.physics_material_obj.params["static_friction_range"] = (0.6, 1.1)
+        # self.events.physics_material_obj.params["dynamic_friction_range"] = (0.6, 1.1)
+        # self.events.physics_material_obj.params["make_consistent"] = True
+        # # self.commands.dual_ee_pose.resampling_time_range = (5.0, 10.0)
+        # self.commands.dual_ee_pose.ranges.pos_z = (0.20, 0.20)
 
 
 class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
@@ -49,15 +59,6 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         # make a smaller scene for play
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
-        # disable randomization for play
-        self.observations.policy.enable_corruption = False
-        self.events.randomize_friction_hand.params["static_friction_range"] = (0.6, 1.1)
-        self.events.randomize_friction_hand.params["dynamic_friction_range"] = (0.6, 1.1)
-        self.events.randomize_friction_hand.params["make_consistent"] = True
-        self.events.physics_material_obj.params["static_friction_range"] = (0.6, 1.1)
-        self.events.physics_material_obj.params["dynamic_friction_range"] = (0.6, 1.1)
-        self.events.physics_material_obj.params["make_consistent"] = True
-        self.commands.dual_ee_pose.resampling_time_range = (5.0, 10.0)
         # remove random pushing
         # delattr(self.events, 'push_robot')
         # delattr(self.events, 'push_robot_interval')

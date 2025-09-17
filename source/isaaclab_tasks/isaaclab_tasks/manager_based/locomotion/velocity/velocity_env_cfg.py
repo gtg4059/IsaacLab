@@ -248,8 +248,8 @@ class CommandsCfg:
         debug_vis=True,
         ranges=mdp.DualPoseCommandCfg.Ranges(
             pos_x=(0.30, 0.34),
-            pos_y=(0.14, 0.14),
-            pos_z=(0.06, 0.18),# 0.02
+            pos_y=(0.13, 0.13),
+            pos_z=(0.00, 0.24),# 0.02
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
             yaw=(math.pi / 2.0, math.pi / 2.0),
