@@ -237,7 +237,7 @@ class G1Rewards(RewardsCfg):
     # 왼쪽 손 tracking (initially disabled, enabled after 2000 steps)
     dual_ee_pos_tracking_left = RewTerm(
         func=manipulation_mdp.dual_position_command_error_left,
-        weight=0,  # Initially 0, will be set to -4 after 2000 steps
+        weight=-0.2,  # Initially 0, will be set to -4 after 2000 steps
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
             "command_name": "dual_ee_pose",
@@ -247,7 +247,7 @@ class G1Rewards(RewardsCfg):
     # 오른쪽 손 tracking (initially disabled, enabled after 2000 steps)
     dual_ee_pos_tracking_right = RewTerm(
         func=manipulation_mdp.dual_position_command_error_right,
-        weight=0,  # Initially 0, will be set to -4 after 2000 steps
+        weight=-0.2,  # Initially 0, will be set to -4 after 2000 steps
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
             "command_name": "dual_ee_pose",
@@ -255,7 +255,7 @@ class G1Rewards(RewardsCfg):
     )   
     dual_ee_pos_tracking_fine_grained_left = RewTerm(
         func=manipulation_mdp.dual_position_command_error_tanh_left,
-        weight=0,  # Initially 0, will be set to 2 after 2000 steps
+        weight=0.1,  # Initially 0, will be set to 2 after 2000 steps
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
             "std": 0.05,
@@ -264,7 +264,7 @@ class G1Rewards(RewardsCfg):
     )
     dual_ee_pos_tracking_fine_grained_right = RewTerm(
         func=manipulation_mdp.dual_position_command_error_tanh_right,
-        weight=0,  # Initially 0, will be set to 2 after 2000 steps
+        weight=0.1,  # Initially 0, will be set to 2 after 2000 steps
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
             "std": 0.05,
@@ -273,7 +273,7 @@ class G1Rewards(RewardsCfg):
     )
     dual_ee_orientation_tracking_left = RewTerm(
         func=manipulation_mdp.dual_orientation_command_error_left,
-        weight=0,  # Initially 0, will be set to -2 after 2000 steps
+        weight=-0.1,  # Initially 0, will be set to -2 after 2000 steps
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
             "command_name": "dual_ee_pose",
@@ -281,7 +281,7 @@ class G1Rewards(RewardsCfg):
     )
     dual_ee_orientation_tracking_right = RewTerm(
         func=manipulation_mdp.dual_orientation_command_error_right,
-        weight=0,  # Initially 0, will be set to -2 after 2000 steps
+        weight=-0.1,  # Initially 0, will be set to -2 after 2000 steps
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
             "command_name": "dual_ee_pose",
