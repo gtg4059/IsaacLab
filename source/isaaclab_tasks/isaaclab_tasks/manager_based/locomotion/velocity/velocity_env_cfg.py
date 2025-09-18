@@ -248,7 +248,7 @@ class CommandsCfg:
         debug_vis=True,
         ranges=mdp.DualPoseCommandCfg.Ranges(
             pos_x=(0.30, 0.34),
-            pos_y=(0.13, 0.13),
+            pos_y=(0.10, 0.14),
             pos_z=(0.00, 0.24),# 0.02
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
@@ -988,13 +988,6 @@ class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
-    delete_table = CurrTerm(
-        func=mdp.delete_table_curriculum, 
-        params={
-            "asset_cfg": SceneEntityCfg("table"),
-            "num_steps": 40000
-        }
-    )
     
     # # Increase action_rate_l2 weight by 10x after 2000 steps
     # action_rate_l2_weight = CurrTerm(

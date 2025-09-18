@@ -23,7 +23,7 @@ class G1Rewards(RewardsCfg):
 
     base_position_l2 = RewTerm(func=mdp.base_position_l2, weight=-100.0)
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
-    base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-100.0, params={
+    base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-1000.0, params={
             "target_height": 0.74, 
         }
     )
@@ -292,14 +292,20 @@ class G1Rewards(RewardsCfg):
 @configclass
 class CurriculumCfg:
     """Curriculum terms for the MDP."""
-    
+    delete_table = CurrTerm(
+        func=mdp.delete_table_curriculum, 
+        params={
+            "asset_cfg": SceneEntityCfg("table"),
+            "num_steps": 40000
+        }
+    )
     # Enable dual_ee_pos_tracking_left after 2000 steps
     dual_ee_pos_tracking_left_curriculum = CurrTerm(
         func=mdp.modify_reward_weight,
         params={
             "term_name": "dual_ee_pos_tracking_left",
             "weight": -4,  # Original weight
-            "num_steps": 20000
+            "num_steps": 40000
         }
     )
     
@@ -309,7 +315,7 @@ class CurriculumCfg:
         params={
             "term_name": "dual_ee_pos_tracking_right",
             "weight": -4,  # Original weight
-            "num_steps": 20000
+            "num_steps": 40000
         }
     )
     
@@ -319,7 +325,7 @@ class CurriculumCfg:
         params={
             "term_name": "dual_ee_pos_tracking_fine_grained_left",
             "weight": 2,  # Original weight
-            "num_steps": 20000
+            "num_steps": 40000
         }
     )
     
