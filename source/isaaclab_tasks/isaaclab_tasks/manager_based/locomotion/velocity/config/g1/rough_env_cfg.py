@@ -132,8 +132,8 @@ class G1Rewards(RewardsCfg):
         func=mdp.joint_deviation_l1,
         weight=-20.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
-            "waist_roll_joint",
-            "waist_pitch_joint",
+            # "waist_roll_joint",
+            # "waist_pitch_joint",
             "waist_yaw_joint",
         ])},
     )
@@ -291,9 +291,9 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # self.events.push_robot = None
         # self.events.add_base_mass = None
         # self.events.reset_robot_joints.params["position_range"] = (1.0, 1.0)
-        self.events.base_external_force_torque.params["asset_cfg"].body_names = ["torso_link"]
+        self.events.base_external_force_torque.params["asset_cfg"].body_names = ["waist_yaw_link"]
         self.events.reset_base.params = {
-            "pose_range": {"x": (-2.00, -1.00), "y": (-0.00, -0.00), "yaw": (-0.0, 0.0)},
+            "pose_range": {"x": (-0.32, -0.32), "y": (-0.00, -0.00), "yaw": (-0.0, 0.0)},
             "velocity_range": {
                 "x": (0.0, 0.0),
                 "y": (0.0, 0.0),

@@ -144,7 +144,7 @@ def main():
     
     k = 0
     while simulation_app.is_running():
-        command = obs["Run"][:, 93:96]
+        command = obs["Run"][:, -3:]
         # action = policy_run(obs["Run"])
         # # print(env.keyboard.is_pressed("a"))
         # # print(obs["policy"][:, 93:96])
@@ -152,7 +152,7 @@ def main():
         # X, Y, A, B button: 3,4,5,6
         if env.gamepad.advance()[3]>0.5 and env.gamepad.advance()[5]>0:# and torch.norm(command)>0.4:
             # if abs(env.gamepad.advance()[0])<0.1 and abs(env.gamepad.advance()[1])<0.1:
-            action = policy_stop(torch.cat((obs["Run"][:,:93],command*0),dim=1))
+            action = policy_stop(torch.cat((obs["Run"][:,:-3],command*0),dim=1))
             # action = policy_run(obs["Run"])
         elif env.gamepad.advance()[3]<0 and env.gamepad.advance()[5]>0.5:# and torch.norm(command)<=0.4: 
             action = policy_run(obs["Run"])
@@ -184,13 +184,13 @@ def main():
 
 if __name__ == "__main__":
     main()
-    print("Saving robot data...")
-    # print(robot_data)
-    #  print(robot_data[0,2])
-    csv_filename = save_data_to_csv()
-    print(f"Data saved to: {csv_filename}")
-    simulation_app.update()
-    simulation_app.update()
-    simulation_app.update()
+    # print("Saving robot data...")
+    # # print(robot_data)
+    # #  print(robot_data[0,2])
+    # csv_filename = save_data_to_csv()
+    # print(f"Data saved to: {csv_filename}")
+    # simulation_app.update()
+    # simulation_app.update()
+    # simulation_app.update()
     simulation_app.close()
     
