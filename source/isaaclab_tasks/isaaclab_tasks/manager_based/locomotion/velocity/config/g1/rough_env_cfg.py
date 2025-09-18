@@ -15,7 +15,7 @@ import isaaclab_tasks.manager_based.manipulation.reach.mdp as manipulation_mdp
 # Pre-defined configs
 ##
 from isaaclab_assets import G1_DEX_FIX  # isort: skip
-
+skilltrans = 40000
 
 @configclass
 class G1Rewards(RewardsCfg):
@@ -292,11 +292,12 @@ class G1Rewards(RewardsCfg):
 @configclass
 class CurriculumCfg:
     """Curriculum terms for the MDP."""
+    
     delete_table = CurrTerm(
         func=mdp.delete_table_curriculum, 
         params={
             "asset_cfg": SceneEntityCfg("table"),
-            "num_steps": 40000
+            "num_steps": skilltrans
         }
     )
     # Enable dual_ee_pos_tracking_left after 2000 steps
@@ -305,7 +306,7 @@ class CurriculumCfg:
         params={
             "term_name": "dual_ee_pos_tracking_left",
             "weight": -4,  # Original weight
-            "num_steps": 40000
+            "num_steps": skilltrans
         }
     )
     
@@ -315,7 +316,7 @@ class CurriculumCfg:
         params={
             "term_name": "dual_ee_pos_tracking_right",
             "weight": -4,  # Original weight
-            "num_steps": 40000
+            "num_steps": skilltrans
         }
     )
     
@@ -325,7 +326,7 @@ class CurriculumCfg:
         params={
             "term_name": "dual_ee_pos_tracking_fine_grained_left",
             "weight": 2,  # Original weight
-            "num_steps": 40000
+            "num_steps": skilltrans
         }
     )
     
@@ -335,7 +336,7 @@ class CurriculumCfg:
         params={
             "term_name": "dual_ee_pos_tracking_fine_grained_right",
             "weight": 2,  # Original weight
-            "num_steps": 40000
+            "num_steps": skilltrans
         }
     )
     
@@ -345,7 +346,7 @@ class CurriculumCfg:
         params={
             "term_name": "dual_ee_orientation_tracking_left",
             "weight": -2,  # Original weight
-            "num_steps": 40000
+            "num_steps": skilltrans
         }
     )
     
@@ -355,7 +356,7 @@ class CurriculumCfg:
         params={
             "term_name": "dual_ee_orientation_tracking_right",
             "weight": -2,  # Original weight
-            "num_steps": 40000
+            "num_steps": skilltrans
         }
     )
 
