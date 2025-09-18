@@ -163,8 +163,8 @@ def joint_pos(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("
     """
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
+    # print("asset.data.joint_pos",torch.Tensor(asset.data.joint_pos[:, asset_cfg.joint_ids]).round(decimals=2))
     return asset.data.joint_pos[:, asset_cfg.joint_ids]
-
 
 def joint_pos_rel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """The joint positions of the asset w.r.t. the default joint positions.

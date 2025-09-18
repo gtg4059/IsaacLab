@@ -335,7 +335,7 @@ class CurriculumCfg:
         params={
             "term_name": "dual_ee_pos_tracking_fine_grained_right",
             "weight": 2,  # Original weight
-            "num_steps": 20000
+            "num_steps": 40000
         }
     )
     
@@ -345,7 +345,7 @@ class CurriculumCfg:
         params={
             "term_name": "dual_ee_orientation_tracking_left",
             "weight": -2,  # Original weight
-            "num_steps": 20000
+            "num_steps": 40000
         }
     )
     
@@ -355,7 +355,7 @@ class CurriculumCfg:
         params={
             "term_name": "dual_ee_orientation_tracking_right",
             "weight": -2,  # Original weight
-            "num_steps": 20000
+            "num_steps": 40000
         }
     )
 
