@@ -58,6 +58,7 @@ def bad_orientation(
     asset: RigidObject = env.scene[asset_cfg.name]
     return torch.acos(-asset.data.projected_gravity_b[:, 2]).abs() > limit_angle
 
+
 def bad_position(
     env: ManagerBasedRLEnv, limit_dist: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
@@ -171,3 +172,20 @@ def illegal_contact(env: ManagerBasedRLEnv, threshold: float, sensor_cfg: SceneE
     return torch.any(
         torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] > threshold, dim=1
     )
+
+def shoulder_roll_termination(
+    env: ManagerBasedRLEnv, threshold: float,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot", joint_names=["left_shoulder_roll_joint", "right_shoulder_roll_joint"]),
+) -> torch.Tensor:
+    """Terminate if shoulder roll joints are out of limits."""
+    asset: Articulation = env.scene[asset_cfg.name]
+    
+    # joint_ids를 사용하여 관절 위치 가져오기
+    joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]
+    
+    # 왼쪽과 오른쪽 관절 (joint_names 순서에 따라)
+    left_joint = joint_pos[:, 0]  # 첫 번째 관절 (left_shoulder_roll_joint)
+    right_joint = joint_pos[:, 1]  # 두 번째 관절 (right_shoulder_roll_joint)
+    
+    terminate = (left_joint < threshold) | (right_joint > -threshold)
+    return terminate

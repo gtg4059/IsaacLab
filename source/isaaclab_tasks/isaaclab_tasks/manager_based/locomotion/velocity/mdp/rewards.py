@@ -294,6 +294,75 @@ def object_is_contacted_obs(
     in_contact = contact_time > 0.0
     return 0.5*in_contact#*torch.sum(in_contact.int(), dim=1)
 
+def shoulder_roll_limit(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot", joint_names=[".*_shoulder_roll_joint"]),
+) -> torch.Tensor:
+    """
+    Penalize if specified shoulder roll joints are out of custom limits.
+    asset_cfg.joint_names로 관절을 지정할 수 있음.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    
+    # joint_deviation_l1 함수처럼 joint_ids를 사용
+    joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]
+    
+    # 관절별로 패널티 계산
+    penalties = torch.zeros(env.num_envs, device=asset.data.joint_pos.device)
+    
+    # joint_names가 있으면 이름으로 분기 처리
+    if asset_cfg.joint_names:
+        for i, name in enumerate(asset_cfg.joint_names):
+            if i < joint_pos.shape[1]:  # 인덱스 범위 확인
+                joint = joint_pos[:, i]
+                # 왼쪽은 0.1 미만, 오른쪽은 -0.1 초과일 때 패널티 (이름에 따라 분기)
+                if "left" in name:
+                    penalties -= (joint < 0.1).float()
+                elif "right" in name:
+                    penalties -= (joint > -0.1).float()
+    
+    return penalties
+
+def foot_flat_contact(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg,
+    sensor_cfg: SceneEntityCfg,
+) -> torch.Tensor:
+    """
+    full foot(ankle_roll_joint) contact
+    """
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    asset = env.scene[asset_cfg.name]
+
+    foot_orientations = asset.data.body_quat_w[:, asset_cfg.body_ids]  # [N, num_feet, 4]
+    num_envs, num_feet = foot_orientations.shape[:2]
+    foot_orientations_flat = foot_orientations.view(-1, 4)
+
+    from isaaclab.utils.math import euler_xyz_from_quat
+    roll, pitch, yaw = euler_xyz_from_quat(foot_orientations_flat)
+    foot_pitch = pitch.view(num_envs, num_feet)
+
+    pitch_reward = torch.exp(-torch.abs(foot_pitch) * 5.0)
+
+    contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
+    in_contact = (contact_time > 0.0).float()
+
+    pitch_reward_total = torch.sum(pitch_reward * in_contact, dim=1)
+
+
+    # forces = contact_sensor.data.net_forces_w_history[:, :, sensor_cfg.body_ids, :]
+    # strong_contact = forces.norm(dim=-1).max(dim=1)[0] > 1.0  # [N, num_feet]
+
+    z_axis_world = asset.data.body_state_w[:, asset_cfg.body_ids, 2]  # [N, num_feet]
+    flatness = torch.abs(z_axis_world)
+
+    # contact_reward_total = torch.sum(flatness * strong_contact.float(), dim=1)
+    contact_reward_total = torch.sum(flatness, dim=1)
+
+    total_reward = 0.6 * pitch_reward_total + 0.3 * contact_reward_total
+
+    return total_reward
 ##############################################################################
 
 def motion_equality_pros(
