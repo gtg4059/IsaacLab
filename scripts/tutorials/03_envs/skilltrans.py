@@ -115,6 +115,11 @@ def main():
     file_content3 = omni.client.read_file(policy_path3)[2]
     file3 = io.BytesIO(memoryview(file_content3).tobytes())
     policy_pickup = torch.jit.load(file3)
+    # pick_walk
+    policy_path4 = "./scripts/tutorials/03_envs/policy_pick_walk.pt"
+    file_content4 = omni.client.read_file(policy_path4)[2]
+    file4 = io.BytesIO(memoryview(file_content4).tobytes())
+    policy_pick_walk = torch.jit.load(file4)
     # env
     env_cfg = G1FlatEnvCfg_PLAY()
     
@@ -150,13 +155,13 @@ def main():
         # # print(obs["policy"][:, 93:96])
         # print("commands",env.gamepad.advance()[3],env.gamepad.advance()[5])
         # X, Y, A, B button: 3,4,5,6
-        if env.gamepad.advance()[3]>0.5 and env.gamepad.advance()[5]>0:# and torch.norm(command)>0.4:
+        if env.gamepad.advance()[3]>0.5 and env.gamepad.advance()[5]>0:# (0, 0)
             # if abs(env.gamepad.advance()[0])<0.1 and abs(env.gamepad.advance()[1])<0.1:
             action = policy_stop(torch.cat((obs["Run"][:,:-3],command*0),dim=1))
             # action = policy_run(obs["Run"])
-        elif env.gamepad.advance()[3]<0 and env.gamepad.advance()[5]>0.5:# and torch.norm(command)<=0.4: 
+        elif env.gamepad.advance()[3]<0 and env.gamepad.advance()[5]>0.5:# (1, 0)
             action = policy_run(obs["Run"])
-        elif env.gamepad.advance()[3]>0.5 and env.gamepad.advance()[5]<0: #pickup
+        elif env.gamepad.advance()[3]>0.5 and env.gamepad.advance()[5]<0: # (0, 1)
             # robot = env.scene["robot"]
             # joint_indices, joint_names = robot.find_joints(['.*_proximal_joint'])
             # joint_idx = robot.set_joint_effort_target(torch.zeros_like(robot.data.default_joint_pos[:,joint_indices]),joint_indices)
@@ -167,7 +172,8 @@ def main():
             # robot.set_joint_effort_target(efforts)
             # robot.write_data_to_sim()
             action = policy_pickup(obs["Pickup"])
-
+        elif env.gamepad.advance()[3]<0.0 and env.gamepad.advance()[5]<0.0: # (1, 1)
+            action = policy_pick_walk(obs["Pickup"])
         # data_row = {}
         # # for i in range(len(obs["Run"][0])):
         # #     data_row[f'obs_{i}'] = float(obs["Run"][0,i])

@@ -115,7 +115,7 @@ class MySceneCfg(InteractiveSceneCfg):
             # # 2-box
             # pos=[0.37, 0, 0.84], 
             # IKEA-box
-            pos=[2.33, 0, 0.82], 
+            pos=[0.33, 0, 0.82], 
             # # 3-box
             # pos=[0.39, 0, 0.86], 
             # # 4-box
@@ -202,7 +202,7 @@ class MySceneCfg(InteractiveSceneCfg):
 
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(2.40, 0.2, 0.78), rot=[0.707, 0, 0, -0.707]),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.40, 0.2, 0.78), rot=[0.707, 0, 0, -0.707]),
         spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table/table.usd",
         # init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.0, 0.05), rot=[0.707, 0, 0, -0.707]),
         # spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table_inst.usd",
@@ -279,7 +279,7 @@ class CommandsCfg:
         ranges=mdp.DualPoseCommandCfg.Ranges(
             pos_x=(0.30, 0.34),
             pos_y=(0.10, 0.14),
-            pos_z=(0.00, 0.24),# 0.02
+            pos_z=(0.16, 0.16),# 0.02
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
             yaw=(math.pi / 2.0, math.pi / 2.0),
