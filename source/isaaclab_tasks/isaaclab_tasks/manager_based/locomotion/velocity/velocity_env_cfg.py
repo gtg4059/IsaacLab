@@ -555,6 +555,7 @@ class RewardsCfg:
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
+    action_rate_arm = RewTerm(func=mdp.action_rate_arm, weight=-0.01)
     # feet_air_time = RewTerm(
     #     func=mdp.feet_air_time,
     #     weight=0.0,
