@@ -15,7 +15,7 @@ import isaaclab_tasks.manager_based.manipulation.reach.mdp as manipulation_mdp
 # Pre-defined configs
 ##
 from isaaclab_assets import G1_DEX_FIX  # isort: skip
-skilltrans = 40000
+skilltrans = 0
 
 @configclass
 class G1Rewards(RewardsCfg):
@@ -24,7 +24,7 @@ class G1Rewards(RewardsCfg):
     base_position_l2 = RewTerm(func=mdp.base_position_l2, weight=-100.0)
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     base_height_l2 = RewTerm(func=mdp.base_height_l2, weight=-1000.0, params={
-            "target_height": 0.74, 
+            "target_height": 0.76, 
         }
     )
  
@@ -90,7 +90,7 @@ class G1Rewards(RewardsCfg):
     # Penalize ankle joint limits
     dof_pos_limits = RewTerm(
         func=mdp.joint_pos_limits,
-        weight=-2.0,
+        weight=-10.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_ankle_pitch_joint", ".*_knee_joint",".*_ankle_roll_joint"])},
     )
 
@@ -357,6 +357,16 @@ class CurriculumCfg:
             "term_name": "dual_ee_orientation_tracking_right",
             "weight": -2,  # Original weight
             "num_steps": skilltrans
+        }
+    )
+
+    # Increase action_rate_l2 weight after specified steps
+    action_rate_l2_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={
+            "term_name": "action_rate_l2",
+            "weight": -0.5,  # Increased weight from -0.3
+            "num_steps": skilltrans  # After 10000 steps
         }
     )
 

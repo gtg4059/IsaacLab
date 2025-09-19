@@ -249,7 +249,7 @@ class CommandsCfg:
         ranges=mdp.DualPoseCommandCfg.Ranges(
             pos_x=(0.30, 0.34),
             pos_y=(0.10, 0.14),
-            pos_z=(0.04, 0.20),# 0.02
+            pos_z=(0.06, 0.24),# 0.02
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
             yaw=(math.pi / 2.0, math.pi / 2.0),
@@ -988,16 +988,6 @@ class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
-    
-    # # Increase action_rate_l2 weight by 10x after 2000 steps
-    # action_rate_l2_weight = CurrTerm(
-    #     func=mdp.modify_reward_weight,
-    #     params={
-    #         "term_name": "action_rate_l2",
-    #         "weight": -0.2,  # 10x increase from -0.05
-    #         "num_steps": 50000
-    #     }
-    # )
 
     # modify_reset_joint_pos = CurrTerm(
     #     func=mdp.modify_term_cfg,
