@@ -272,9 +272,9 @@ class CommandsCfg:
         resampling_time_range=(5.0, 10.0),
         debug_vis=True,
         ranges=mdp.DualPoseCommandCfg.Ranges(
-            pos_x=(0.30, 0.34),
-            pos_y=(0.10, 0.14),
-            pos_z=(0.16, 0.16),# 0.02
+            pos_x=(0.31, 0.31),
+            pos_y=(0.12, 0.12),
+            pos_z=(0.20, 0.20),# 0.02
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
             yaw=(math.pi / 2.0, math.pi / 2.0),

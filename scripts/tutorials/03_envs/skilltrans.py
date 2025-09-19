@@ -175,8 +175,11 @@ def main():
             # obs["Pickup"][:,:96] = 0.06
             action = policy_pickup(x)
         elif env.gamepad.advance()[3]<0.0 and env.gamepad.advance()[5]<0.0 and env.gamepad.advance()[6]>0.0: # (1, 1, 0)
-            print(obs["PickWalk"][:,60:87])
-            action = policy_pick_walk(obs["PickWalk"])
+            # print(obs["PickWalk"][:,60:87])
+            x = obs["PickWalk"].clone()
+            x[:,92] = 0.06
+            x[:,99] = 0.06
+            action = policy_pick_walk(x)
         # data_row = {}
         # # for i in range(len(obs["Run"][0])):
         # #     data_row[f'obs_{i}'] = float(obs["Run"][0,i])
