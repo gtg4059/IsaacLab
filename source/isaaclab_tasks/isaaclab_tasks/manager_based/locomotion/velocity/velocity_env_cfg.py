@@ -799,18 +799,18 @@ class EventCfg:
         },
     )
 
-    physics_material_table = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("table"),
-            "static_friction_range": (0.1, 0.2),
-            "dynamic_friction_range": (0.1, 0.2),
-            "restitution_range": (0.0, 0.0),
-            "num_buckets": 64,
-            "make_consistent": True,
-        },
-    )
+    # physics_material_table = EventTerm(
+    #     func=mdp.randomize_rigid_body_material,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("table"),
+    #         "static_friction_range": (0.1, 0.2),
+    #         "dynamic_friction_range": (0.1, 0.2),
+    #         "restitution_range": (0.0, 0.0),
+    #         "num_buckets": 64,
+    #         "make_consistent": True,
+    #     },
+    # )
 
     reset_box_position = EventTerm(
         func=mdp.reset_root_state_uniform,
@@ -829,17 +829,6 @@ class EventCfg:
                 "roll": (-0.0, 0.0),
                 "pitch": (-0.0, 0.0),
                 "yaw": (-0.0, 0.0),
-            },
-        },
-    )
-
-    reset_table_position = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("table"),
-            "pose_range": {"z": (-0.06, 0.06)},
-            "velocity_range": {
             },
         },
     )
