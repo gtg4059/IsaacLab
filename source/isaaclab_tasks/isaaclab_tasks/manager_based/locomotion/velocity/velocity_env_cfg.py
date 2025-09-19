@@ -202,7 +202,7 @@ class CommandsCfg:
         ranges=mdp.DualPoseCommandCfg.Ranges(
             pos_x=(0.30, 0.34),
             pos_y=(0.10, 0.12),
-            pos_z=(0.13, 0.17),
+            pos_z=(0.00, 0.17),#(0.13, 0.17),
             roll=(-0.0, 0.0),
             pitch=(-0.0, 0.0),
             yaw=(math.pi / 2.0, math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
@@ -453,7 +453,7 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})# 3
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})
         # left_ee_pose_command = ObsTerm(
         #     func=mdp.generated_commands,
         #     params={"command_name": "left_ee_pose"},
@@ -878,18 +878,18 @@ class TerminationsCfg:
             )
         }
     )
-    # hand_contact = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_yaw_link"), "threshold": 100.0},
-    # )
-    # fingertip_contact = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_intermediate"), "threshold": 100.0},
-    # )
-    # finger_contact = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_proximal"), "threshold": 100.0},
-    # )
+    hand_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_yaw_link"), "threshold": 100.0},
+    )
+    fingertip_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_intermediate"), "threshold": 100.0},
+    )
+    finger_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_proximal"), "threshold": 100.0},
+    )
 
 @configclass
 class CurriculumCfg:

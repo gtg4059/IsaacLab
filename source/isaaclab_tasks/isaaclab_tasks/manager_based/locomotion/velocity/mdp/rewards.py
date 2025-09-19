@@ -363,6 +363,36 @@ def foot_flat_contact(
     total_reward = 0.6 * pitch_reward_total + 0.3 * contact_reward_total
 
     return total_reward
+
+
+def feet_air_time_balance(
+    env: ManagerBasedRLEnv, 
+    command_name: str, 
+    threshold: float, 
+    sensor_cfg: SceneEntityCfg
+) -> torch.Tensor:
+    """Reward balanced air time between left and right feet.
+    
+    This function rewards the agent for having similar air time between left and right feet,
+    promoting balanced gait patterns.
+    """
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    
+    # Get air time for both feet
+    air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]  # [N, 2]
+    
+    # Compute difference between left and right foot air time
+    left_air_time = air_time[:, 0]   # Left foot
+    right_air_time = air_time[:, 1]  # Right foot
+    
+    # Balance reward: penalize large differences
+    air_time_diff = torch.abs(left_air_time - right_air_time)
+    balance_reward = torch.exp(-air_time_diff / threshold)  # Higher reward for smaller differences
+    
+    # Only reward when robot is moving
+    is_moving = torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) > 0.1
+    
+    return balance_reward * is_moving.float()
 ##############################################################################
 
 def motion_equality_pros(
