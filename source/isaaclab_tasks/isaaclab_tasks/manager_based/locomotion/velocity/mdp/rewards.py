@@ -165,7 +165,7 @@ def object_is_contacted(
     # return torch.sum(contact.int()-0.00002*contact_force**2, dim=1)
     # print("body_names:",sensor_cfg.body_names)
     # print("contact:",contact)
-    # print("contact_force:",contact_force)
+    print("contact_force:",contact_force)
     # print(0.00005*not_allow_contact*contact_force**2)
     # print(contact_force)
     return torch.sum(contact.int()-0.0000001*(contact_force**2), dim=1)

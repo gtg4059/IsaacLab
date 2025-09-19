@@ -106,56 +106,51 @@ class MySceneCfg(InteractiveSceneCfg):
         ),
     )
 
-    # Set Cube as object
+    # # Set Cube as object
+    # object = RigidObjectCfg(
+    #     prim_path="{ENV_REGEX_NS}/Object",
+    #     init_state=RigidObjectCfg.InitialStateCfg(
+    #         pos=[0.31, 0, 0.82], 
+    #         rot=[1.0, 0.0 ,0.0, 0.0]),
+    #     spawn=sim_utils.UsdFileCfg(
+    #         usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+    #         scale=((6.33,4.17,2.5)), # 380,250,150
+    #         mass_props=sim_utils.MassPropertiesCfg(mass=0.5),
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
+    #             # kinematic_enabled=True,
+    #             solver_position_iteration_count=8,
+    #             solver_velocity_iteration_count=1,
+    #             max_angular_velocity=1000.0,
+    #             max_linear_velocity=1000.0,
+    #             max_depenetration_velocity=5.0,
+    #             disable_gravity=False,
+    #         ),
+    #     ),
+    # )
+
+    # #Set Cube as object
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
         init_state=RigidObjectCfg.InitialStateCfg(
-            # # white-box
-            # pos=[0.43, 0, 0.86], 
-            # # 2-box
-            # pos=[0.37, 0, 0.84], 
-            # IKEA-box
-            pos=[0.33, 0, 0.82], 
-            # # 3-box
-            # pos=[0.39, 0, 0.86], 
-            # # 4-box
-            # pos=[0.43, 0, 0.93], 
+            pos=[0.32, 0, 0.82],# 0.37, 0, 0.82
             rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
-            # # white box
-            # usd_path="/home/robotics/IsaacLab/source/isaaclab_assets/data/Robots/DexCube.usd",
-            # scale=(4.37,5.9,3.0), # 262,350,180
-            # # 2-box
-            # usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            # scale=((3.0,4.0,2.5)), # 180,240,150
-            # IKEA-box
-            usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            scale=((6.33,4.17,2.5)), # 380,250,150
-            # # white wing IKEA-box
-            # usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
-            # scale=(13.57, 7.576, 5.357), # 380,250,150
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.5),
+            # white wing-box
+            usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
+            scale=(11.5,7.78,5.357),# 380,250,150
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 # kinematic_enabled=True,
-                solver_position_iteration_count=8,
+                solver_position_iteration_count=8, #16,
                 solver_velocity_iteration_count=1,
                 max_angular_velocity=1000.0,
                 max_linear_velocity=1000.0,
                 max_depenetration_velocity=5.0,
                 disable_gravity=False,
             ),
-            # activate_contact_sensors=True,
         ),
     )
-
-    # obj_init = AssetBaseCfg(
-    #     prim_path="{ENV_REGEX_NS}/Object_init",
-    #     init_state=AssetBaseCfg.InitialStateCfg(pos=[0.36, 0, 0.70], rot=[1, 0, 0, 0]),
-    #     spawn=sim_utils.DomeLightCfg(
-    #         intensity=0.0,
-    #         texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
-    #     ),
-    # )
+    
 
     # add cube
     # object_init: RigidObjectCfg = RigidObjectCfg(
@@ -431,6 +426,103 @@ class ObservationsCfg:
             self.concatenate_terms = True
 
     @configclass
+    class PickWalkCfg(ObsGroup):
+        """Observations for policy group."""
+
+        # observation terms (order preserved)
+        base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2),scale=0.25)
+        projected_gravity = ObsTerm(
+            func=mdp.projected_gravity,
+            noise=Unoise(n_min=-0.05, n_max=0.05),
+        )
+        joint_pos = ObsTerm(func=mdp.joint_pos, 
+                            params={"asset_cfg": SceneEntityCfg("robot",
+                                    joint_names=[
+                                                'left_hip_pitch_joint', 
+                                                'left_hip_roll_joint', 
+                                                'left_hip_yaw_joint', 
+                                                'left_knee_joint', 
+                                                'left_ankle_pitch_joint', 
+                                                'left_ankle_roll_joint', 
+                                                'right_hip_pitch_joint', 
+                                                'right_hip_roll_joint', 
+                                                'right_hip_yaw_joint', 
+                                                'right_knee_joint', 
+                                                'right_ankle_pitch_joint', 
+                                                'right_ankle_roll_joint',
+                                                # G1_29_no_hand
+                                                "waist_yaw_joint",
+                                                # "waist_roll_joint",
+                                                # "waist_pitch_joint",
+                                                "left_shoulder_pitch_joint",
+                                                "left_shoulder_roll_joint",
+                                                "left_shoulder_yaw_joint",
+                                                "left_elbow_joint",
+                                                "left_wrist_roll_joint",
+                                                "left_wrist_pitch_joint",
+                                                "left_wrist_yaw_joint",
+                                                "right_shoulder_pitch_joint",
+                                                "right_shoulder_roll_joint",
+                                                "right_shoulder_yaw_joint",
+                                                "right_elbow_joint",
+                                                "right_wrist_roll_joint",
+                                                "right_wrist_pitch_joint",
+                                                "right_wrist_yaw_joint",
+                                                ],
+                                    preserve_order=True,
+                                    )},
+                            noise=Unoise(n_min=-0.01, n_max=0.01),scale=1.0)
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, 
+                            params={"asset_cfg": SceneEntityCfg("robot",
+                                    joint_names=[
+                                                'left_hip_pitch_joint', 
+                                                'left_hip_roll_joint', 
+                                                'left_hip_yaw_joint', 
+                                                'left_knee_joint', 
+                                                'left_ankle_pitch_joint', 
+                                                'left_ankle_roll_joint', 
+                                                'right_hip_pitch_joint', 
+                                                'right_hip_roll_joint', 
+                                                'right_hip_yaw_joint', 
+                                                'right_knee_joint', 
+                                                'right_ankle_pitch_joint', 
+                                                'right_ankle_roll_joint',
+                                                # G1_29_no_hand
+                                                "waist_yaw_joint",
+                                                # "waist_roll_joint",
+                                                # "waist_pitch_joint",
+                                                "left_shoulder_pitch_joint",
+                                                "left_shoulder_roll_joint",
+                                                "left_shoulder_yaw_joint",
+                                                "left_elbow_joint",
+                                                "left_wrist_roll_joint",
+                                                "left_wrist_pitch_joint",
+                                                "left_wrist_yaw_joint",
+                                                "right_shoulder_pitch_joint",
+                                                "right_shoulder_roll_joint",
+                                                "right_shoulder_yaw_joint",
+                                                "right_elbow_joint",
+                                                "right_wrist_roll_joint",
+                                                "right_wrist_pitch_joint",
+                                                "right_wrist_yaw_joint",
+                                                ],
+                                    preserve_order=True,
+                                    )},
+                            noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
+        actions = ObsTerm(func=mdp.last_action)
+        #####################################################################################
+        # velocity_commands = ObsTerm(func=keyboard_commands)
+        velocity_commands = ObsTerm(func=gamepad_commands)
+        dual_ee_pose_command = ObsTerm(
+            func=mdp.generated_commands,
+            params={"command_name": "dual_ee_pose"},
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+
+    @configclass
     class RunCfg(ObsGroup):
         """Observations for policy group."""
 
@@ -526,6 +618,7 @@ class ObservationsCfg:
 
     # observation groups
     Pickup: PickupCfg = PickupCfg()
+    PickWalk: PickWalkCfg = PickWalkCfg()
     Run: RunCfg = RunCfg()
 
 
@@ -818,10 +911,10 @@ class EventCfg:
         params={
             "asset_cfg": SceneEntityCfg("object"),
             # 4-box
-            "pose_range": {"x": (-0.05, 0.05), "y": (-0.02, 0.02), "yaw": (-0.02, 0.02)},
+            # "pose_range": {"x": (-0.05, 0.05), "y": (-0.02, 0.02), "yaw": (-0.02, 0.02)},
             # # white box
             # "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05), "yaw": (-0.0, 0.0)},
-            # "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
+            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "yaw": (-0.0, 0.0)},
             "velocity_range": {
                 "x": (-0.0, 0.0),
                 "y": (-0.0, 0.0),
@@ -979,7 +1072,7 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 4
-        self.episode_length_s = 20.0
+        self.episode_length_s = 20000.0
         # simulation settings
         self.sim.dt = 0.005
         self.sim.render_interval = self.decimation
@@ -988,7 +1081,7 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physx.bounce_threshold_velocity = 0.1
         # eye: tuple[float, float, float] = (7.5, 7.5, 7.5),
         # lookat: tuple[float, float, float] = (0, 0, 0),
-        self.viewer.eye = (-2.0, 0, 5.0)
+        self.viewer.eye = (2.5, 2.5, 2.5)#(-2.0, 0, 5.0)
         # update sensor update periods
         # we tick all the sensors based on the smallest update period (physics update period)
         if self.scene.contact_forces is not None:

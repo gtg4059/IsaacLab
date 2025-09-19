@@ -155,25 +155,28 @@ def main():
         # # print(obs["policy"][:, 93:96])
         # print("commands",env.gamepad.advance()[3],env.gamepad.advance()[5])
         # X, Y, A, B button: 3,4,5,6
-        if env.gamepad.advance()[3]>0.5 and env.gamepad.advance()[5]>0:# (0, 0)
+        # print(env.gamepad.advance()[3],env.gamepad.advance()[5],env.gamepad.advance()[6])
+        if env.gamepad.advance()[3]>0.0 and env.gamepad.advance()[5]>0 and env.gamepad.advance()[6]>0.0:# (0, 0, 0)
             # if abs(env.gamepad.advance()[0])<0.1 and abs(env.gamepad.advance()[1])<0.1:
             action = policy_stop(torch.cat((obs["Run"][:,:-3],command*0),dim=1))
             # action = policy_run(obs["Run"])
-        elif env.gamepad.advance()[3]<0 and env.gamepad.advance()[5]>0.5:# (1, 0)
+        elif env.gamepad.advance()[3]<0 and env.gamepad.advance()[5]>0.0 and env.gamepad.advance()[6]>0.0:# (1, 0, 0)
             action = policy_run(obs["Run"])
-        elif env.gamepad.advance()[3]>0.5 and env.gamepad.advance()[5]<0: # (0, 1)
-            # robot = env.scene["robot"]
-            # joint_indices, joint_names = robot.find_joints(['.*_proximal_joint'])
-            # joint_idx = robot.set_joint_effort_target(torch.zeros_like(robot.data.default_joint_pos[:,joint_indices]),joint_indices)
-            # num_envs = env.num_envs
-            # num_joints = robot.num_joints
-            # efforts = 0.02*torch.ones((num_envs, num_joints), device=env.device)
-            # efforts[:, joint_idx] = 0.02
-            # robot.set_joint_effort_target(efforts)
-            # robot.write_data_to_sim()
+        elif env.gamepad.advance()[3]>0.0 and env.gamepad.advance()[5]<0 and env.gamepad.advance()[6]>0.0: # (0, 1, 0) up
+            print(obs["Pickup"][:,60:87])
             action = policy_pickup(obs["Pickup"])
-        elif env.gamepad.advance()[3]<0.0 and env.gamepad.advance()[5]<0.0: # (1, 1)
-            action = policy_pick_walk(obs["Pickup"])
+        elif env.gamepad.advance()[3]>0.0 and env.gamepad.advance()[5]<0.0 and env.gamepad.advance()[6]<0.0: # (0, 1, 1) down
+            x = obs["Pickup"].clone()
+            x[:,89] = 0.06
+            x[:,96] = 0.06
+            # print("down")
+            # print(obs["Pickup"][:,89],obs["Pickup"][:,96])
+            # obs["Pickup"][:,89] = 0.06
+            # obs["Pickup"][:,:96] = 0.06
+            action = policy_pickup(x)
+        elif env.gamepad.advance()[3]<0.0 and env.gamepad.advance()[5]<0.0 and env.gamepad.advance()[6]>0.0: # (1, 1, 0)
+            print(obs["PickWalk"][:,60:87])
+            action = policy_pick_walk(obs["PickWalk"])
         # data_row = {}
         # # for i in range(len(obs["Run"][0])):
         # #     data_row[f'obs_{i}'] = float(obs["Run"][0,i])
