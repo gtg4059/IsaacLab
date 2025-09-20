@@ -376,8 +376,8 @@ G1_CFG = ArticulationCfg(
 
 G1_DEX_FIX = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_DFQ_lock/g1_29dof_rev_1_0_with_inspire_hand_DFQ_lock.usd",
-        # usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_th/g1_29dof_rev_1_0_with_inspire_hand_th.usd",
+        # usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_DFQ_lock/g1_29dof_rev_1_0_with_inspire_hand_DFQ_lock.usd",
+        usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_th/g1_29dof_rev_1_0_with_inspire_hand_th.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -441,8 +441,8 @@ G1_DEX_FIX = ArticulationCfg(
             'right_ankle_pitch_joint': -0.2,
             'right_ankle_roll_joint': 0.0,
             # 29
-            # "waist_pitch_joint":0.0,
-            # "waist_roll_joint":0.0,
+            "waist_pitch_joint":0.0,
+            "waist_roll_joint":0.0,
             "waist_yaw_joint":0.0,
 
             'left_shoulder_pitch_joint': 0.0, #0.4,
@@ -509,8 +509,8 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_hip_pitch_joint",
                 ".*_knee_joint",
                 "waist_yaw_joint",
-                # "waist_roll_joint",
-                # "waist_pitch_joint",
+                "waist_roll_joint",
+                "waist_pitch_joint",
             ],
             effort_limit={
                 ".*_hip_yaw_joint": 88.0,
@@ -518,8 +518,8 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_hip_pitch_joint": 88.0,
                 ".*_knee_joint": 139.0,
                 "waist_yaw_joint": 88.0,
-                # "waist_roll_joint": 50.0,
-                # "waist_pitch_joint": 50.0,
+                "waist_roll_joint": 50.0,
+                "waist_pitch_joint": 50.0,
             },
             velocity_limit={
                 ".*_hip_yaw_joint": 32.0,
@@ -527,8 +527,8 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_hip_pitch_joint": 32.0,
                 ".*_knee_joint": 20.0,
                 "waist_yaw_joint": 32.0,
-                # "waist_roll_joint": 37.0,
-                # "waist_pitch_joint": 37.0,
+                "waist_roll_joint": 37.0,
+                "waist_pitch_joint": 37.0,
             },
             stiffness={
                 ".*_hip_yaw_joint": 100.0,
@@ -536,8 +536,8 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_hip_pitch_joint": 100.0,
                 ".*_knee_joint": 150.0,
                 "waist_yaw_joint": 100,
-                # "waist_roll_joint": 100,
-                # "waist_pitch_joint": 100,
+                "waist_roll_joint": 100,
+                "waist_pitch_joint": 100,
             },
             damping={
                 ".*_hip_yaw_joint": 2.0,
@@ -545,8 +545,8 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_hip_pitch_joint": 2.0,
                 ".*_knee_joint": 4.0,
                 "waist_yaw_joint": 2.0,
-                # "waist_roll_joint": 2.0,
-                # "waist_pitch_joint": 2.0,
+                "waist_roll_joint": 2.0,
+                "waist_pitch_joint": 2.0,
             },
             armature={
                 ".*_hip_.*": 0.01,
