@@ -133,6 +133,25 @@ class G1Rewards(RewardsCfg):
     #         )
     #     },
     # )
+    set_robot_joints_targets = RewTerm(
+        func=mdp.reset_joints_targets,
+        weight=-0.00001,
+        params={
+            "asset_cfg": SceneEntityCfg("robot",
+                joint_names=[
+                    ".*_shoulder_pitch_joint",
+                    ".*_shoulder_roll_joint",
+                    ".*_shoulder_yaw_joint",
+                    ".*_elbow_joint",
+                    ".*_wrist_roll_joint",
+                    ".*_wrist_pitch_joint",
+                    ".*_wrist_yaw_joint",
+                            ],
+                preserve_order=True,
+            )
+        },
+    )
+
 
     contact_forces = RewTerm(
         func=mdp.contact_forces_minimize,

@@ -91,7 +91,7 @@ class MySceneCfg(InteractiveSceneCfg):
 class CommandsCfg:
     """Command specifications for the MDP."""
 
-    base_velocity = mdp.UniformVelocityCommandCfg(
+    base_velocity = mdp.UniformVelocityTargetCommandCfg(
         asset_name="robot",
         resampling_time_range=(10.0, 10.0),
         rel_standing_envs=0.02,
@@ -99,7 +99,7 @@ class CommandsCfg:
         heading_command=True,
         heading_control_stiffness=0.5,
         debug_vis=True,
-        ranges=mdp.UniformVelocityCommandCfg.Ranges(
+        ranges=mdp.UniformVelocityTargetCommandCfg.Ranges(
             lin_vel_x=(-1.0, 1.0), 
             lin_vel_y=(-1.0, 1.0), 
             ang_vel_z=(-1.0, 1.0), 
