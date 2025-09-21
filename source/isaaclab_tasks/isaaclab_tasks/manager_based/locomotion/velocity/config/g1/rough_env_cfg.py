@@ -365,7 +365,7 @@ class CurriculumCfg:
         func=mdp.modify_reward_weight,
         params={
             "term_name": "action_rate_l2",
-            "weight": -0.2,  # Increased weight from -0.3
+            "weight": -0.5,  # Increased weight from -0.3
             "num_steps": skilltrans*2  # After 10000 steps
         }
     )
