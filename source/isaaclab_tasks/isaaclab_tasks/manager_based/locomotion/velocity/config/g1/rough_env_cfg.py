@@ -123,7 +123,7 @@ class G1Rewards(RewardsCfg):
                     # ".*_elbow_joint",
                     ".*_wrist_yaw_joint",
                     # ".*_wrist_pitch_joint",
-                    ".*_wrist_roll_joint",
+                    # ".*_wrist_roll_joint",
                 ],
             )
         },
