@@ -15,7 +15,7 @@ import isaaclab_tasks.manager_based.manipulation.reach.mdp as manipulation_mdp
 # Pre-defined configs
 ##
 from isaaclab_assets import G1_DEX_FIX  # isort: skip
-skilltrans = 0
+skilltrans = 40000
 
 @configclass
 class G1Rewards(RewardsCfg):
