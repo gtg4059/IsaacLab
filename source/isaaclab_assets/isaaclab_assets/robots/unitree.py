@@ -374,8 +374,10 @@ G1_CFG = ArticulationCfg(
 )
 """Configuration for the Unitree G1 Humanoid robot."""
 
+
 G1_DEX_FIX = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
+        # usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_DFQ_lock/g1_29dof_rev_1_0_with_inspire_hand_cam.usd",
         usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_th/g1_29dof_rev_1_0_with_inspire_hand_th.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
@@ -424,38 +426,11 @@ G1_DEX_FIX = ArticulationCfg(
             'right_wrist_roll_joint': 0.2,
             'right_wrist_pitch_joint': 0.0,
             'right_wrist_yaw_joint': 0.0,
-            # # after standing
-            # 'left_hip_pitch_joint': -0.0800,
-            # 'left_hip_roll_joint': 0.1300,
-            # 'left_hip_yaw_joint': -0.03,
-            # 'left_knee_joint': 0.26,
-            # 'left_ankle_pitch_joint': -0.19,
-            # 'left_ankle_roll_joint': -0.03,
-            # 'right_hip_pitch_joint': -0.12,
-            # 'right_hip_roll_joint': -0.07,
-            # 'right_hip_yaw_joint': 0.03,
-            # 'right_knee_joint': 0.36,
-            # 'right_ankle_pitch_joint': -0.25,
-            # 'right_ankle_roll_joint': 0.06,  
-            # "waist_pitch_joint":0.01,
-            # "waist_roll_joint":-0.01,
-            # "waist_yaw_joint":-0.01,
-            # 'left_shoulder_pitch_joint': -0.01,
-            # 'left_shoulder_roll_joint': 0.1,
-            # 'left_shoulder_yaw_joint': 0.11,
-            # 'left_elbow_joint': -0.01,
-            # 'left_wrist_roll_joint': -0.2,
-            # 'left_wrist_pitch_joint': -0.01,
-            # 'left_wrist_yaw_joint': -0.0,
-            # 'right_shoulder_pitch_joint': -0.01,
-            # 'right_shoulder_roll_joint': -0.11,
-            # 'right_shoulder_yaw_joint': -0.11,
-            # 'right_elbow_joint': 0.0,
-            # 'right_wrist_roll_joint': 0.19,
-            # 'right_wrist_pitch_joint': -0.0,
-            # 'right_wrist_yaw_joint': 0.01,
             # finger
-            ".*_proximal_joint":0.3,
+            ".*_index_proximal_joint":0.2,
+            ".*_middle_proximal_joint":0.0,
+            ".*_pinky_proximal_joint":0.2,
+            ".*_ring_proximal_joint":0.2,
         },
         joint_vel={".*": 0.0},
     ),
@@ -577,10 +552,10 @@ G1_DEX_FIX = ArticulationCfg(
             joint_names_expr=[
                 '.*_proximal_joint'
             ],
-            effort_limit=1,
-            velocity_limit=0.5,
-            stiffness=10.0,
-            damping=0.5,
+            effort_limit=25,
+            velocity_limit=37.0,
+            stiffness=50.0,
+            damping=2.0,
             armature={
                 '.*_proximal_joint': 0.001,
             },
