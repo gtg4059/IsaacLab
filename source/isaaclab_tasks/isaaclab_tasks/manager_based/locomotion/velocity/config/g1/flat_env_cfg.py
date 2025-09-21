@@ -39,6 +39,9 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
         # # disable randomization for play
+        self.commands.dual_ee_pose.ranges.pos_x = (0.31, 0.31)
+        self.commands.dual_ee_pose.ranges.pos_y = (0.12, 0.12)
+        self.commands.dual_ee_pose.ranges.pos_z = (0.10, 0.10)
         # self.observations.policy.enable_corruption = False
         # self.events.randomize_friction_hand.params["static_friction_range"] = (0.6, 1.1)
         # self.events.randomize_friction_hand.params["dynamic_friction_range"] = (0.6, 1.1)
