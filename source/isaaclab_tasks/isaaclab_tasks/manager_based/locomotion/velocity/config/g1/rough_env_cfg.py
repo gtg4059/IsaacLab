@@ -110,6 +110,20 @@ class G1Rewards(RewardsCfg):
     #     },
     # )
 
+    set_robot_joints_targets = RewTerm(
+        func=mdp.reset_joints_targets,
+        weight=-0.00001,
+        params={
+            "asset_cfg": SceneEntityCfg("robot",
+                joint_names=[
+                    "waist_roll_joint",
+                    "waist_pitch_joint",
+                            ],
+                preserve_order=True,
+            )
+        },
+    )
+
     contact_forces = RewTerm(
         func=mdp.contact_forces_minimize,
         weight=-0.00000005,
