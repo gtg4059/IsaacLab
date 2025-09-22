@@ -202,6 +202,8 @@ class G1Rewards(RewardsCfg):
             "asset_cfg": SceneEntityCfg("robot",
                 joint_names=[
                     ".*_proximal_joint",
+                    "waist_roll_joint",
+                    "waist_pitch_joint",
                     # ".*_index_proximal_joint",
                     # ".*_middle_proximal_joint",
                     # ".*_pinky_proximal_joint",
