@@ -34,23 +34,23 @@ from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
 ##
 # Scene definition
 ##
-import torch
-from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
-from isaaclab.devices import Se2Keyboard
-from isaaclab.devices.keyboard.se2_keyboard import Se2KeyboardCfg
-from isaaclab.devices.gamepad import Se2bGamepad, Se2bGamepadCfg
-def gamepad_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
-    """게임패드(조이스틱) 입력을 받아옴."""
-    if not hasattr(env, "gamepad"):
-        env.gamepad = Se2bGamepad(Se2bGamepadCfg(
-            # pos_sensitivity=2.0,
-            # rot_sensitivity=0.25,
-            v_x_sensitivity=1.0, v_y_sensitivity=1.0, omega_z_sensitivity=0.25, dead_zone=0.1
-        ))
-        env.gamepad.reset()
-    command = env.gamepad.advance()
-    # print(command)
-    return torch.tensor([command[0],-command[1],-command[2]], device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
+# import torch
+# from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
+# from isaaclab.devices import Se2Keyboard
+# from isaaclab.devices.keyboard.se2_keyboard import Se2KeyboardCfg
+# from isaaclab.devices.gamepad import Se2bGamepad, Se2bGamepadCfg
+# def gamepad_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
+#     """게임패드(조이스틱) 입력을 받아옴."""
+#     if not hasattr(env, "gamepad"):
+#         env.gamepad = Se2bGamepad(Se2bGamepadCfg(
+#             # pos_sensitivity=2.0,
+#             # rot_sensitivity=0.25,
+#             v_x_sensitivity=1.0, v_y_sensitivity=1.0, omega_z_sensitivity=0.25, dead_zone=0.1
+#         ))
+#         env.gamepad.reset()
+#     command = env.gamepad.advance()
+#     # print(command)
+#     return torch.tensor([command[0],-command[1],-command[2]], device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
 
 
 @configclass
@@ -225,8 +225,8 @@ class ObservationsCfg:
                                                 'right_ankle_roll_joint',
                                                 # G1_29_no_hand
                                                 "waist_yaw_joint",
-                                                "waist_roll_joint",
-                                                "waist_pitch_joint",
+                                                # "waist_roll_joint",
+                                                # "waist_pitch_joint",
                                                 "left_shoulder_pitch_joint",
                                                 "left_shoulder_roll_joint",
                                                 "left_shoulder_yaw_joint",
@@ -262,8 +262,8 @@ class ObservationsCfg:
                                                 'right_ankle_roll_joint',
                                                 # G1_29_no_hand
                                                 "waist_yaw_joint",
-                                                "waist_roll_joint",
-                                                "waist_pitch_joint",
+                                                # "waist_roll_joint",
+                                                # "waist_pitch_joint",
                                                 "left_shoulder_pitch_joint",
                                                 "left_shoulder_roll_joint",
                                                 "left_shoulder_yaw_joint",
@@ -284,8 +284,8 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #########################################################################################
-        velocity_commands = ObsTerm(func=gamepad_commands)
-        # velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))# 3
+        # velocity_commands = ObsTerm(func=gamepad_commands)
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))# 3
         # left_ee_pose_command = ObsTerm(
         #     func=mdp.generated_commands,
         #     params={"command_name": "left_ee_pose"},
@@ -325,8 +325,8 @@ class ObservationsCfg:
                                                 'right_ankle_roll_joint',
                                                 # G1_29_no_hand
                                                 "waist_yaw_joint",
-                                                "waist_roll_joint",
-                                                "waist_pitch_joint",
+                                                # "waist_roll_joint",
+                                                # "waist_pitch_joint",
                                                 "left_shoulder_pitch_joint",
                                                 "left_shoulder_roll_joint",
                                                 "left_shoulder_yaw_joint",
@@ -362,8 +362,8 @@ class ObservationsCfg:
                                                 'right_ankle_roll_joint',
                                                 # G1_29_no_hand
                                                 "waist_yaw_joint",
-                                                "waist_roll_joint",
-                                                "waist_pitch_joint",
+                                                # "waist_roll_joint",
+                                                # "waist_pitch_joint",
                                                 "left_shoulder_pitch_joint",
                                                 "left_shoulder_roll_joint",
                                                 "left_shoulder_yaw_joint",
@@ -422,10 +422,8 @@ class EventCfg:
                                                              'waist_yaw_link', 
                                                              'left_hip_roll_link', 
                                                              'right_hip_roll_link', 
-                                                             'waist_roll_link', 
                                                              'left_hip_yaw_link', 
-                                                             'right_hip_yaw_link', 
-                                                             'torso_link', 
+                                                             'right_hip_yaw_link',
                                                              'left_knee_link', 
                                                              'right_knee_link', 
                                                              'left_shoulder_pitch_link', 
@@ -463,10 +461,8 @@ class EventCfg:
                                                              'waist_yaw_link', 
                                                              'left_hip_roll_link', 
                                                              'right_hip_roll_link', 
-                                                             'waist_roll_link', 
                                                              'left_hip_yaw_link', 
                                                              'right_hip_yaw_link', 
-                                                             'torso_link', 
                                                              'left_knee_link', 
                                                              'right_knee_link', 
                                                              'left_shoulder_pitch_link', 
@@ -516,7 +512,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
-            "com_range": {"x": (-0.2, 0.2), "y": (-0.2, 0.2), "z": (-0.00, 0.12)},
+            "com_range": {"x": (-0.2, -0.2), "y": (-0.2, 0.2), "z": (-0.00, 0.12)},
         },
     )
 
@@ -533,16 +529,16 @@ class EventCfg:
         },
     )
 
-    # reset
-    base_external_force_torque = EventTerm(
-        func=mdp.apply_external_force_torque,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="base"),
-            "force_range": (0.0, 0.0),
-            "torque_range": (-0.0, 0.0),
-        },
-    )
+    # # reset
+    # base_external_force_torque = EventTerm(
+    #     func=mdp.apply_external_force_torque,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="base"),
+    #         "force_range": (0.0, 0.0),
+    #         "torque_range": (-0.0, 0.0),
+    #     },
+    # )
 
     reset_base = EventTerm(
         func=mdp.reset_root_state_uniform,
@@ -618,10 +614,6 @@ class TerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    base_contact = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
-    )
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.40, "asset_cfg": SceneEntityCfg("robot")}
     )
