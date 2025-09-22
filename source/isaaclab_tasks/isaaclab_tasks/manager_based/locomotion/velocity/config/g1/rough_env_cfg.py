@@ -108,25 +108,25 @@ class G1Rewards(RewardsCfg):
         func=mdp.joint_deviation_l1,
         weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
-            # "waist_roll_joint",
-            # "waist_pitch_joint",
+            "waist_roll_joint",
+            "waist_pitch_joint",
             "waist_yaw_joint",
         ])},
     )
 
-    # set_robot_joints_targets = RewTerm(
-    #     func=mdp.reset_joints_targets,
-    #     weight=-0.00001,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot",
-    #             joint_names=[
-    #                 "waist_roll_joint",
-    #                 "waist_pitch_joint",
-    #                         ],
-    #             preserve_order=True,
-    #         )
-    #     },
-    # )
+    set_robot_joints_targets = RewTerm(
+        func=mdp.reset_joints_targets,
+        weight=-0.00001,
+        params={
+            "asset_cfg": SceneEntityCfg("robot",
+                joint_names=[
+                    "waist_roll_joint",
+                    "waist_pitch_joint",
+                            ],
+                preserve_order=True,
+            )
+        },
+    )
 
     # left_ee_pos_tracking = RewTerm(
     #     func=manipulation_mdp.position_command_error,
