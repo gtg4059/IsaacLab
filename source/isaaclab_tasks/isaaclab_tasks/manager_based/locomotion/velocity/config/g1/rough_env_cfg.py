@@ -106,8 +106,6 @@ class G1Rewards(RewardsCfg):
                     ".*_wrist_roll_joint",
                     ".*_wrist_pitch_joint",
                     ".*_wrist_yaw_joint",
-                    # "waist_roll_joint",
-                    # "waist_pitch_joint",
                             ],
                 preserve_order=True,
             )
