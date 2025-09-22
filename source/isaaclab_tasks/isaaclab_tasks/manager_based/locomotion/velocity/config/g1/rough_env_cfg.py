@@ -67,11 +67,11 @@ class G1Rewards(RewardsCfg):
 
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=2.0,#3.0
+        weight=3.0,#3.0
         params={"command_name": "base_velocity", "std": 0.3},# std = 0.5
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=3.0, params={"command_name": "base_velocity", "std": 0.15}#3.0
+        func=mdp.track_ang_vel_z_world_exp, weight=3.5, params={"command_name": "base_velocity", "std": 0.11}#3.0
     )
     foot_clearance = RewTerm(
         func=mdp.foot_clearance_reward,
