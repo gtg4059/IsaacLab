@@ -146,8 +146,8 @@ class G1Rewards(RewardsCfg):
                     ".*_wrist_roll_joint",
                     ".*_wrist_pitch_joint",
                     ".*_wrist_yaw_joint",
-                    "waist_roll_joint",
-                    "waist_pitch_joint",
+                    # "waist_roll_joint",
+                    # "waist_pitch_joint",
                             ],
                 preserve_order=True,
             )
@@ -174,13 +174,13 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
         # Scene
         self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/waist_yaw_link"
+        # self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/waist_yaw_link"
 
         # Randomization
         # self.events.push_robot = None
         # self.events.add_base_mass = None
         # self.events.reset_robot_joints.params["position_range"] = (1.0, 1.0)
-        self.events.base_external_force_torque.params["asset_cfg"].body_names = ["waist_yaw_link"]
+        # self.events.base_external_force_torque.params["asset_cfg"].body_names = ["waist_yaw_link"]
         self.events.reset_base.params = {
             "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
             "velocity_range": {
