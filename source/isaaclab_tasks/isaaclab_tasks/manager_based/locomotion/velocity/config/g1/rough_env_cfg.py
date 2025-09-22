@@ -401,7 +401,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # Rewards
         self.rewards.lin_vel_z_l2.weight = 0.0
         self.rewards.undesired_contacts = None
-        self.rewards.flat_orientation_l2.weight = -25.0 #-10.0
+        self.rewards.flat_orientation_l2.weight = -10.0 #-10.0
         self.rewards.action_rate_l2.weight = -0.02
         self.rewards.dof_acc_l2.weight = -1.25e-7
         self.rewards.dof_acc_l2.params["asset_cfg"] = SceneEntityCfg(
@@ -411,7 +411,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint", ".*_ankle_.*"]
         )
-        self.rewards.action_rate_arm.weight = -0.001
+        self.rewards.action_rate_arm.weight = -0.1
 
 
 @configclass
