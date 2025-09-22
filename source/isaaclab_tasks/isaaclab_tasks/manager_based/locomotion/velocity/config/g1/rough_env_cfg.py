@@ -88,8 +88,8 @@ class G1Rewards(RewardsCfg):
         func=mdp.joint_deviation_l1,
         weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
-            # "waist_roll_joint",
-            # "waist_pitch_joint",
+            "waist_roll_joint",
+            "waist_pitch_joint",
             "waist_yaw_joint",
         ])},
     )
@@ -146,8 +146,6 @@ class G1Rewards(RewardsCfg):
                     ".*_wrist_roll_joint",
                     ".*_wrist_pitch_joint",
                     ".*_wrist_yaw_joint",
-                    # "waist_roll_joint",
-                    # "waist_pitch_joint",
                             ],
                 preserve_order=True,
             )
