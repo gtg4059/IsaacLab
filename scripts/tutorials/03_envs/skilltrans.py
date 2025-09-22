@@ -101,12 +101,12 @@ def main():
     # load the trained jit policy
     # policy_path = os.path.abspath(args_cli.checkpoint)
     # runner
-    policy_path1 = "./scripts/tutorials/03_envs/policy_run.pt"
+    policy_path1 = "./scripts/tutorials/03_envs/policy_run27.pt"
     file_content1 = omni.client.read_file(policy_path1)[2]
     file1 = io.BytesIO(memoryview(file_content1).tobytes())
     policy_run = torch.jit.load(file1)
     # stop
-    policy_path2 = "./scripts/tutorials/03_envs/policy_stop.pt"
+    policy_path2 = "./scripts/tutorials/03_envs/policy_stop27.pt"
     file_content2 = omni.client.read_file(policy_path2)[2]
     file2 = io.BytesIO(memoryview(file_content2).tobytes())
     policy_stop = torch.jit.load(file2)

@@ -376,8 +376,8 @@ G1_CFG = ArticulationCfg(
 
 G1_DEX_FIX = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_DFQ_lock/g1_29dof_rev_1_0_with_inspire_hand_cam.usd",
-        # usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_DFQ_lock/g1_29dof_rev_1_0_with_inspire_hand_DFQ2.usd",
+        # usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_DFQ_lock/g1_29dof_rev_1_0_with_inspire_hand_cam.usd",
+        usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_th/g1_29dof_rev_1_0_with_inspire_hand_th.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -408,8 +408,8 @@ G1_DEX_FIX = ArticulationCfg(
             'right_ankle_pitch_joint': -0.2,
             'right_ankle_roll_joint': 0.0,  
             # 29
-            # "waist_pitch_joint":0.0,
-            # "waist_roll_joint":0.0,
+            "waist_pitch_joint":0.0,
+            "waist_roll_joint":0.0,
             "waist_yaw_joint":0.0,
             'left_shoulder_pitch_joint': 0.0,
             'left_shoulder_roll_joint': 0.1,
@@ -425,7 +425,6 @@ G1_DEX_FIX = ArticulationCfg(
             'right_wrist_roll_joint': 0.2,
             'right_wrist_pitch_joint': 0.0,
             'right_wrist_yaw_joint': 0.0,
-           
             # finger
             ".*_index_proximal_joint":0.2,
             ".*_middle_proximal_joint":0.0,
@@ -443,8 +442,8 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_hip_pitch_joint",
                 ".*_knee_joint",
                 "waist_yaw_joint",
-                # "waist_roll_joint",
-                # "waist_pitch_joint",
+                "waist_roll_joint",
+                "waist_pitch_joint",
             ],
             effort_limit={
                 ".*_hip_yaw_joint": 88.0,
@@ -452,8 +451,8 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_hip_pitch_joint": 88.0,
                 ".*_knee_joint": 139.0,
                 "waist_yaw_joint": 88.0,
-                # "waist_roll_joint": 50.0,
-                # "waist_pitch_joint": 50.0,
+                "waist_roll_joint": 50.0,
+                "waist_pitch_joint": 50.0,
             },
             velocity_limit={
                 ".*_hip_yaw_joint": 32.0,
@@ -461,8 +460,8 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_hip_pitch_joint": 32.0,
                 ".*_knee_joint": 20.0,
                 "waist_yaw_joint": 32.0,
-                # "waist_roll_joint": 37.0,
-                # "waist_pitch_joint": 37.0,
+                "waist_roll_joint": 37.0,
+                "waist_pitch_joint": 37.0,
             },
             stiffness={
                 ".*_hip_yaw_joint": 100.0,
@@ -470,8 +469,8 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_hip_pitch_joint": 100.0,
                 ".*_knee_joint": 150.0,
                 "waist_yaw_joint": 100,
-                # "waist_roll_joint": 1e6,
-                # "waist_pitch_joint": 1e6,
+                "waist_roll_joint": 100,
+                "waist_pitch_joint": 100,
             },
             damping={
                 ".*_hip_yaw_joint": 2.0,
@@ -479,8 +478,8 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_hip_pitch_joint": 2.0,
                 ".*_knee_joint": 4.0,
                 "waist_yaw_joint": 2.0,
-                # "waist_roll_joint": 1e4,
-                # "waist_pitch_joint": 1e4,
+                "waist_roll_joint": 2.0,
+                "waist_pitch_joint": 2.0,
             },
             armature={
                 ".*_hip_.*": 0.01,
@@ -548,31 +547,14 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_wrist_.*": 0.01,
             },
         ),
-        # "hands": IdealPDActuatorCfg(
-        #     joint_names_expr=[
-        #         # '.*_thumb_proximal_yaw_joint',
-        #         # '.*_thumb_proximal_pitch_joint',
-        #         # '.*_proximal_joint'
-        #         "R_.*",
-        #         "L_.*",
-        #     ],
-        #     effort_limit=1,
-        #     velocity_limit=0.5,
-        #     stiffness=10.0,
-        #     damping=0.5,
-        #     armature={
-        #         "R_.*": 0.001,
-        #         "L_.*": 0.001,
-        #     },
-        # ),
         "finger": IdealPDActuatorCfg(
             joint_names_expr=[
                 '.*_proximal_joint'
             ],
-            effort_limit=10.0,
-            velocity_limit=5.0,
+            effort_limit=25,
+            velocity_limit=37.0,
             stiffness=50.0,
-            damping=4.0,
+            damping=2.0,
             armature={
                 '.*_proximal_joint': 0.001,
             },
