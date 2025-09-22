@@ -884,11 +884,11 @@ class TerminationsCfg:
     )
     fingertip_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_intermediate"), "threshold": 100.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_intermediate"), "threshold": 200.0},
     )
     finger_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_proximal"), "threshold": 100.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_proximal"), "threshold": 150.0},
     )
 
 @configclass

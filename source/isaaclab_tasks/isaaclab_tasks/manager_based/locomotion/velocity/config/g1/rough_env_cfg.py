@@ -39,7 +39,7 @@ class G1Rewards(RewardsCfg):
             "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
             # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
         }, 
-        weight=0.3
+        weight=0.5
     )
     
     # object_contact = RewTerm(
@@ -67,7 +67,7 @@ class G1Rewards(RewardsCfg):
 
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=1.3,#3.0
+        weight=2.0,#3.0
         params={"command_name": "base_velocity", "std": 0.3},# std = 0.5
     )
     track_ang_vel_z_exp = RewTerm(
@@ -337,7 +337,7 @@ class G1Rewards(RewardsCfg):
     )
     left_end_effector_orientation_tracking = RewTerm(
         func=manipulation_mdp.dual_orientation_command_error_left,
-        weight=-0.5,
+        weight=-0.8,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="L_middle_proximal"),
             "command_name": "dual_ee_pose",
@@ -362,7 +362,7 @@ class G1Rewards(RewardsCfg):
     )
     right_end_effector_orientation_tracking = RewTerm(
         func=manipulation_mdp.dual_orientation_command_error_right,
-        weight=-0.5,
+        weight=-0.8,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="R_middle_proximal"),
             "command_name": "dual_ee_pose",
