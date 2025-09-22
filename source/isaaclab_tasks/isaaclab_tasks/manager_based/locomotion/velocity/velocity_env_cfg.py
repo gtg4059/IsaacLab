@@ -182,8 +182,8 @@ class ObservationsCfg:
                                                 'right_ankle_roll_joint',
                                                 # G1_29_no_hand
                                                 "waist_yaw_joint",
-                                                "waist_roll_joint",
-                                                "waist_pitch_joint",
+                                                # "waist_roll_joint",
+                                                # "waist_pitch_joint",
                                                 "left_shoulder_pitch_joint",
                                                 "left_shoulder_roll_joint",
                                                 "left_shoulder_yaw_joint",
@@ -219,8 +219,8 @@ class ObservationsCfg:
                                                 'right_ankle_roll_joint',
                                                 # G1_29_no_hand
                                                 "waist_yaw_joint",
-                                                "waist_roll_joint",
-                                                "waist_pitch_joint",
+                                                # "waist_roll_joint",
+                                                # "waist_pitch_joint",
                                                 "left_shoulder_pitch_joint",
                                                 "left_shoulder_roll_joint",
                                                 "left_shoulder_yaw_joint",
@@ -274,8 +274,8 @@ class ObservationsCfg:
                                                 'right_ankle_roll_joint',
                                                 # G1_29_no_hand
                                                 "waist_yaw_joint",
-                                                "waist_roll_joint",
-                                                "waist_pitch_joint",
+                                                # "waist_roll_joint",
+                                                # "waist_pitch_joint",
                                                 "left_shoulder_pitch_joint",
                                                 "left_shoulder_roll_joint",
                                                 "left_shoulder_yaw_joint",
@@ -311,8 +311,8 @@ class ObservationsCfg:
                                                 'right_ankle_roll_joint',
                                                 # G1_29_no_hand
                                                 "waist_yaw_joint",
-                                                "waist_roll_joint",
-                                                "waist_pitch_joint",
+                                                # "waist_roll_joint",
+                                                # "waist_pitch_joint",
                                                 "left_shoulder_pitch_joint",
                                                 "left_shoulder_roll_joint",
                                                 "left_shoulder_yaw_joint",
@@ -372,10 +372,8 @@ class EventCfg:
                                                              'waist_yaw_link', 
                                                              'left_hip_roll_link', 
                                                              'right_hip_roll_link', 
-                                                             'waist_roll_link', 
                                                              'left_hip_yaw_link', 
-                                                             'right_hip_yaw_link', 
-                                                             'torso_link', 
+                                                             'right_hip_yaw_link',
                                                              'left_knee_link', 
                                                              'right_knee_link', 
                                                              'left_shoulder_pitch_link', 
@@ -413,10 +411,8 @@ class EventCfg:
                                                              'waist_yaw_link', 
                                                              'left_hip_roll_link', 
                                                              'right_hip_roll_link', 
-                                                             'waist_roll_link', 
                                                              'left_hip_yaw_link', 
                                                              'right_hip_yaw_link', 
-                                                             'torso_link', 
                                                              'left_knee_link', 
                                                              'right_knee_link', 
                                                              'left_shoulder_pitch_link', 
@@ -466,7 +462,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
-            "com_range": {"x": (-0.2, 0.2), "y": (-0.2, 0.2), "z": (-0.00, 0.12)},
+            "com_range": {"x": (-0.2, -0.2), "y": (-0.2, 0.2), "z": (-0.00, 0.12)},
         },
     )
 
@@ -483,16 +479,16 @@ class EventCfg:
         },
     )
 
-    # reset
-    base_external_force_torque = EventTerm(
-        func=mdp.apply_external_force_torque,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="base"),
-            "force_range": (0.0, 0.0),
-            "torque_range": (-0.0, 0.0),
-        },
-    )
+    # # reset
+    # base_external_force_torque = EventTerm(
+    #     func=mdp.apply_external_force_torque,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="base"),
+    #         "force_range": (0.0, 0.0),
+    #         "torque_range": (-0.0, 0.0),
+    #     },
+    # )
 
     reset_base = EventTerm(
         func=mdp.reset_root_state_uniform,
