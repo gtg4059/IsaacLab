@@ -908,12 +908,12 @@ class TerminationsCfg:
     # #                                                               ".*_ring_intermediate",
     # #                                                               ]), "threshold": 20.0},
     # # )
-    # object_dropping = DoneTerm(
-    #     func=mdp.root_height_below_minimum, params={"minimum_height": 0.65, "asset_cfg": SceneEntityCfg("object")}
-    # )
-    # robot_dropping = DoneTerm(
-    #     func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
-    # )
+    object_dropping = DoneTerm(
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("object")}
+    )
+    robot_dropping = DoneTerm(
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
+    )
 
 
 @configclass
@@ -979,13 +979,3 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
         else:
             if self.scene.terrain.terrain_generator is not None:
                 self.scene.terrain.terrain_generator.curriculum = False
-        # self.teleop_devices = DevicesCfg(
-        #     devices={
-        #         "Gamepad": Se2GamepadCfg(
-        #             sim_device=self.sim.device,
-        #             v_x_sensitivity=0.7,
-        #             v_y_sensitivity=0.5,
-        #             omega_z_sensitivity=1.0
-        #         ),
-        #     }
-        # )
