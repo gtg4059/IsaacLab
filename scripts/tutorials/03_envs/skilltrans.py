@@ -101,12 +101,12 @@ def main():
     # load the trained jit policy
     # policy_path = os.path.abspath(args_cli.checkpoint)
     # runner
-    policy_path1 = "./logs/rsl_rl/ptcontainer/policy_run27.pt"
+    policy_path1 = "./logs/rsl_rl/ptcontainer/policy_run.pt"
     file_content1 = omni.client.read_file(policy_path1)[2]
     file1 = io.BytesIO(memoryview(file_content1).tobytes())
     policy_run = torch.jit.load(file1)
     # stop
-    policy_path2 = "./logs/rsl_rl/ptcontainer/policy_stop27.pt"
+    policy_path2 = "./logs/rsl_rl/ptcontainer/policy_stop.pt"
     file_content2 = omni.client.read_file(policy_path2)[2]
     file2 = io.BytesIO(memoryview(file_content2).tobytes())
     policy_stop = torch.jit.load(file2)
@@ -158,8 +158,8 @@ def main():
         # print(env.gamepad.advance()[3],env.gamepad.advance()[5],env.gamepad.advance()[6])
         if env.gamepad.advance()[3]>0.0 and env.gamepad.advance()[5]>0 and env.gamepad.advance()[6]>0.0:# (0, 0, 0)
             # if abs(env.gamepad.advance()[0])<0.1 and abs(env.gamepad.advance()[1])<0.1:
-            action = policy_stop(torch.cat((obs["Run"][:,:-3],command*0),dim=1))
-            # action = policy_run(obs["Run"])
+            # action = policy_stop(torch.cat((obs["Run"][:,:-3],command*0),dim=1))
+            action = policy_stop(obs["Run"])
         elif env.gamepad.advance()[3]<0 and env.gamepad.advance()[5]>0.0 and env.gamepad.advance()[6]>0.0:# (1, 0, 0)
             action = policy_run(obs["Run"])
         elif env.gamepad.advance()[3]>0.0 and env.gamepad.advance()[5]<0 and env.gamepad.advance()[6]>0.0: # (0, 1, 0) up

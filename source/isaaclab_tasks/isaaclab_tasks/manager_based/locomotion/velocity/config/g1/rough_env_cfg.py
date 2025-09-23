@@ -195,26 +195,6 @@ class G1Rewards(RewardsCfg):
         },
     )
     
-    set_robot_joints_targets = RewTerm(
-        func=mdp.reset_joints_targets,
-        weight=-0.00001,
-        params={
-            "asset_cfg": SceneEntityCfg("robot",
-                joint_names=[
-                    ".*_proximal_joint",
-                    "waist_roll_joint",
-                    "waist_pitch_joint",
-                    # ".*_index_proximal_joint",
-                    # ".*_middle_proximal_joint",
-                    # ".*_pinky_proximal_joint",
-                    # ".*_ring_proximal_joint",
-                    # "R_thumb_.*",
-                    # "L_thumb_.*",
-                            ],
-                preserve_order=True,
-            )
-        },
-    )
 
     # delete_table = RewTerm(
     #     func=mdp.delete_table,
