@@ -28,7 +28,8 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
 
         # New Rewards
         self.rewards.lin_vel_z_l2.weight = -0.2
-        self.rewards.action_rate_l2.weight = -0.1
+        self.rewards.action_rate_l2.weight = -0.05
+        self.rewards.action_rate_arm.weight = -0.05
         self.rewards.dof_acc_l2.weight = -1.0e-6
         # self.rewards.joint_deviation_torso.weight = -5.0
         # self.rewards.joint_deviation_hip.weight = -2.0
@@ -59,15 +60,15 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint", ".*_ankle_.*"]
         )
         # Commands
-        # self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
-        # self.commands.base_velocity.ranges.lin_vel_y = (-1.0, 1.0)
-        # self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
-        # self.commands.base_velocity.ranges.heading = (-3.14, 3.14)
+        self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_y = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.heading = (-3.14, 3.14)
         
-        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 1.0)
-        self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
-        self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
-        self.commands.base_velocity.ranges.heading = (0.0, 0.0)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.5, 1.0) #(-1.0, -0.5)
+        # self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
+        # self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
+        # self.commands.base_velocity.ranges.heading = (0.0, 0.0)
 
 class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
     def __post_init__(self) -> None:
