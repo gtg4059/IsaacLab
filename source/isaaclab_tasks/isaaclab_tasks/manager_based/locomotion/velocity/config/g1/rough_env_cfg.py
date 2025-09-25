@@ -24,8 +24,8 @@ class G1Rewards(RewardsCfg):
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=4.0,
-        params={"command_name": "base_velocity", "std": 0.2},
+        weight=2.0,
+        params={"command_name": "base_velocity", "std": 1.0},
     )
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "base_velocity", "std": 1.0}
@@ -133,25 +133,6 @@ class G1Rewards(RewardsCfg):
     #         )
     #     },
     # )
-    set_robot_joints_targets = RewTerm(
-        func=mdp.reset_joints_targets,
-        weight=-0.00001,
-        params={
-            "asset_cfg": SceneEntityCfg("robot",
-                joint_names=[
-                    ".*_shoulder_pitch_joint",
-                    ".*_shoulder_roll_joint",
-                    ".*_shoulder_yaw_joint",
-                    ".*_elbow_joint",
-                    ".*_wrist_roll_joint",
-                    ".*_wrist_pitch_joint",
-                    ".*_wrist_yaw_joint",
-                            ],
-                preserve_order=True,
-            )
-        },
-    )
-
 
     contact_forces = RewTerm(
         func=mdp.contact_forces_minimize,
@@ -172,13 +153,13 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
         # Scene
         self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        # self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/waist_yaw_link"
+        self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
 
         # Randomization
         # self.events.push_robot = None
         # self.events.add_base_mass = None
         # self.events.reset_robot_joints.params["position_range"] = (1.0, 1.0)
-        # self.events.base_external_force_torque.params["asset_cfg"].body_names = ["waist_yaw_link"]
+        self.events.base_external_force_torque.params["asset_cfg"].body_names = ["torso_link"]
         self.events.reset_base.params = {
             "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
             "velocity_range": {
@@ -212,7 +193,6 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
 
         # terminations
-        # self.terminations.base_contact.params["sensor_cfg"].body_names = "torso_link"
 
 
 @configclass
