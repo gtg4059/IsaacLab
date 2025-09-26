@@ -55,13 +55,16 @@ def feet_air_time_positive_biped(env, command_name: str, threshold: float, senso
     If the commands are small (i.e. the agent is not supposed to take a step), then the reward is zero.
     """
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
-    # compute the reward
     air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]
     contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
     in_contact = contact_time > 0.0
     in_mode_time = torch.where(in_contact, contact_time, air_time)
-    single_stance = torch.sum(in_contact.int(), dim=1) == 2
-    reward = torch.min(torch.where(single_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
+    single_stance = torch.sum(in_contact.int(), dim=1) == 1
+    double_stance = torch.sum(in_contact.int(), dim=1) == 2
+    single_reward = torch.min(torch.where(single_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
+    double_reward = torch.min(torch.where(double_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
+    reward = torch.where(torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) > 0.1, single_reward, double_reward)
+    # double stance reward for zero command
     reward = torch.clamp(reward, max=threshold)
     return reward
 
