@@ -718,75 +718,75 @@ class EventCfg:
         },
     )
 
-    # physics_material_obj = EventTerm(
-    #     func=mdp.randomize_rigid_body_material,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("object"),
-    #         "static_friction_range": (0.2, 1.3),
-    #         "dynamic_friction_range": (0.2, 1.3),
-    #         "restitution_range": (0.0, 0.4),
-    #         "num_buckets": 64,
-    #         "make_consistent": True,
-    #     },
-    # )
+    physics_material_obj = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "static_friction_range": (0.2, 1.3),
+            "dynamic_friction_range": (0.2, 1.3),
+            "restitution_range": (0.0, 0.4),
+            "num_buckets": 64,
+            "make_consistent": True,
+        },
+    )
 
-    # randomize_object_mass = EventTerm(
-    #     func=mdp.randomize_rigid_body_mass,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("object"),
-    #         "mass_distribution_params": (-0.4, 0.4),
-    #         "operation": "add",
-    #     },
-    # )
+    randomize_object_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "mass_distribution_params": (-0.4, 0.4),
+            "operation": "add",
+        },
+    )
 
-    # randomize_object_collider = EventTerm(
-    #     func=mdp.randomize_rigid_body_collider_offsets,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("object"),
-    #         "contact_offset_distribution_params": (0.007, 0.008),
-    #         "distribution": "uniform",
-    #     },
-    # ) 
+    randomize_object_collider = EventTerm(
+        func=mdp.randomize_rigid_body_collider_offsets,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "contact_offset_distribution_params": (0.007, 0.008),
+            "distribution": "uniform",
+        },
+    ) 
 
-    # randomize_object_rest = EventTerm(
-    #     func=mdp.randomize_rigid_body_collider_offsets,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("object"),
-    #         "rest_offset_distribution_params": (0.004, 0.006),
-    #         "distribution": "uniform",
-    #     },
-    # )     
+    randomize_object_rest = EventTerm(
+        func=mdp.randomize_rigid_body_collider_offsets,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "rest_offset_distribution_params": (0.004, 0.006),
+            "distribution": "uniform",
+        },
+    )     
 
-    # randomize_object_com = EventTerm(
-    #     func=mdp.randomize_object_com,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("object"),
-    #         "com_range": {"x": (-0.15, 0.15), "y": (-0.1, 0.1), "z": (-0.0, 0.0)},
-    #     },
-    # )
+    randomize_object_com = EventTerm(
+        func=mdp.randomize_object_com,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "com_range": {"x": (-0.15, 0.15), "y": (-0.1, 0.1), "z": (-0.0, 0.0)},
+        },
+    )
 
-    # reset_box_position = EventTerm(
-    #     func=mdp.reset_root_state_uniform,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("object"),
-    #         "pose_range": {"x": (-0.02, 0.02), "y": (-0.02, 0.02), "yaw": (-0.02, 0.02)},
-    #         # "pose_range": {"x": (-0.00, 0.00), "y": (-0.00, 0.00), "yaw": (-0.0, 0.0)},
-    #         "velocity_range": {
-    #             "x": (-0.0, 0.0),
-    #             "y": (-0.0, 0.0),
-    #             "z": (-0.0, 0.0),
-    #             "roll": (-0.0, 0.0),
-    #             "pitch": (-0.0, 0.0),
-    #             "yaw": (-0.0, 0.0),
-    #         },
-    #     },
-    # )
+    reset_box_position = EventTerm(
+        func=mdp.reset_root_state_uniform,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("object"),
+            "pose_range": {"x": (-0.02, 0.02), "y": (-0.02, 0.02), "yaw": (-0.02, 0.02)},
+            # "pose_range": {"x": (-0.00, 0.00), "y": (-0.00, 0.00), "yaw": (-0.0, 0.0)},
+            "velocity_range": {
+                "x": (-0.0, 0.0),
+                "y": (-0.0, 0.0),
+                "z": (-0.0, 0.0),
+                "roll": (-0.0, 0.0),
+                "pitch": (-0.0, 0.0),
+                "yaw": (-0.0, 0.0),
+            },
+        },
+    )
 
     # position_object_between_hands = EventTerm(
     #     func=mdp.position_object_between_hands_event,

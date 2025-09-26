@@ -32,15 +32,15 @@ class G1Rewards(RewardsCfg):
 
     # # flat_orientation_obj = RewTerm(func=mdp.flat_orientation_obj, weight=0.5)
 
-    # reaching_object= RewTerm(
-    #     func=mdp.object_ee_distance, 
-    #     params={
-    #         "std": 0.12,
-    #         "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
-    #         # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
-    #     }, 
-    #     weight=0.5
-    # )
+    reaching_object= RewTerm(
+        func=mdp.object_ee_distance, 
+        params={
+            "std": 0.12,
+            "asset_cfg":SceneEntityCfg("robot", body_names=[".*_middle_proximal"]),
+            # "asset_cfg":SceneEntityCfg("robot", body_names=[".*_wrist_yaw_link"]),
+        }, 
+        weight=0.3
+    )
     
     # object_contact = RewTerm(
     #     func=mdp.object_is_contacted, 
@@ -67,11 +67,11 @@ class G1Rewards(RewardsCfg):
 
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=2.0,#3.0
-        params={"command_name": "base_velocity", "std": 0.5},# std = 0.5
+        weight=3.0,#3.0
+        params={"command_name": "base_velocity", "std": 0.4},# std = 0.5
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "base_velocity", "std": 0.3}#3.0
+        func=mdp.track_ang_vel_z_world_exp, weight=3.0, params={"command_name": "base_velocity", "std": 0.25} #3.0
     )
     foot_clearance = RewTerm(
         func=mdp.foot_clearance_reward,
@@ -162,21 +162,21 @@ class G1Rewards(RewardsCfg):
         },
     )
 
-    # Penalize deviation from default of the joints that are not essential for locomotion
-    joint_deviation_hip_yaw = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-0.1,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_hip_yaw_joint")},
-    )
-    joint_deviation_hip_roll = RewTerm(
+    # # Penalize deviation from default of the joints that are not essential for locomotion
+    # joint_deviation_hip_yaw = RewTerm(
+    #     func=mdp.joint_deviation_l1,
+    #     weight=-0.2,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_hip_yaw_joint")},
+    # )
+    joint_deviation_hip = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-0.5,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*_hip_roll_joint")},
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_roll_joint", ".*_hip_yaw_joint"])},
     )
 
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.05,#-0.1
+        weight=-0.1,#-0.1
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -195,7 +195,7 @@ class G1Rewards(RewardsCfg):
 
     joint_deviation_arms2 = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.1,#-0.05
+        weight=-0.2,#-0.05
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -290,7 +290,7 @@ class G1Rewards(RewardsCfg):
 
     foot_flat_reward = RewTerm(
         func=mdp.foot_flat_contact,
-        weight=0.5,
+        weight=0.3,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
@@ -298,12 +298,12 @@ class G1Rewards(RewardsCfg):
     )
 
     feet_air_time_balance = RewTerm(
-        func=mdp.feet_air_time_balance,
-        weight=0.5,
+        func=mdp.balance_air_time_reward,
+        weight=-0.01,
         params={
-            "command_name": "base_velocity",
+            # "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
-            "threshold": 0.4,
+            # "threshold": 0.4,
         },
     )
 

@@ -393,6 +393,35 @@ def feet_air_time_balance(
     is_moving = torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) > 0.1
     
     return balance_reward * is_moving.float()
+
+def balance_air_time_reward(env, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    left_air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids[0]]
+    right_air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids[1]]
+
+    epsilon = 1e-6
+    total_air_time = left_air_time + right_air_time
+    
+    both_feet_air_penalty = torch.where(
+        (left_air_time > 0.0) & (right_air_time > 0.0), 1.0, 0.0
+    ) * 10.0
+
+    air_time_ratio = (left_air_time + epsilon) / (right_air_time)
+    ratio_diff = torch.abs(air_time_ratio - 1.0)
+
+    ratio_diff = torch.clamp(ratio_diff, max=0.4)
+
+    # 공중 시간이 너무 작을 경우, penalty를 추가 부여
+    low_air_time_penalty = torch.clamp(0.1 - total_air_time, min=0.0) * 10.0  # 0.1초 이하이면 패널티 부여
+
+    final_penalty = ratio_diff + low_air_time_penalty + both_feet_air_penalty
+
+    # Adjust penalty based on speed
+    #base_speed = torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1)
+    #speed_factor = torch.clamp(1.0 / (base_speed + epsilon), max=0.5)  # Higher penalty at lower speeds
+    #adjusted_penalty = final_penalty * speed_factor
+
+    return final_penalty
 ##############################################################################
 
 def motion_equality_pros(
