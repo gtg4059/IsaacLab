@@ -61,11 +61,9 @@ def feet_air_time_positive_biped(env, command_name: str, threshold: float, senso
     contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
     in_contact = contact_time > 0.0
     in_mode_time = torch.where(in_contact, contact_time, air_time)
-    single_stance = torch.sum(in_contact.int(), dim=1) == 1
+    single_stance = torch.sum(in_contact.int(), dim=1) == 2
     reward = torch.min(torch.where(single_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
     reward = torch.clamp(reward, max=threshold)
-    # no reward for zero command
-    reward *= torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) > 0.1
     return reward
 
 
@@ -393,6 +391,14 @@ def feet_air_time_balance(
     is_moving = torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) > 0.1
     
     return balance_reward * is_moving.float()
+
+def stand_still_joint_deviation_l1(
+    env, command_name: str, command_threshold: float = 0.06, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Penalize offsets from the default joint positions when the command is very small."""
+    command = env.command_manager.get_command(command_name)
+    # Penalize motion when command is nearly zero.
+    return mdp.joint_deviation_l1(env, asset_cfg) * (torch.norm(command[:, :2], dim=1) < command_threshold)
 ##############################################################################
 
 def motion_equality_pros(
