@@ -46,7 +46,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # G1_29_no_hand
         self.rewards.joint_deviation_shoulder.weight = -0.2
         self.rewards.joint_deviation_arms.weight = -1.0
-        self.rewards.joint_deviation_torso.weight = -1.0
+        self.rewards.joint_deviation_torso.weight = -3.0
         
         # Commands
         self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
