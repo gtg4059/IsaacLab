@@ -391,12 +391,22 @@ class EventCfg:
         },
     )
 
-    randomize_base_com = EventTerm(
-        func=mdp.randomize_rigid_body_com,
-        mode="startup",
+    randomize_torso_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
-            "com_range": {"x": (-0.3, 0.3), "y": (-0.3, 0.3), "z": (-0.1, 0.1)},
+            "mass_distribution_params": (-0.5, 0.5),
+            "operation": "add",
+        },
+    )
+
+    randomize_base_com = EventTerm(
+        func=mdp.randomize_rigid_body_com,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
+            "com_range": {"x": (-0.1, 0.5), "y": (-0.3, 0.3), "z": (-0.1, 0.1)},
         },
     )
 
