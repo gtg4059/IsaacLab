@@ -391,22 +391,42 @@ class EventCfg:
         },
     )
 
-    randomize_torso_mass = EventTerm(
-        func=mdp.randomize_rigid_body_mass,
-        mode="reset",
+    # randomize_torso_mass = EventTerm(
+    #     func=mdp.randomize_rigid_body_mass,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
+    #         "mass_distribution_params": (-0.2, 0.2),
+    #         "operation": "add",
+    #     },
+    # )
+
+    randomize_base_com_starup = EventTerm(
+        func=mdp.randomize_rigid_body_com,
+        mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
-            "mass_distribution_params": (-0.5, 0.5),
-            "operation": "add",
+            "com_range": {"x": (-0.1, 0.4), "y": (-0.2, 0.2), "z": (-0.06, 0.06)},
         },
     )
+
 
     randomize_base_com = EventTerm(
         func=mdp.randomize_rigid_body_com,
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
-            "com_range": {"x": (-0.1, 0.5), "y": (-0.3, 0.3), "z": (-0.1, 0.1)},
+            "com_range": {"x": (-0.002, 0.002), "y": (-0.001, 0.001), "z": (-0.001, 0.001)},
+        },
+    )
+
+    randomize_base_com_interval = EventTerm(
+        func=mdp.randomize_rigid_body_com,
+        mode="interval",
+        interval_range_s=(10.0, 15.0),
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
+            "com_range": {"x": (-0.0002, 0.0002), "y": (-0.0001, 0.0001), "z": (-0.0001, 0.0001)},
         },
     )
 
