@@ -156,12 +156,13 @@ class RFI_PDActuator(ActuatorBase):
     def __init__(self, cfg: RFI_PDActuatorCfg, *args, **kwargs):
         super().__init__(cfg, *args, **kwargs)
         # parse configuration
-        r = torch.zeros_like(self.computed_effort)
-        self._rfi = r.uniform_(*self.cfg.rfi) 
-        self._motor_strength = r.uniform_(*self.cfg.motor_strength) 
+        self.r = torch.zeros_like(self.computed_effort)
+        self._rfi = self.r.uniform_(*self.cfg.rfi) 
+        self._motor_strength = self.r.uniform_(*self.cfg.motor_strength) 
 
     def reset(self, env_ids: Sequence[int]):
-        pass
+        self._rfi = r.uniform_(*self.cfg.rfi) 
+        self._motor_strength = r.uniform_(*self.cfg.motor_strength) 
 
     def compute(
         self, control_action: ArticulationActions, joint_pos: torch.Tensor, joint_vel: torch.Tensor
