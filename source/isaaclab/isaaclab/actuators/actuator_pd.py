@@ -161,8 +161,8 @@ class RFI_PDActuator(ActuatorBase):
         self._motor_strength = self.r.uniform_(*self.cfg.motor_strength) 
 
     def reset(self, env_ids: Sequence[int]):
-        self._rfi = r.uniform_(*self.cfg.rfi) 
-        self._motor_strength = r.uniform_(*self.cfg.motor_strength) 
+        self._rfi = self.r.uniform_(*self.cfg.rfi) 
+        self._motor_strength = self.r.uniform_(*self.cfg.motor_strength) 
 
     def compute(
         self, control_action: ArticulationActions, joint_pos: torch.Tensor, joint_vel: torch.Tensor
