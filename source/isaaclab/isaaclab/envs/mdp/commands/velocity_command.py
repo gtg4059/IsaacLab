@@ -345,14 +345,18 @@ class UniformVelocityTargetCommand(CommandTerm):
         angle = torch.atan2(self.vel_command_w[:, 1]-(self.robot.data.root_pos_w[:,1]-self.base_pos_w[:,1]),
                             self.vel_command_w[:, 0]-(self.robot.data.root_pos_w[:,0]-self.base_pos_w[:,0]))
         _vec_norm = torch.norm(self.vel_command_w[:, :2]-(self.robot.data.root_pos_w[:,:2]-self.base_pos_w[:,:2]),dim=1)
-        vec_norm = torch.where(_vec_norm<0.08,0,_vec_norm)
-        self.vel_command_b[:, 0]=torch.cos(angle-self.robot.data.heading_w)*2.5*torch.tanh(2*vec_norm)
-        self.vel_command_b[:, 1]=torch.sin(angle-self.robot.data.heading_w)*2.5*torch.tanh(2*vec_norm)
+        vec_norm = torch.where(_vec_norm<0.1,0,_vec_norm)
+        self.vel_command_b[:, 0]=torch.where(torch.cos(angle-self.robot.data.heading_w)>0,torch.cos(angle-self.robot.data.heading_w)*2.5*torch.tanh(2*vec_norm),0)# torch.cos(angle-self.robot.data.heading_w)*2.5*torch.tanh(0.8*vec_norm)
+        self.vel_command_b[:, 1]=torch.where(torch.cos(angle-self.robot.data.heading_w)>0,torch.sin(angle-self.robot.data.heading_w)*0.5*torch.tanh(5*vec_norm),0)
         
         # math_utils.quat_apply_yaw
         if self.cfg.heading_command:
             env_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
-            heading_error = math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])#torch.where(vec_norm<0.2,math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]),0)
+            self.heading_target[env_ids] = torch.atan2(self.vel_command_w[:, 1]-(self.robot.data.root_pos_w[:,1]-self.base_pos_w[:,1]),
+                                                        self.vel_command_w[:, 0]-(self.robot.data.root_pos_w[:,0]-self.base_pos_w[:,0]))
+            #torch.where(vec_norm<0.2,math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]),0)
+            heading_error = torch.where(vec_norm==0,math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]),0)
+            
             self.vel_command_b[env_ids, 2] = torch.clip(
                 self.cfg.heading_control_stiffness * heading_error,
                 min=self.cfg.ranges.ang_vel_z[0],
