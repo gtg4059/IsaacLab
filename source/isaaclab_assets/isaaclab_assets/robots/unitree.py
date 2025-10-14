@@ -19,7 +19,7 @@ Reference: https://github.com/unitreerobotics/unitree_ros
 """
 
 import isaaclab.sim as sim_utils
-from isaaclab.actuators import ActuatorNetMLPCfg, DCMotorCfg, ImplicitActuatorCfg, IdealPDActuatorCfg
+from isaaclab.actuators import ActuatorNetMLPCfg, DCMotorCfg, ImplicitActuatorCfg, IdealPDActuatorCfg, RFI_PDActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
 
@@ -424,36 +424,6 @@ G1_DEX_FIX = ArticulationCfg(
             'right_wrist_roll_joint': 0.0,    
             'right_wrist_pitch_joint': 0.0,
             'right_wrist_yaw_joint': 0.0, 
-            # # after standing
-            # 'left_hip_pitch_joint': -0.0800,
-            # 'left_hip_roll_joint': 0.1300,
-            # 'left_hip_yaw_joint': -0.03,
-            # 'left_knee_joint': 0.26,
-            # 'left_ankle_pitch_joint': -0.19,
-            # 'left_ankle_roll_joint': -0.03,
-            # 'right_hip_pitch_joint': -0.12,
-            # 'right_hip_roll_joint': -0.07,
-            # 'right_hip_yaw_joint': 0.03,
-            # 'right_knee_joint': 0.36,
-            # 'right_ankle_pitch_joint': -0.25,
-            # 'right_ankle_roll_joint': 0.06,  
-            # "waist_pitch_joint":0.01,
-            # "waist_roll_joint":-0.01,
-            # "waist_yaw_joint":-0.01,
-            # 'left_shoulder_pitch_joint': -0.01,
-            # 'left_shoulder_roll_joint': 0.1,
-            # 'left_shoulder_yaw_joint': 0.11,
-            # 'left_elbow_joint': -0.01,
-            # 'left_wrist_roll_joint': -0.2,
-            # 'left_wrist_pitch_joint': -0.01,
-            # 'left_wrist_yaw_joint': -0.0,
-            # 'right_shoulder_pitch_joint': -0.01,
-            # 'right_shoulder_roll_joint': -0.11,
-            # 'right_shoulder_yaw_joint': -0.11,
-            # 'right_elbow_joint': 0.0,
-            # 'right_wrist_roll_joint': 0.19,
-            # 'right_wrist_pitch_joint': -0.0,
-            # 'right_wrist_yaw_joint': 0.01,
             # finger
             ".*_proximal_joint":0.3,
         },
@@ -461,7 +431,7 @@ G1_DEX_FIX = ArticulationCfg(
     ),
     soft_joint_pos_limit_factor=0.9,
     actuators={
-        "legs": IdealPDActuatorCfg(
+        "legs": RFI_PDActuatorCfg(
             joint_names_expr=[
                 ".*_hip_yaw_joint",
                 ".*_hip_roll_joint",
@@ -512,16 +482,20 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_knee_joint": 0.01,
                 "waist_.*": 0.01,
             },
+            rfi=(-0.05, 0.05),
+            motor_strength=(0.9, 1.1),
         ),
-        "feet": IdealPDActuatorCfg(
+        "feet": RFI_PDActuatorCfg(
             effort_limit=50,
             velocity_limit=37,
             joint_names_expr=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
             stiffness=40.0,
             damping=2.0,
             armature=0.01,
+            rfi=(-0.05, 0.05),
+            motor_strength=(0.9, 1.1),
         ),
-        "arms": IdealPDActuatorCfg(
+        "arms": RFI_PDActuatorCfg(
             joint_names_expr=[
                 ".*_shoulder_pitch_joint",
                 ".*_shoulder_roll_joint",
@@ -572,6 +546,8 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_elbow_.*": 0.01,
                 ".*_wrist_.*": 0.01,
             },
+            rfi=(-0.05, 0.05),
+            motor_strength=(0.9, 1.1),
         ),
         # "hands": IdealPDActuatorCfg(
         #     joint_names_expr=[
@@ -590,7 +566,7 @@ G1_DEX_FIX = ArticulationCfg(
         #         "L_.*": 0.001,
         #     },
         # ),
-        "finger": IdealPDActuatorCfg(
+        "finger": RFI_PDActuatorCfg(
             joint_names_expr=[
                 '.*_proximal_joint'
             ],
@@ -601,6 +577,8 @@ G1_DEX_FIX = ArticulationCfg(
             armature={
                 '.*_proximal_joint': 0.001,
             },
+            rfi=(-0.05, 0.05),
+            motor_strength=(0.9, 1.1),
         ),
     },
 )
