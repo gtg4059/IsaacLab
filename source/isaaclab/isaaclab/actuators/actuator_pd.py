@@ -153,7 +153,7 @@ class RFI_PDActuator(ActuatorBase):
     """
     Operations.
     """
-    def __init__(self, cfg: DCMotorCfg, *args, **kwargs):
+    def __init__(self, cfg: RFI_PDActuatorCfg, *args, **kwargs):
         super().__init__(cfg, *args, **kwargs)
         # parse configuration
         r = torch.zeros_like(self.computed_effort)
@@ -170,7 +170,7 @@ class RFI_PDActuator(ActuatorBase):
         error_pos = control_action.joint_positions - joint_pos
         error_vel = control_action.joint_velocities - joint_vel
         # calculate the desired joint torques
-        self.computed_effort = self._motor_strength*(self.stiffness * error_pos + self.damping * error_vel + control_action.joint_efforts) + self._rfi * self.effort_limit
+        self.computed_effort = self.stiffness * error_pos + self.damping * error_vel + control_action.joint_efforts
         # clip the torques based on the motor limits
         self.applied_effort = self._clip_effort(self.computed_effort)
         # set the computed actions back into the control action
@@ -178,6 +178,17 @@ class RFI_PDActuator(ActuatorBase):
         control_action.joint_positions = None
         control_action.joint_velocities = None
         return control_action
+        # error_pos = control_action.joint_positions - joint_pos
+        # error_vel = control_action.joint_velocities - joint_vel
+        # # calculate the desired joint torques
+        # self.computed_effort = control_action.joint_efforts + (self.stiffness * error_pos + self.damping * error_vel)#*self._motor_strength + control_action.joint_efforts + self._rfi * self.effort_limit
+        # # clip the torques based on the motor limits
+        # self.applied_effort = self._clip_effort(self.computed_effort)
+        # # set the computed actions back into the control action
+        # control_action.joint_efforts = self.applied_effort
+        # control_action.joint_positions = None
+        # control_action.joint_velocities = None
+        # return control_action
 
 class IdealPDActuator(ActuatorBase):
     r"""Ideal torque-controlled actuator model with a simple saturation model.

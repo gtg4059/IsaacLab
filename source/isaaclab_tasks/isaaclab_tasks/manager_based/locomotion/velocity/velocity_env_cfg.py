@@ -361,139 +361,129 @@ class EventCfg:
         params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
     )
 
-    # startup
-    randomize_friction = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=['pelvis', 
-                                                             'left_hip_pitch_link', 
-                                                             'right_hip_pitch_link', 
-                                                             'waist_yaw_link', 
-                                                             'left_hip_roll_link', 
-                                                             'right_hip_roll_link', 
-                                                             'waist_roll_link', 
-                                                             'left_hip_yaw_link', 
-                                                             'right_hip_yaw_link', 
-                                                             'torso_link', 
-                                                             'left_knee_link', 
-                                                             'right_knee_link', 
-                                                             'left_shoulder_pitch_link', 
-                                                             'right_shoulder_pitch_link', 
-                                                             'left_ankle_pitch_link', 
-                                                             'right_ankle_pitch_link', 
-                                                             'left_shoulder_roll_link', 
-                                                             'right_shoulder_roll_link', 
-                                                             'left_ankle_roll_link', 
-                                                             'right_ankle_roll_link', 
-                                                             'left_shoulder_yaw_link', 
-                                                             'right_shoulder_yaw_link', 
-                                                             'left_elbow_link', 
-                                                             'right_elbow_link', 
-                                                             'left_wrist_roll_link', 
-                                                             'right_wrist_roll_link', 
-                                                             'left_wrist_pitch_link', 
-                                                             'right_wrist_pitch_link', 
-                                                             'left_wrist_yaw_link', 
-                                                             'right_wrist_yaw_link']),
-            "static_friction_range": (0.2, 1.3),
-            "dynamic_friction_range": (0.2, 1.3),
-            "restitution_range": (0.0, 0.4),
-            "num_buckets": 256,
-            "make_consistent": True
-        },
-    )
+    # # startup
+    # randomize_friction = EventTerm(
+    #     func=mdp.randomize_rigid_body_material,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names=['pelvis', 
+    #                                                          'left_hip_pitch_link', 
+    #                                                          'right_hip_pitch_link', 
+    #                                                          'waist_yaw_link', 
+    #                                                          'left_hip_roll_link', 
+    #                                                          'right_hip_roll_link', 
+    #                                                          'waist_roll_link', 
+    #                                                          'left_hip_yaw_link', 
+    #                                                          'right_hip_yaw_link', 
+    #                                                          'torso_link', 
+    #                                                          'left_knee_link', 
+    #                                                          'right_knee_link', 
+    #                                                          'left_shoulder_pitch_link', 
+    #                                                          'right_shoulder_pitch_link', 
+    #                                                          'left_ankle_pitch_link', 
+    #                                                          'right_ankle_pitch_link', 
+    #                                                          'left_shoulder_roll_link', 
+    #                                                          'right_shoulder_roll_link', 
+    #                                                          'left_ankle_roll_link', 
+    #                                                          'right_ankle_roll_link', 
+    #                                                          'left_shoulder_yaw_link', 
+    #                                                          'right_shoulder_yaw_link', 
+    #                                                          'left_elbow_link', 
+    #                                                          'right_elbow_link', 
+    #                                                          'left_wrist_roll_link', 
+    #                                                          'right_wrist_roll_link', 
+    #                                                          'left_wrist_pitch_link', 
+    #                                                          'right_wrist_pitch_link', 
+    #                                                          'left_wrist_yaw_link', 
+    #                                                          'right_wrist_yaw_link']),
+    #         "static_friction_range": (0.2, 1.3),
+    #         "dynamic_friction_range": (0.2, 1.3),
+    #         "restitution_range": (0.0, 0.4),
+    #         "num_buckets": 256,
+    #         "make_consistent": True
+    #     },
+    # )
 
-    randomize_link_mass = EventTerm(
-        func=mdp.randomize_rigid_body_mass,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=['left_hip_pitch_link', 
-                                                             'right_hip_pitch_link', 
-                                                             'waist_yaw_link', 
-                                                             'left_hip_roll_link', 
-                                                             'right_hip_roll_link', 
-                                                             'waist_roll_link', 
-                                                             'left_hip_yaw_link', 
-                                                             'right_hip_yaw_link', 
-                                                             'torso_link', 
-                                                             'left_knee_link', 
-                                                             'right_knee_link', 
-                                                             'left_shoulder_pitch_link', 
-                                                             'right_shoulder_pitch_link', 
-                                                             'left_ankle_pitch_link', 
-                                                             'right_ankle_pitch_link', 
-                                                             'left_shoulder_roll_link', 
-                                                             'right_shoulder_roll_link', 
-                                                             'left_ankle_roll_link', 
-                                                             'right_ankle_roll_link', 
-                                                             'left_shoulder_yaw_link', 
-                                                             'right_shoulder_yaw_link', 
-                                                             'left_elbow_link', 
-                                                             'right_elbow_link', 
-                                                             'left_wrist_roll_link', 
-                                                             'right_wrist_roll_link', 
-                                                             'left_wrist_pitch_link', 
-                                                             'right_wrist_pitch_link',]),
-            "mass_distribution_params": (0.8, 1.2),
-            "operation": "scale",
-        },
-    )
+    # randomize_link_mass = EventTerm(
+    #     func=mdp.randomize_rigid_body_mass,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names=['left_hip_pitch_link', 
+    #                                                          'right_hip_pitch_link', 
+    #                                                          'waist_yaw_link', 
+    #                                                          'left_hip_roll_link', 
+    #                                                          'right_hip_roll_link', 
+    #                                                          'waist_roll_link', 
+    #                                                          'left_hip_yaw_link', 
+    #                                                          'right_hip_yaw_link', 
+    #                                                          'torso_link', 
+    #                                                          'left_knee_link', 
+    #                                                          'right_knee_link', 
+    #                                                          'left_shoulder_pitch_link', 
+    #                                                          'right_shoulder_pitch_link', 
+    #                                                          'left_ankle_pitch_link', 
+    #                                                          'right_ankle_pitch_link', 
+    #                                                          'left_shoulder_roll_link', 
+    #                                                          'right_shoulder_roll_link', 
+    #                                                          'left_ankle_roll_link', 
+    #                                                          'right_ankle_roll_link', 
+    #                                                          'left_shoulder_yaw_link', 
+    #                                                          'right_shoulder_yaw_link', 
+    #                                                          'left_elbow_link', 
+    #                                                          'right_elbow_link', 
+    #                                                          'left_wrist_roll_link', 
+    #                                                          'right_wrist_roll_link', 
+    #                                                          'left_wrist_pitch_link', 
+    #                                                          'right_wrist_pitch_link',]),
+    #         "mass_distribution_params": (0.8, 1.2),
+    #         "operation": "scale",
+    #     },
+    # )
 
-    randomize_base_mass = EventTerm(
-        func=mdp.randomize_rigid_body_mass,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
-            "mass_distribution_params": (-3., 3.),
-            "operation": "add",
-        },
-    )
+    # randomize_base_mass = EventTerm(
+    #     func=mdp.randomize_rigid_body_mass,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
+    #         "mass_distribution_params": (-3., 3.),
+    #         "operation": "add",
+    #     },
+    # )
 
-    randomize_hand_mass = EventTerm(
-        func=mdp.randomize_rigid_body_mass,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=["left_wrist_yaw_link", 
-                                                             "right_wrist_yaw_link"]),
-            "mass_distribution_params": (0.3, 0.9),
-            "operation": "add",
-        },
-    )
+    # randomize_hand_mass = EventTerm(
+    #     func=mdp.randomize_rigid_body_mass,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names=["left_wrist_yaw_link", 
+    #                                                          "right_wrist_yaw_link"]),
+    #         "mass_distribution_params": (0.3, 0.9),
+    #         "operation": "add",
+    #     },
+    # )
 
-    randomize_base_com = EventTerm(
-        func=mdp.randomize_rigid_body_com,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
-            "com_range": {"x": (-0.2, 0.2), "y": (-0.2, 0.2), "z": (-0.06, 0.06)},
-        },
-    )
+    # randomize_base_com = EventTerm(
+    #     func=mdp.randomize_rigid_body_com,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
+    #         "com_range": {"x": (-0.12, 0.12), "y": (-0.12, 0.12), "z": (-0.08, 0.08)},
+    #     },
+    # )
 
-    randomize_pd_gains = EventTerm(
-        func=mdp.randomize_actuator_gains,
-        min_step_count_between_reset=720,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-            "stiffness_distribution_params": (0.8, 1.2),
-            "damping_distribution_params": (0.8, 1.2),
-            "operation": "scale",
-            "distribution": "uniform",
-        },
-    )
+    # randomize_pd_gains = EventTerm(
+    #     func=mdp.randomize_actuator_gains,
+    #     min_step_count_between_reset=720,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+    #         "stiffness_distribution_params": (0.8, 1.2),
+    #         "damping_distribution_params": (0.8, 1.2),
+    #         "operation": "scale",
+    #         "distribution": "uniform",
+    #     },
+    # )
 
-    # reset
-    base_external_force_torque = EventTerm(
-        func=mdp.apply_external_force_torque,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="base"),
-            "force_range": (0.0, 0.0),
-            "torque_range": (-0.0, 0.0),
-        },
-    )
-
+    # # reset
     reset_base = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
@@ -510,30 +500,16 @@ class EventCfg:
         },
     )
 
-    randomize_motor_zero_offset = EventTerm(
-        func=mdp.reset_joints_by_offset,
-        mode="reset",
-        params={
-            "position_range": (-0.035, 0.035),
-            "velocity_range": (-0.0, 0.0),
-        },
-    )
+    # randomize_motor_zero_offset = EventTerm(
+    #     func=mdp.reset_joints_by_offset,
+    #     mode="reset",
+    #     params={
+    #         "position_range": (-0.035, 0.035),
+    #         "velocity_range": (-0.0, 0.0),
+    #     },
+    # )
 
-    randomize_joint_param = EventTerm(
-        func=mdp.randomize_joint_parameters,
-        min_step_count_between_reset=720,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-            "friction_distribution_params": (0.01, 1.15),
-            "viscous_friction_distribution_params": (0.3, 1.5),
-            "armature_distribution_params": (0.008,0.06),
-            "operation": "add",
-            "distribution": "uniform",
-        },
-    )
-
-    # robot_joint_armature = EventTerm(
+    # randomize_joint_param = EventTerm(
     #     func=mdp.randomize_joint_parameters,
     #     min_step_count_between_reset=720,
     #     mode="reset",
@@ -542,10 +518,11 @@ class EventCfg:
     #         "friction_distribution_params": (0.01, 1.15),
     #         "viscous_friction_distribution_params": (0.3, 1.5),
     #         "armature_distribution_params": (0.008,0.06),
-    #         "operation": "abs",
+    #         "operation": "add",
     #         "distribution": "uniform",
     #     },
     # )
+
 
 
 @configclass
@@ -598,9 +575,8 @@ class TerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    base_contact = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
+    robot_dropping = DoneTerm(
+        func=mdp.root_height_below_minimum, params={"minimum_height": 0.40, "asset_cfg": SceneEntityCfg("robot")}
     )
 
 
