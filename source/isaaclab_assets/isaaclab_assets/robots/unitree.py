@@ -482,8 +482,7 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_knee_joint": 0.01,
                 "waist_.*": 0.01,
             },
-            rfi=(-0.05, 0.05),
-            motor_strength=(0.9, 1.1),
+            rfi=(-0.01, 0.01),
         ),
         "feet": RFI_PDActuatorCfg(
             effort_limit=50,
@@ -492,8 +491,7 @@ G1_DEX_FIX = ArticulationCfg(
             stiffness=40.0,
             damping=2.0,
             armature=0.01,
-            rfi=(-0.05, 0.05),
-            motor_strength=(0.9, 1.1),
+            rfi=(-0.01, 0.01),
         ),
         "arms": RFI_PDActuatorCfg(
             joint_names_expr=[
@@ -546,8 +544,7 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_elbow_.*": 0.01,
                 ".*_wrist_.*": 0.01,
             },
-            rfi=(-0.05, 0.05),
-            motor_strength=(0.9, 1.1),
+            rfi=(-0.01, 0.01),
         ),
         # "hands": IdealPDActuatorCfg(
         #     joint_names_expr=[
@@ -577,8 +574,7 @@ G1_DEX_FIX = ArticulationCfg(
             armature={
                 '.*_proximal_joint': 0.001,
             },
-            rfi=(-0.05, 0.05),
-            motor_strength=(0.9, 1.1),
+            rfi=(-0.01, 0.01),
         ),
     },
 )

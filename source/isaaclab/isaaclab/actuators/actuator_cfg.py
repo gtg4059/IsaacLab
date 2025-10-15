@@ -199,7 +199,6 @@ class RFI_PDActuatorCfg(ActuatorBaseCfg):
 
     rfi: tuple[float, float] = MISSING
 
-    motor_strength: tuple[float, float] = MISSING
 
 @configclass
 class DCMotorCfg(IdealPDActuatorCfg):

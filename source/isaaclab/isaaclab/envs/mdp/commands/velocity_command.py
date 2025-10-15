@@ -346,7 +346,7 @@ class UniformVelocityTargetCommand(CommandTerm):
                             self.vel_command_w[:, 0]-(self.robot.data.root_pos_w[:,0]-self.base_pos_w[:,0]))
         _vec_norm = torch.norm(self.vel_command_w[:, :2]-(self.robot.data.root_pos_w[:,:2]-self.base_pos_w[:,:2]),dim=1)
         vec_norm = torch.where(_vec_norm<0.1,0,_vec_norm)
-        self.vel_command_b[:, 0]=torch.where(torch.cos(angle-self.robot.data.heading_w)>0,torch.cos(angle-self.robot.data.heading_w)*2.5*torch.tanh(2*vec_norm),0)# torch.cos(angle-self.robot.data.heading_w)*2.5*torch.tanh(0.8*vec_norm)
+        self.vel_command_b[:, 0]=torch.where(torch.cos(angle-self.robot.data.heading_w)>0,torch.cos(angle-self.robot.data.heading_w)*2.0*torch.tanh(2*vec_norm),0)# torch.cos(angle-self.robot.data.heading_w)*2.5*torch.tanh(0.8*vec_norm)
         self.vel_command_b[:, 1]=torch.where(torch.cos(angle-self.robot.data.heading_w)>0,torch.sin(angle-self.robot.data.heading_w)*0.5*torch.tanh(5*vec_norm),0)
         
         # math_utils.quat_apply_yaw
