@@ -158,11 +158,9 @@ class RFI_PDActuator(ActuatorBase):
         # parse configuration
         self.r = torch.zeros_like(self.computed_effort)
         self._rfi = self.r.uniform_(*self.cfg.rfi) 
-        self._motor_strength = self.r.uniform_(*self.cfg.motor_strength) 
 
     def reset(self, env_ids: Sequence[int]):
         self._rfi = self.r.uniform_(*self.cfg.rfi) 
-        self._motor_strength = self.r.uniform_(*self.cfg.motor_strength) 
 
     def compute(
         self, control_action: ArticulationActions, joint_pos: torch.Tensor, joint_vel: torch.Tensor
@@ -171,8 +169,7 @@ class RFI_PDActuator(ActuatorBase):
         error_pos = control_action.joint_positions - joint_pos
         error_vel = control_action.joint_velocities - joint_vel
         # calculate the desired joint torques
-        self.torque = self.stiffness * error_pos + self.damping * error_vel + control_action.joint_efforts
-        self.computed_effort = self._motor_strength*self.torque + self._rfi * self.effort_limit
+        self.computed_effort = self.stiffness * error_pos + self.damping * error_vel + control_action.joint_efforts + self._rfi * self.effort_limit
         # control_action.joint_efforts + self._motor_strength*(self.stiffness * error_pos + self.damping * error_vel) + self._rfi * self.effort_limit
         # clip the torques based on the motor limits
         self.applied_effort = self._clip_effort(self.computed_effort)

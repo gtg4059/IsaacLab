@@ -477,28 +477,28 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
-            "mass_distribution_params": (-3., 3.),
+            "mass_distribution_params": (-2., 5.),
             "operation": "add",
         },
     )
 
-    randomize_hand_mass = EventTerm(
-        func=mdp.randomize_rigid_body_mass,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=["left_wrist_yaw_link", 
-                                                             "right_wrist_yaw_link"]),
-            "mass_distribution_params": (0.3, 0.9),
-            "operation": "add",
-        },
-    )
+    # randomize_hand_mass = EventTerm(
+    #     func=mdp.randomize_rigid_body_mass,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names=["left_wrist_yaw_link", 
+    #                                                          "right_wrist_yaw_link"]),
+    #         "mass_distribution_params": (0.3, 0.9),
+    #         "operation": "add",
+    #     },
+    # )
 
     randomize_base_com = EventTerm(
         func=mdp.randomize_rigid_body_com,
         mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
-            "com_range": {"x": (-0.2, 0.2), "y": (-0.2, 0.2), "z": (-0.06, 0.06)},
+            "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
+            "com_range": {"x": (-0.12, 0.12), "y": (-0.12, 0.12), "z": (-0.08, 0.08)},
         },
     )
 
@@ -512,17 +512,6 @@ class EventCfg:
             "damping_distribution_params": (0.8, 1.2),
             "operation": "scale",
             "distribution": "uniform",
-        },
-    )
-
-    # reset
-    base_external_force_torque = EventTerm(
-        func=mdp.apply_external_force_torque,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="base"),
-            "force_range": (0.0, 0.0),
-            "torque_range": (-0.0, 0.0),
         },
     )
 
@@ -546,7 +535,7 @@ class EventCfg:
         func=mdp.reset_joints_by_offset,
         mode="reset",
         params={
-            "position_range": (-0.035, 0.035),
+            "position_range": (-0.05, 0.05),
             "velocity_range": (-0.0, 0.0),
         },
     )
@@ -557,7 +546,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-            "friction_distribution_params": (0.01, 1.15),
+            "friction_distribution_params": (0.01, 1.0),
             "viscous_friction_distribution_params": (0.3, 1.5),
             "armature_distribution_params": (0.008,0.06),
             "operation": "add",
@@ -584,7 +573,7 @@ class RewardsCfg:
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
-    action_rate_arm = RewTerm(func=mdp.action_rate_arm, weight=-0.1)
+    # action_rate_arm = RewTerm(func=mdp.action_rate_arm, weight=-0.1)
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-1.0,
