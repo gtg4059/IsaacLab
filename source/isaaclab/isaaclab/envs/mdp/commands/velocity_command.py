@@ -355,7 +355,7 @@ class UniformVelocityTargetCommand(CommandTerm):
             self.heading_target[env_ids] = torch.atan2(self.vel_command_w[:, 1]-(self.robot.data.root_pos_w[:,1]-self.base_pos_w[:,1]),
                                                         self.vel_command_w[:, 0]-(self.robot.data.root_pos_w[:,0]-self.base_pos_w[:,0]))
             #torch.where(vec_norm<0.2,math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]),0)
-            heading_error = torch.where(vec_norm==0,math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]),0)
+            heading_error = torch.where(vec_norm!=0,math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]),0)
             
             self.vel_command_b[env_ids, 2] = torch.clip(
                 self.cfg.heading_control_stiffness * heading_error,

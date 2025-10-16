@@ -157,7 +157,7 @@ class RFI_PDActuator(ActuatorBase):
         super().__init__(cfg, *args, **kwargs)
         # parse configuration
         self.r = torch.zeros_like(self.computed_effort)
-        self._rfi = self.r.uniform_(*self.cfg.rfi) 
+        # self._rfi = self.r.uniform_(*self.cfg.rfi) 
 
     def reset(self, env_ids: Sequence[int]):
         self._rfi = self.r.uniform_(*self.cfg.rfi) 
