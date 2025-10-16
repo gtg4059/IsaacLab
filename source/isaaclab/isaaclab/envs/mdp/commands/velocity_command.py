@@ -318,22 +318,28 @@ class UniformVelocityTargetCommand(CommandTerm):
         r = torch.empty(len(env_ids), device=self.device)
         # -- linear velocity - x direction
         self.vel_command_w[env_ids, 0] = r.uniform_(*self.cfg.ranges.lin_vel_x)
-        self.vel_command_b[env_ids, 0] = self.vel_command_w[env_ids, 0] #4
         # -- linear velocity - y direction
         self.vel_command_w[env_ids, 1] = r.uniform_(*self.cfg.ranges.lin_vel_y)
-        self.vel_command_b[env_ids, 1] = self.vel_command_w[env_ids, 1] #1
         # -- ang vel yaw - rotation around z
         self.vel_command_w[env_ids, 2] = r.uniform_(*self.cfg.ranges.ang_vel_z)#torch.tanh(math_utils.wrap_to_pi(self.robot.data.heading_w[env_ids]-torch.arctan2(self.vel_command_w[env_ids, 1], self.vel_command_w[env_ids, 0])))#r.uniform_(*self.cfg.ranges.ang_vel_z)
-        self.vel_command_b[env_ids, 2] = self.vel_command_w[env_ids, 2]
-
         self.vel_command_w[env_ids, 3] = r.uniform_(*self.cfg.ranges.heading)
 
+        angle = torch.atan2(self.vel_command_w[env_ids, 1]-(self.robot.data.root_pos_w[env_ids,1]-self.base_pos_w[env_ids,1]),
+                            self.vel_command_w[env_ids, 0]-(self.robot.data.root_pos_w[env_ids,0]-self.base_pos_w[env_ids,0]))
+        _vec_norm = torch.norm(self.vel_command_w[env_ids, :2]-(self.robot.data.root_pos_w[env_ids,:2]-self.base_pos_w[env_ids,:2]),dim=1)
+        vec_norm = torch.where(_vec_norm<0.1,0,_vec_norm)
+        self.vel_command_b[:, 0]=torch.where(torch.cos(angle-self.robot.data.heading_w)>0,torch.cos(angle-self.robot.data.heading_w)*2.0*torch.tanh(2*vec_norm),0)# torch.cos(angle-self.robot.data.heading_w)*2.5*torch.tanh(0.8*vec_norm)
+        self.vel_command_b[:, 1]=torch.where(torch.cos(angle-self.robot.data.heading_w)>0,torch.sin(angle-self.robot.data.heading_w)*0.5*torch.tanh(5*vec_norm),0)
+        self.vel_command_b[env_ids, 2] = self.vel_command_w[env_ids, 2]
+
         if self.cfg.heading_command:
-            self.heading_target[env_ids] = r.uniform_(*self.cfg.ranges.heading)
+            self.heading_target[env_ids] = torch.atan2(self.vel_command_w[env_ids, 1]-(self.robot.data.root_pos_w[env_ids,1]-self.base_pos_w[env_ids,1]),
+                                                        self.vel_command_w[env_ids, 0]-(self.robot.data.root_pos_w[env_ids,0]-self.base_pos_w[env_ids,0]))
             # update heading envs
             self.is_heading_env[env_ids] = r.uniform_(0.0, 1.0) <= self.cfg.rel_heading_envs
         # update standing envs
         self.is_standing_env[env_ids] = r.uniform_(0.0, 1.0) <= self.cfg.rel_standing_envs
+        # print("_resample_command",self.vel_command_b)
 
     def _update_command(self):
         """Post-processes the velocity command.
@@ -352,8 +358,8 @@ class UniformVelocityTargetCommand(CommandTerm):
         # math_utils.quat_apply_yaw
         if self.cfg.heading_command:
             env_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
-            self.heading_target[env_ids] = torch.atan2(self.vel_command_w[:, 1]-(self.robot.data.root_pos_w[:,1]-self.base_pos_w[:,1]),
-                                                        self.vel_command_w[:, 0]-(self.robot.data.root_pos_w[:,0]-self.base_pos_w[:,0]))
+            self.heading_target[env_ids] = torch.atan2(self.vel_command_w[env_ids, 1]-(self.robot.data.root_pos_w[env_ids,1]-self.base_pos_w[env_ids,1]),
+                                                        self.vel_command_w[env_ids, 0]-(self.robot.data.root_pos_w[env_ids,0]-self.base_pos_w[env_ids,0]))
             #torch.where(vec_norm<0.2,math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]),0)
             heading_error = torch.where(vec_norm!=0,math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]),0)
             
@@ -366,6 +372,7 @@ class UniformVelocityTargetCommand(CommandTerm):
         # TODO: check if conversion is needed
         standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()
         self.vel_command_b[standing_env_ids, :] = 0.0
+        # print("_update_command",self.vel_command_b)
 
     def _set_debug_vis_impl(self, debug_vis: bool):
         # set visibility of markers
