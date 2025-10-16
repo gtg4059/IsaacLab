@@ -267,6 +267,7 @@ class UniformVelocityTargetCommand(CommandTerm):
         # -- command: x vel, y vel, yaw vel, heading
         self.vel_command_b = torch.zeros(self.num_envs, 3, device=self.device)
         self.vel_command_w = torch.zeros(self.num_envs, 4, device=self.device)
+        self.angle = torch.zeros(self.num_envs, device=self.device)
         self.heading_target = torch.zeros(self.num_envs, device=self.device)
         self.heading_target_end = torch.zeros(self.num_envs, device=self.device)
         self.is_heading_env = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
@@ -324,12 +325,12 @@ class UniformVelocityTargetCommand(CommandTerm):
         self.vel_command_w[env_ids, 2] = r.uniform_(*self.cfg.ranges.ang_vel_z)#torch.tanh(math_utils.wrap_to_pi(self.robot.data.heading_w[env_ids]-torch.arctan2(self.vel_command_w[env_ids, 1], self.vel_command_w[env_ids, 0])))#r.uniform_(*self.cfg.ranges.ang_vel_z)
         self.vel_command_w[env_ids, 3] = r.uniform_(*self.cfg.ranges.heading)
 
-        angle = torch.atan2(self.vel_command_w[env_ids, 1]-(self.robot.data.root_pos_w[env_ids,1]-self.base_pos_w[env_ids,1]),
+        self.angle[env_ids] = torch.atan2(self.vel_command_w[env_ids, 1]-(self.robot.data.root_pos_w[env_ids,1]-self.base_pos_w[env_ids,1]),
                             self.vel_command_w[env_ids, 0]-(self.robot.data.root_pos_w[env_ids,0]-self.base_pos_w[env_ids,0]))
         _vec_norm = torch.norm(self.vel_command_w[env_ids, :2]-(self.robot.data.root_pos_w[env_ids,:2]-self.base_pos_w[env_ids,:2]),dim=1)
         vec_norm = torch.where(_vec_norm<0.1,0,_vec_norm)
-        self.vel_command_b[:, 0]=torch.where(torch.cos(angle-self.robot.data.heading_w)>0,torch.cos(angle-self.robot.data.heading_w)*2.0*torch.tanh(2*vec_norm),0)# torch.cos(angle-self.robot.data.heading_w)*2.5*torch.tanh(0.8*vec_norm)
-        self.vel_command_b[:, 1]=torch.where(torch.cos(angle-self.robot.data.heading_w)>0,torch.sin(angle-self.robot.data.heading_w)*0.5*torch.tanh(5*vec_norm),0)
+        self.vel_command_b[env_ids, 0]=torch.where(torch.cos(self.angle[env_ids]-self.robot.data.heading_w[env_ids])>0,torch.cos(self.angle[env_ids]-self.robot.data.heading_w[env_ids])*2.0*torch.tanh(2*vec_norm),0)
+        self.vel_command_b[env_ids, 1]=torch.where(torch.cos(self.angle[env_ids]-self.robot.data.heading_w[env_ids])>0,torch.sin(self.angle[env_ids]-self.robot.data.heading_w[env_ids])*0.5*torch.tanh(5*vec_norm),0)
         self.vel_command_b[env_ids, 2] = self.vel_command_w[env_ids, 2]
 
         if self.cfg.heading_command:
@@ -348,12 +349,12 @@ class UniformVelocityTargetCommand(CommandTerm):
         velocity from heading direction if the heading_command flag is set.
         """
         # resolve indices of envs
-        angle = torch.atan2(self.vel_command_w[:, 1]-(self.robot.data.root_pos_w[:,1]-self.base_pos_w[:,1]),
+        self.angle = torch.atan2(self.vel_command_w[:, 1]-(self.robot.data.root_pos_w[:,1]-self.base_pos_w[:,1]),
                             self.vel_command_w[:, 0]-(self.robot.data.root_pos_w[:,0]-self.base_pos_w[:,0]))
         _vec_norm = torch.norm(self.vel_command_w[:, :2]-(self.robot.data.root_pos_w[:,:2]-self.base_pos_w[:,:2]),dim=1)
         vec_norm = torch.where(_vec_norm<0.1,0,_vec_norm)
-        self.vel_command_b[:, 0]=torch.where(torch.cos(angle-self.robot.data.heading_w)>0,torch.cos(angle-self.robot.data.heading_w)*2.0*torch.tanh(2*vec_norm),0)# torch.cos(angle-self.robot.data.heading_w)*2.5*torch.tanh(0.8*vec_norm)
-        self.vel_command_b[:, 1]=torch.where(torch.cos(angle-self.robot.data.heading_w)>0,torch.sin(angle-self.robot.data.heading_w)*0.5*torch.tanh(5*vec_norm),0)
+        self.vel_command_b[:, 0]=torch.where(torch.cos(self.angle-self.robot.data.heading_w)>0,torch.cos(self.angle-self.robot.data.heading_w)*2.0*torch.tanh(2*vec_norm),0)# torch.cos(angle-self.robot.data.heading_w)*2.5*torch.tanh(0.8*vec_norm)
+        self.vel_command_b[:, 1]=torch.where(torch.cos(self.angle-self.robot.data.heading_w)>0,torch.sin(self.angle-self.robot.data.heading_w)*0.5*torch.tanh(5*vec_norm),0)
         
         # math_utils.quat_apply_yaw
         if self.cfg.heading_command:
