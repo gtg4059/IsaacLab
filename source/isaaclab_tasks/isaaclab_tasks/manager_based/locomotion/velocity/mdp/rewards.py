@@ -124,6 +124,8 @@ def track_ang_vel_z_world_exp(
     # extract the used quantities (to enable type-hinting)
     asset = env.scene[asset_cfg.name]
     ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - asset.data.root_ang_vel_w[:, 2])
+    # print("ang_vel_error",ang_vel_error)
+    # print("asset.data.root_ang_vel_w[:, 2]",asset.data.root_ang_vel_w[:, 2])
     return torch.exp(-ang_vel_error / std**2)
 
 

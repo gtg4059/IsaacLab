@@ -152,10 +152,11 @@ class UniformVelocityCommand(CommandTerm):
             # compute angular velocity
             heading_error = math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
             self.vel_command_b[env_ids, 2] = torch.clip(
-                self.cfg.heading_control_stiffness * heading_error,
+                self.cfg.heading_control_stiffness * torch.tanh(2*heading_error),
                 min=self.cfg.ranges.ang_vel_z[0],
                 max=self.cfg.ranges.ang_vel_z[1],
             )
+            # print("self.vel_command_b",self.vel_command_b[env_ids, 2])
         # Enforce standing (i.e., zero velocity command) for standing envs
         # TODO: check if conversion is needed
         standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()
@@ -368,13 +369,14 @@ class UniformVelocityTargetCommand(CommandTerm):
             self.heading_target[env_ids] = torch.atan2(self.vel_command_w[env_ids, 1]-(self.robot.data.root_pos_w[env_ids,1]-self.base_pos_w[env_ids,1]),
                                                         self.vel_command_w[env_ids, 0]-(self.robot.data.root_pos_w[env_ids,0]-self.base_pos_w[env_ids,0]))
             # torch.where(vec_norm<0.2,math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]),0)
-            heading_error = torch.where(vec_norm[env_ids]!=0,math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]),0)
+            heading_error = torch.where(vec_norm[env_ids]>0.5,math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]),0)
             
             self.vel_command_b[env_ids, 2] = torch.clip(
-                self.cfg.heading_control_stiffness * torch.tanh(3*heading_error),
+                self.cfg.heading_control_stiffness * heading_error,
                 min=self.cfg.ranges.ang_vel_z[0],
                 max=self.cfg.ranges.ang_vel_z[1],
             )
+            # print("heading_error",self.vel_command_b[env_ids, 2])
         # Enforce standing (i.e., zero velocity command) for standing envs
         # TODO: check if conversion is needed
         standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()

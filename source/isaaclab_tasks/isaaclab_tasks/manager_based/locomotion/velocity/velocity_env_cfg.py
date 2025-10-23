@@ -97,12 +97,12 @@ class CommandsCfg:
         rel_standing_envs=0.05,
         rel_heading_envs=0.8,
         heading_command=True,
-        heading_control_stiffness=8.0,
+        heading_control_stiffness=4.0,
         debug_vis=True,
         ranges=mdp.UniformVelocityTargetCommandCfg.Ranges(
-            lin_vel_x=(-6.0, 6.0), 
-            lin_vel_y=(-6.0, 6.0), 
-            ang_vel_z=(-6.0, 6.0), 
+            lin_vel_x=(-5.0, 5.0), 
+            lin_vel_y=(-5.0, 5.0), 
+            ang_vel_z=(-3.0, 3.0), 
             heading=(-math.pi, math.pi)
         ),
     )
