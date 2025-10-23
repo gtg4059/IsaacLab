@@ -94,47 +94,19 @@ class CommandsCfg:
     base_velocity = mdp.UniformVelocityTargetCommandCfg(
         asset_name="robot",
         resampling_time_range=(10.0, 10.0),
-        rel_standing_envs=0.02,
-        rel_heading_envs=1.0,
+        rel_standing_envs=0.05,
+        rel_heading_envs=0.8,
         heading_command=True,
-        heading_control_stiffness=0.5,
+        heading_control_stiffness=8.0,
         debug_vis=True,
         ranges=mdp.UniformVelocityTargetCommandCfg.Ranges(
-            lin_vel_x=(-1.0, 1.0), 
-            lin_vel_y=(-1.0, 1.0), 
-            ang_vel_z=(-1.0, 1.0), 
+            lin_vel_x=(-6.0, 6.0), 
+            lin_vel_y=(-6.0, 6.0), 
+            ang_vel_z=(-6.0, 6.0), 
             heading=(-math.pi, math.pi)
         ),
     )
 
-    # left_ee_pose = mdp.UniformPoseCommandCfg(
-    #     asset_name="robot",
-    #     body_name="L_middle_proximal",
-    #     resampling_time_range=(30.0, 30.0),
-    #     debug_vis=True,
-    #     ranges=mdp.UniformPoseCommandCfg.Ranges(
-    #         pos_x=(0.38, 0.38),
-    #         pos_y=(0.14, 0.14),
-    #         pos_z=(0.15, 0.15),
-    #         roll=(-0.0, 0.0),
-    #         pitch=(-0.0, 0.0),
-    #         yaw=(math.pi / 2.0, math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
-    #     ),
-    # )
-    # right_ee_pose = mdp.UniformPoseCommandCfg(
-    #     asset_name="robot",
-    #     body_name="R_middle_proximal",
-    #     resampling_time_range=(30.0, 30.0),
-    #     debug_vis=True,
-    #     ranges=mdp.UniformPoseCommandCfg.Ranges(
-    #         pos_x=(0.38, 0.38),
-    #         pos_y=(-0.14, -0.14),
-    #         pos_z=(0.15, 0.15),
-    #         roll=(-0.0, 0.0),
-    #         pitch=(-0.0, 0.0),
-    #         yaw=(-math.pi / 2.0, -math.pi / 2.0),#(-math.pi / 2.0 - 0.1, -math.pi / 2.0 + 0.1),
-    #     ),
-    # )
 
 
 @configclass
@@ -396,6 +368,22 @@ class EventCfg:
         params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
     )
 
+    reset_base = EventTerm(
+        func=mdp.reset_root_state_uniform,
+        mode="reset",
+        params={
+            "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
+            "velocity_range": {
+                "x": (-0.5, 0.5),
+                "y": (-0.5, 0.5),
+                "z": (-0.5, 0.5),
+                "roll": (-0.5, 0.5),
+                "pitch": (-0.5, 0.5),
+                "yaw": (-0.5, 0.5),
+            },
+        },
+    )
+
     # startup
     randomize_friction = EventTerm(
         func=mdp.randomize_rigid_body_material,
@@ -436,6 +424,20 @@ class EventCfg:
             "restitution_range": (0.0, 0.4),
             "num_buckets": 256,
             "make_consistent": True
+        },
+    )
+
+    randomize_joint_param = EventTerm(
+        func=mdp.randomize_joint_parameters,
+        min_step_count_between_reset=720,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "friction_distribution_params": (0.01, 1.0),
+            "viscous_friction_distribution_params": (0.3, 1.5),
+            "armature_distribution_params": (0.008,0.06),
+            "operation": "add",
+            "distribution": "uniform",
         },
     )
 
@@ -485,17 +487,6 @@ class EventCfg:
         },
     )
 
-    # randomize_hand_mass = EventTerm(
-    #     func=mdp.randomize_rigid_body_mass,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", body_names=["left_wrist_yaw_link", 
-    #                                                          "right_wrist_yaw_link"]),
-    #         "mass_distribution_params": (0.3, 0.9),
-    #         "operation": "add",
-    #     },
-    # )
-
     randomize_base_com = EventTerm(
         func=mdp.randomize_rigid_body_com,
         mode="startup",
@@ -518,21 +509,6 @@ class EventCfg:
         },
     )
 
-    reset_base = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
-            "velocity_range": {
-                "x": (-0.5, 0.5),
-                "y": (-0.5, 0.5),
-                "z": (-0.5, 0.5),
-                "roll": (-0.5, 0.5),
-                "pitch": (-0.5, 0.5),
-                "yaw": (-0.5, 0.5),
-            },
-        },
-    )
 
     randomize_motor_zero_offset = EventTerm(
         func=mdp.reset_joints_by_offset,
@@ -543,19 +519,6 @@ class EventCfg:
         },
     )
 
-    randomize_joint_param = EventTerm(
-        func=mdp.randomize_joint_parameters,
-        min_step_count_between_reset=720,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-            "friction_distribution_params": (0.01, 1.0),
-            "viscous_friction_distribution_params": (0.3, 1.5),
-            "armature_distribution_params": (0.008,0.06),
-            "operation": "add",
-            "distribution": "uniform",
-        },
-    )
 
 
 

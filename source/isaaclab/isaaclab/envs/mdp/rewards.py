@@ -300,6 +300,7 @@ def contact_forces_minimize(env: ManagerBasedRLEnv, threshold: float, sensor_cfg
     violation = torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] - threshold
     # print("Received max contact force of: ", violation.clip(min=0.0))
     # compute the penalty
+    # print("Received max contact force of: ", violation.clip(min=0.0))
     return torch.sum((violation.clip(min=0.0))**2, dim=1)
 
 """

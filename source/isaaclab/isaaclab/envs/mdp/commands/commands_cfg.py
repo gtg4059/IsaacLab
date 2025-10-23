@@ -117,7 +117,7 @@ class UniformVelocityTargetCommandCfg(CommandTermCfg):
     rel_standing_envs: float = 0.0
     """The sampled probability of environments that should be standing still. Defaults to 0.0."""
 
-    rel_heading_envs: float = 1.0
+    rel_heading_envs: float = 0.0
     """The sampled probability of environments where the robots follow the heading-based angular velocity command
     (the others follow the sampled angular velocity command). Defaults to 1.0.
 
