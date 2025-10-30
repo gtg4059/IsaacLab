@@ -49,7 +49,8 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # curriculum
         # self.rewards.track_lin_vel_xy_exp.weight = 2.0
         # self.rewards.track_ang_vel_z_exp.weight = 2.0
-        # self.rewards.foot_clearance.weight = 0.5
+        # self.rewards.foot_clearance.weight = 0.75
+        # self.rewards.feet_air_time.weight = 0.0
         # self.rewards.contact_forces.weight = -0.0
         # self.rewards.dof_torques_l2.weight = -2.0e-6
         # self.rewards.action_rate_l2.weight = -0.002
@@ -62,7 +63,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         #     heading_control_stiffness=8.0,
         #     debug_vis=True,
         #     ranges=mdp.UniformVelocityCommandCfg.Ranges(
-        #         lin_vel_x=(-0.0, 0.0), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-4.0, 4.0), heading=(-math.pi, math.pi)
+        #         lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
         #     ),
         # )
 

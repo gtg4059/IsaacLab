@@ -42,9 +42,19 @@ class G1Rewards(RewardsCfg):
         },
     )
 
+    feet_air_time = RewTerm(
+        func=mdp.feet_air_time_positive_biped,
+        weight=3.0,
+        params={
+            "command_name": "base_velocity",
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
+            "threshold": 0.4,
+        },
+    )
+
     feet_slide = RewTerm(
         func=mdp.feet_slide,
-        weight=-0.1,
+        weight=-1.0,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
@@ -120,9 +130,9 @@ class G1Rewards(RewardsCfg):
 
     contact_forces = RewTerm(
         func=mdp.contact_forces_minimize,
-        weight=-0.0000002,
+        weight=-0.0000005,
         params={
-            "threshold": 500.0,
+            "threshold": 0.0,
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
         },
     )
