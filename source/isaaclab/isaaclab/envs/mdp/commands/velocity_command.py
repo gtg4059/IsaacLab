@@ -357,17 +357,13 @@ class UniformVelocityTargetCommand(CommandTerm):
         self.angle = torch.atan2(self.vel_command_w[:, 1]-(self.robot.data.root_pos_w[:,1]-self.base_pos_w[:,1]),
                             self.vel_command_w[:, 0]-(self.robot.data.root_pos_w[:,0]-self.base_pos_w[:,0]))
         _vec_norm = torch.norm(self.vel_command_w[:, :2]-(self.robot.data.root_pos_w[:,:2]-self.base_pos_w[:,:2]),dim=1)
-        vec_norm = torch.where(_vec_norm<0.2,0,_vec_norm)
+        vec_norm = torch.where(_vec_norm<0.3,0,_vec_norm)
 
-        self.vel_command_b[:, 0] = torch.where(torch.cos(self.angle-self.robot.data.heading_w)>0,2*torch.cos(self.angle-self.robot.data.heading_w)/(1+torch.exp(-6*(vec_norm-0.8))),torch.cos(self.angle-self.robot.data.heading_w)/(1+torch.exp(-10*(vec_norm-0.5))))
-        # torch.where(torch.cos(self.angle-self.robot.data.heading_w)>0,2*torch.cos(self.angle-self.robot.data.heading_w)/(1+torch.exp(-10*(vec_norm-0.6))),torch.cos(self.angle-self.robot.data.heading_w)/(1+torch.exp(-20*(vec_norm-0.3))))
-        # torch.where(vec_norm>0.5,torch.where(torch.cos(self.angle-self.robot.data.heading_w)>0,2*torch.cos(self.angle-self.robot.data.heading_w)/(1+torch.exp(-10*(vec_norm-0.6))),torch.cos(self.angle-self.robot.data.heading_w)/(1+torch.exp(-10*(vec_norm-0.5)))),torch.cos(self.angle-self.robot.data.heading_w)/(1+torch.exp(-10*(vec_norm-0.5))))
-        #self.vel_command_b[:, 0]=torch.where(torch.cos(self.angle-self.robot.data.heading_w)>0,torch.cos(self.angle-self.robot.data.heading_w)*2.0*torch.tanh(2*vec_norm),0)# torch.cos(angle-self.robot.data.heading_w)*2.5*torch.tanh(0.8*vec_norm)
-        self.vel_command_b[:, 1] = torch.sin(self.angle-self.robot.data.heading_w)/(1+torch.exp(-20*(vec_norm-0.3)))
-        # torch.where(torch.sin(self.angle-self.robot.data.heading_w)>0,0.5*torch.sin(self.angle-self.robot.data.heading_w)/(1+torch.exp(-20*(vec_norm-0.3))),-0.5*torch.sin(self.angle-self.robot.data.heading_w)/(1+torch.exp(20*(vec_norm+0.3))))
-        # torch.where(torch.sin(self.angle-self.robot.data.heading_w)>0,0.5*torch.sin(self.angle-self.robot.data.heading_w)/(1+torch.exp(-20*(vec_norm-0.3))),-0.5*torch.sin(self.angle-self.robot.data.heading_w)/(1+torch.exp(20*(vec_norm+0.3))))
-        # torch.where(torch.cos(self.angle-self.robot.data.heading_w)>0.5,torch.where(torch.sin(self.angle-self.robot.data.heading_w)>0.0,torch.sin(self.angle-self.robot.data.heading_w)/(1+torch.exp(-20*(vec_norm-0.3))),-1*torch.sin(self.angle-self.robot.data.heading_w)/(1+torch.exp(20*(vec_norm+0.3)))),0)
-        
+        self.vel_command_b[:, 0] = torch.where(vec_norm!=0,torch.where(torch.cos(self.angle-self.robot.data.heading_w)>0,2*torch.cos(self.angle-self.robot.data.heading_w)*torch.tanh(vec_norm),torch.cos(self.angle-self.robot.data.heading_w)*torch.tanh(vec_norm)),0)
+        # torch.where(vec_norm!=0,torch.where(torch.cos(self.angle-self.robot.data.heading_w)>0,2*torch.cos(self.angle-self.robot.data.heading_w)/(1+torch.exp(-6*(vec_norm-0.8))),torch.cos(self.angle-self.robot.data.heading_w)/(1+torch.exp(-10*(vec_norm-0.5)))),0)
+        self.vel_command_b[:, 1] = torch.where(vec_norm!=0,torch.sin(self.angle-self.robot.data.heading_w)*torch.tanh(vec_norm),0)
+        # torch.where(vec_norm!=0,torch.sin(self.angle-self.robot.data.heading_w)/(1+torch.exp(-20*(vec_norm-0.3))),0)
+
         # math_utils.quat_apply_yaw
         if self.cfg.heading_command:
             env_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
