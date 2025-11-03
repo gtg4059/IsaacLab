@@ -54,18 +54,18 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # self.rewards.contact_forces.weight = -0.0
         # self.rewards.dof_torques_l2.weight = -2.0e-6
         # self.rewards.action_rate_l2.weight = -0.002
-        # self.commands.base_velocity = mdp.UniformVelocityCommandCfg(
-        #     asset_name="robot",
-        #     resampling_time_range=(10.0, 10.0),
-        #     rel_standing_envs=0.05,
-        #     rel_heading_envs=0.8,
-        #     heading_command=True,
-        #     heading_control_stiffness=8.0,
-        #     debug_vis=True,
-        #     ranges=mdp.UniformVelocityCommandCfg.Ranges(
-        #         lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
-        #     ),
-        # )
+        self.commands.base_velocity = mdp.UniformVelocityCommandCfg(
+            asset_name="robot",
+            resampling_time_range=(5.0, 10.0),
+            rel_standing_envs=0.05,
+            rel_heading_envs=0.8,
+            heading_command=True,
+            heading_control_stiffness=8.0,
+            debug_vis=True,
+            ranges=mdp.UniformVelocityCommandCfg.Ranges(
+                lin_vel_x=(-1.0, 2.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
+            ),
+        )
 
 
 
