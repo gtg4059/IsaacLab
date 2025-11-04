@@ -90,22 +90,34 @@ class MySceneCfg(InteractiveSceneCfg):
 @configclass
 class CommandsCfg:
     """Command specifications for the MDP."""
-
-    base_velocity = mdp.UniformVelocityTargetCommandCfg(
-        asset_name="robot",
-        resampling_time_range=(10.0, 10.0),
-        rel_standing_envs=0.05,
-        rel_heading_envs=0.8,
-        heading_command=True,
-        heading_control_stiffness=2.0,
-        debug_vis=True,
-        ranges=mdp.UniformVelocityTargetCommandCfg.Ranges(
-            lin_vel_x=(-3.0, 3.0), 
-            lin_vel_y=(-3.0, 3.0), 
-            ang_vel_z=(-2.0, 2.0), 
-            heading=(-math.pi, math.pi)
-        ),
-    )
+    
+    base_velocity = mdp.UniformVelocityCommandCfg(
+            asset_name="robot",
+            resampling_time_range=(5.0, 10.0),
+            rel_standing_envs=0.1,
+            rel_heading_envs=0.8,
+            heading_command=True,
+            heading_control_stiffness=2.0,
+            debug_vis=True,
+            ranges=mdp.UniformVelocityCommandCfg.Ranges(
+                lin_vel_x=(-1.0, 2.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
+            ),
+        )
+    # base_velocity = mdp.UniformVelocityTargetCommandCfg(
+    #     asset_name="robot",
+    #     resampling_time_range=(10.0, 10.0),
+    #     rel_standing_envs=0.05,
+    #     rel_heading_envs=0.8,
+    #     heading_command=True,
+    #     heading_control_stiffness=2.0,
+    #     debug_vis=True,
+    #     ranges=mdp.UniformVelocityTargetCommandCfg.Ranges(
+    #         lin_vel_x=(-3.0, 3.0), 
+    #         lin_vel_y=(-3.0, 3.0), 
+    #         ang_vel_z=(-2.0, 2.0), 
+    #         heading=(-math.pi, math.pi)
+    #     ),
+    # )
 
 
 

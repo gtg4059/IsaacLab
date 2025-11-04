@@ -376,7 +376,8 @@ G1_CFG = ArticulationCfg(
 
 G1_DEX_FIX = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_th/g1_29dof_rev_1_0_with_inspire_hand_th.usd",
+        usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0/g1_29dof_rev_1_0.usd",
+        # usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_th/g1_29dof_rev_1_0_with_inspire_hand_th.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -425,7 +426,7 @@ G1_DEX_FIX = ArticulationCfg(
             'right_wrist_pitch_joint': 0.0,
             'right_wrist_yaw_joint': 0.0, 
             # finger
-            ".*_proximal_joint":0.3,
+            # ".*_proximal_joint":0.3,
         },
         joint_vel={".*": 0.0},
     ),
@@ -563,19 +564,19 @@ G1_DEX_FIX = ArticulationCfg(
         #         "L_.*": 0.001,
         #     },
         # ),
-        "finger": RFI_PDActuatorCfg(
-            joint_names_expr=[
-                '.*_proximal_joint'
-            ],
-            effort_limit=1,
-            velocity_limit=0.5,
-            stiffness=10.0,
-            damping=0.5,
-            armature={
-                '.*_proximal_joint': 0.001,
-            },
-            rfi=(-0.01, 0.01),
-        ),
+        # "finger": RFI_PDActuatorCfg(
+        #     joint_names_expr=[
+        #         '.*_proximal_joint'
+        #     ],
+        #     effort_limit=1,
+        #     velocity_limit=0.5,
+        #     stiffness=10.0,
+        #     damping=0.5,
+        #     armature={
+        #         '.*_proximal_joint': 0.001,
+        #     },
+        #     rfi=(-0.0, 0.0),
+        # ),
     },
 )
 
