@@ -192,6 +192,14 @@ class IdealPDActuatorCfg(ActuatorBaseCfg):
     class_type: type = actuator_pd.IdealPDActuator
 
 @configclass
+class RFI_PDActuatorCfg(ActuatorBaseCfg):
+    """Configuration for an ideal PD actuator."""
+
+    class_type: type = actuator_pd.RFI_PDActuator
+
+    rfi: tuple[float, float] = MISSING
+
+@configclass
 class DCMotorCfg(IdealPDActuatorCfg):
     """Configuration for direct control (DC) motor actuator model."""
 

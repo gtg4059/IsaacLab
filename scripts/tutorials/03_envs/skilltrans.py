@@ -105,21 +105,21 @@ def main():
     file_content1 = omni.client.read_file(policy_path1)[2]
     file1 = io.BytesIO(memoryview(file_content1).tobytes())
     policy_run = torch.jit.load(file1)
-    # stop
-    policy_path2 = "./logs/rsl_rl/ptcontainer/policy_stop.pt"
-    file_content2 = omni.client.read_file(policy_path2)[2]
-    file2 = io.BytesIO(memoryview(file_content2).tobytes())
-    policy_stop = torch.jit.load(file2)
-    # pickup
-    policy_path3 = "./logs/rsl_rl/ptcontainer/policy_pickup.pt"
-    file_content3 = omni.client.read_file(policy_path3)[2]
-    file3 = io.BytesIO(memoryview(file_content3).tobytes())
-    policy_pickup = torch.jit.load(file3)
-    # pick_walk
-    policy_path4 = "./logs/rsl_rl/ptcontainer/policy_pick_walk.pt"
-    file_content4 = omni.client.read_file(policy_path4)[2]
-    file4 = io.BytesIO(memoryview(file_content4).tobytes())
-    policy_pick_walk = torch.jit.load(file4)
+    # # stop
+    # policy_path2 = "./logs/rsl_rl/ptcontainer/policy_stop.pt"
+    # file_content2 = omni.client.read_file(policy_path2)[2]
+    # file2 = io.BytesIO(memoryview(file_content2).tobytes())
+    # policy_stop = torch.jit.load(file2)
+    # # pickup
+    # policy_path3 = "./logs/rsl_rl/ptcontainer/policy_pickup.pt"
+    # file_content3 = omni.client.read_file(policy_path3)[2]
+    # file3 = io.BytesIO(memoryview(file_content3).tobytes())
+    # policy_pickup = torch.jit.load(file3)
+    # # pick_walk
+    # policy_path4 = "./logs/rsl_rl/ptcontainer/policy_pick_walk.pt"
+    # file_content4 = omni.client.read_file(policy_path4)[2]
+    # file4 = io.BytesIO(memoryview(file_content4).tobytes())
+    # policy_pick_walk = torch.jit.load(file4)
     # env
     env_cfg = G1FlatEnvCfg_PLAY()
     
@@ -143,43 +143,44 @@ def main():
     
     # env.keyboard.add_callback("a", print_cb))
     env = ManagerBasedRLEnv(cfg=env_cfg)
-    # command = env_cfg.keyboard.advance()
+    command = env_cfg.keyboard.advance()
     # env_cfg.gamepad.add_callback(carb.input.GamepadInput.X, print_cb)
     obs, _ = env.reset()
     
     k = 0
     while simulation_app.is_running():
         command = obs["Run"][:, -3:]
+        action = policy_run(obs["Run"])
         # action = policy_run(obs["Run"])
         # # print(env.keyboard.is_pressed("a"))
         # # print(obs["policy"][:, 93:96])
         # print("commands",env.gamepad.advance()[3],env.gamepad.advance()[5])
         # X, Y, A, B button: 3,4,5,6
         # print(env.gamepad.advance()[3],env.gamepad.advance()[5],env.gamepad.advance()[6])
-        if env.gamepad.advance()[3]>0.0 and env.gamepad.advance()[5]>0 and env.gamepad.advance()[6]>0.0:# (0, 0, 0)
-            # if abs(env.gamepad.advance()[0])<0.1 and abs(env.gamepad.advance()[1])<0.1:
-            # action = policy_stop(torch.cat((obs["Run"][:,:-3],command*0),dim=1))
-            action = policy_stop(obs["Run"])
-        elif env.gamepad.advance()[3]<0 and env.gamepad.advance()[5]>0.0 and env.gamepad.advance()[6]>0.0:# (1, 0, 0)
-            action = policy_run(obs["Run"])
-        elif env.gamepad.advance()[3]>0.0 and env.gamepad.advance()[5]<0 and env.gamepad.advance()[6]>0.0: # (0, 1, 0) up
-            print(obs["Pickup"][:,60:87])
-            action = policy_pickup(obs["Pickup"])
-        elif env.gamepad.advance()[3]>0.0 and env.gamepad.advance()[5]<0.0 and env.gamepad.advance()[6]<0.0: # (0, 1, 1) down
-            x = obs["Pickup"].clone()
-            x[:,89] = 0.06
-            x[:,96] = 0.06
-            # print("down")
-            # print(obs["Pickup"][:,89],obs["Pickup"][:,96])
-            # obs["Pickup"][:,89] = 0.06
-            # obs["Pickup"][:,:96] = 0.06
-            action = policy_pickup(x)
-        elif env.gamepad.advance()[3]<0.0 and env.gamepad.advance()[5]<0.0 and env.gamepad.advance()[6]>0.0: # (1, 1, 0)
-            # print(obs["PickWalk"][:,60:87])
-            x = obs["PickWalk"].clone()
-            x[:,92] = 0.06
-            x[:,99] = 0.06
-            action = policy_pick_walk(x)
+        # if env.gamepad.advance()[3]>0.0 and env.gamepad.advance()[5]>0 and env.gamepad.advance()[6]>0.0:# (0, 0, 0)
+        #     # if abs(env.gamepad.advance()[0])<0.1 and abs(env.gamepad.advance()[1])<0.1:
+        #     # action = policy_stop(torch.cat((obs["Run"][:,:-3],command*0),dim=1))
+        #     action = policy_stop(obs["Run"])
+        # elif env.gamepad.advance()[3]<0 and env.gamepad.advance()[5]>0.0 and env.gamepad.advance()[6]>0.0:# (1, 0, 0)
+        #     action = policy_run(obs["Run"])
+        # elif env.gamepad.advance()[3]>0.0 and env.gamepad.advance()[5]<0 and env.gamepad.advance()[6]>0.0: # (0, 1, 0) up
+        #     print(obs["Pickup"][:,60:87])
+        #     action = policy_pickup(obs["Pickup"])
+        # elif env.gamepad.advance()[3]>0.0 and env.gamepad.advance()[5]<0.0 and env.gamepad.advance()[6]<0.0: # (0, 1, 1) down
+        #     x = obs["Pickup"].clone()
+        #     x[:,89] = 0.06
+        #     x[:,96] = 0.06
+        #     # print("down")
+        #     # print(obs["Pickup"][:,89],obs["Pickup"][:,96])
+        #     # obs["Pickup"][:,89] = 0.06
+        #     # obs["Pickup"][:,:96] = 0.06
+        #     action = policy_pickup(x)
+        # elif env.gamepad.advance()[3]<0.0 and env.gamepad.advance()[5]<0.0 and env.gamepad.advance()[6]>0.0: # (1, 1, 0)
+        #     # print(obs["PickWalk"][:,60:87])
+        #     x = obs["PickWalk"].clone()
+        #     x[:,92] = 0.06
+        #     x[:,99] = 0.06
+        #     action = policy_pick_walk(x)
         # data_row = {}
         # # for i in range(len(obs["Run"][0])):
         # #     data_row[f'obs_{i}'] = float(obs["Run"][0,i])
