@@ -101,6 +101,7 @@ class CommandsCfg:
             debug_vis=True,
             ranges=mdp.UniformVelocityCommandCfg.Ranges(
                 lin_vel_x=(-1.0, 2.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
+                # lin_vel_x=(2.0, 2.0), lin_vel_y=(1.0, 1.0), ang_vel_z=(1.0, 1.0), heading=(-math.pi, math.pi)
             ),
         )
     # base_velocity = mdp.UniformVelocityTargetCommandCfg(
@@ -548,8 +549,8 @@ class RewardsCfg:
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-4)
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-5.0e-5)
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-6)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
     # action_rate_arm = RewTerm(func=mdp.action_rate_arm, weight=-0.1)
     undesired_contacts = RewTerm(

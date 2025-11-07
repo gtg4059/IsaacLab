@@ -36,8 +36,8 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.track_ang_vel_z_exp.weight = 1.0
         # Rewards
         self.rewards.lin_vel_z_l2.weight = -0.2
-        self.rewards.action_rate_l2.weight = -0.01
-        self.rewards.dof_acc_l2.weight = -1.0e-7
+        
+        
         # self.rewards.feet_air_time.weight = 0.75
         # self.rewards.feet_air_time.params["threshold"] = 0.4
         
@@ -47,6 +47,8 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
 
         # self.events.push_robot = None
         # curriculum
+        # self.rewards.action_rate_l2.weight = -0.001
+        # self.rewards.dof_acc_l2.weight = -1.0e-7
         # self.rewards.track_lin_vel_xy_exp.weight = 2.0
         # self.rewards.track_ang_vel_z_exp.weight = 2.0
         # self.rewards.foot_clearance.weight = 0.75
