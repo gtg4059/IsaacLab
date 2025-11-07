@@ -149,8 +149,10 @@ def main():
     
     k = 0
     while simulation_app.is_running():
-        command = obs["Run"][:, -3:]
         action = policy_run(obs["Run"])
+
+        # print(obs["Run"][0,6:35])
+
         # action = policy_run(obs["Run"])
         # # print(env.keyboard.is_pressed("a"))
         # # print(obs["policy"][:, 93:96])
@@ -190,20 +192,38 @@ def main():
 
         obs, _, _, _, _ = env.step(action)
 
-        # k += 1
-        # if k >= 250:
-        #     break
+        target_dof_pos = action * 0.25
+        # 데이터 수집 (매 스텝마다)
+        data_row = {}
+        
+        # 액션과 목표 위치 추가
+        for i in range(len(action[0])):
+            data_row[f'action_{i}'] = float(action[0,i])
+            data_row[f'target_dof_pos_{i}'] = float(target_dof_pos[0,i])
+            data_row[f'qj{i}'] = float(obs["Run"][0,6+i])
+            data_row[f'dqj{i}'] = float(obs["Run"][0,35+i])
+            
+        # # obs 위치 추가
+        # for i in range(len(self.obs)):
+        #     data_row[f'obs_{i}'] = float(self.obs[i])
+        
+        robot_data.append(data_row)
+        # print(data_row)
+
+        k += 1
+        if k >= 300:
+            break
 
 
 if __name__ == "__main__":
     main()
-    # print("Saving robot data...")
+    print("Saving robot data...")
     # # print(robot_data)
     # #  print(robot_data[0,2])
-    # csv_filename = save_data_to_csv()
-    # print(f"Data saved to: {csv_filename}")
-    # simulation_app.update()
-    # simulation_app.update()
-    # simulation_app.update()
+    csv_filename = save_data_to_csv()
+    print(f"Data saved to: {csv_filename}")
+    simulation_app.update()
+    simulation_app.update()
+    simulation_app.update()
     simulation_app.close()
     

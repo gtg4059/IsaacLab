@@ -132,7 +132,7 @@ class MySceneCfg(InteractiveSceneCfg):
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
         init_state=RigidObjectCfg.InitialStateCfg(
-            pos=[0.32, 0, 0.82],# 0.37, 0, 0.82
+            pos=[0.32, 1.0, 0.82],# 0.37, 0, 0.82
             rot=[1.0, 0.0 ,0.0, 0.0]),
         spawn=sim_utils.UsdFileCfg(
             # white wing-box
@@ -608,7 +608,7 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        velocity_commands = ObsTerm(func=keyboard_commands) #, scale=(2.0,2.0,0.25))# 3
+        velocity_commands = ObsTerm(func=keyboard_commands,scale=(2.0,2.0,0.25)) #, scale=(2.0,2.0,0.25))# 3
         # velocity_commands = ObsTerm(func=mdp.generated_commands, 
         #                             params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))# 3
 
