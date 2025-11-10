@@ -67,7 +67,7 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         # )
         self.keyboard = Se2Keyboard(Se2KeyboardCfg(
                 v_x_sensitivity=2.0,
-                v_y_sensitivity=2.0,
+                v_y_sensitivity=1.0,
                 omega_z_sensitivity=1.0,
             )
         )
