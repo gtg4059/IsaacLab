@@ -101,7 +101,7 @@ def main():
     # load the trained jit policy
     # policy_path = os.path.abspath(args_cli.checkpoint)
     # runner
-    policy_path1 = "./logs/rsl_rl/ptcontainer/policy_run.pt"
+    policy_path1 = "./logs/rsl_rl/g1_flat/2025-11-10_18-46-54/exported/policy.pt"
     file_content1 = omni.client.read_file(policy_path1)[2]
     file1 = io.BytesIO(memoryview(file_content1).tobytes())
     policy_run = torch.jit.load(file1)
@@ -192,27 +192,27 @@ def main():
 
         obs, _, _, _, _ = env.step(action)
 
-        target_dof_pos = action * 0.25
-        # 데이터 수집 (매 스텝마다)
-        data_row = {}
+        # target_dof_pos = action * 0.25
+        # # 데이터 수집 (매 스텝마다)
+        # data_row = {}
         
-        # 액션과 목표 위치 추가
-        for i in range(len(action[0])):
-            data_row[f'action_{i}'] = float(action[0,i])
-            data_row[f'target_dof_pos_{i}'] = float(target_dof_pos[0,i])
-            data_row[f'qj{i}'] = float(obs["Run"][0,6+i])
-            data_row[f'dqj{i}'] = float(obs["Run"][0,35+i])
+        # # 액션과 목표 위치 추가
+        # for i in range(len(action[0])):
+        #     data_row[f'action_{i}'] = float(action[0,i])
+        #     data_row[f'target_dof_pos_{i}'] = float(target_dof_pos[0,i])
+        #     data_row[f'qj{i}'] = float(obs["Run"][0,6+i])
+        #     data_row[f'dqj{i}'] = float(obs["Run"][0,35+i])
             
-        # # obs 위치 추가
-        # for i in range(len(self.obs)):
-        #     data_row[f'obs_{i}'] = float(self.obs[i])
+        # # # obs 위치 추가
+        # # for i in range(len(self.obs)):
+        # #     data_row[f'obs_{i}'] = float(self.obs[i])
         
-        robot_data.append(data_row)
-        # print(data_row)
+        # robot_data.append(data_row)
+        # # print(data_row)
 
-        k += 1
-        if k >= 300:
-            break
+        # k += 1
+        # if k >= 300:
+        #     break
 
 
 if __name__ == "__main__":
