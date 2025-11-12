@@ -55,6 +55,15 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # self.rewards.contact_forces.weight = -0.0
         # self.rewards.dof_torques_l2.weight = -2.0e-6
         # self.rewards.action_rate_l2.weight = -0.002
+        # self.rewards.dof_acc_l2.weight = -1.25e-7
+        # self.rewards.dof_acc_l2.params["asset_cfg"] = SceneEntityCfg(
+        #     "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
+        # )
+        # self.rewards.dof_torques_l2.weight = -1.5e-7
+        # self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
+        #     "robot", joint_names=[".*_hip_.*", ".*_knee_joint", ".*_ankle_.*"]
+        # )
+
         # self.commands.base_velocity = mdp.UniformVelocityCommandCfg(
         #     asset_name="robot",
         #     resampling_time_range=(5.0, 10.0),
@@ -67,7 +76,6 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         #         lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
         #     ),
         # )
-
 
 
 
