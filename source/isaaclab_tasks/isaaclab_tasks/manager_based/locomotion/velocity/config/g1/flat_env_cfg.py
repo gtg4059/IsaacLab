@@ -18,8 +18,8 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         super().__post_init__()
 
         # change terrain to flat
-        self.scene.terrain.terrain_type = "plane"
-        self.scene.terrain.terrain_generator = None
+        # self.scene.terrain.terrain_type = "plane"
+        # self.scene.terrain.terrain_generator = None
         # no height scan
         self.scene.height_scanner = None
         # self.observations.policy.height_scan = None

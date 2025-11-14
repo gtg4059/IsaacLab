@@ -50,3 +50,26 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
     },
 )
 """Rough terrains configuration."""
+
+REPEATED_OBJECTS_TERRAINS_CFG = TerrainGeneratorCfg(
+    size=(8.0, 8.0),
+    border_width=20.0,
+    num_rows=10,
+    num_cols=20,
+    horizontal_scale=0.1,
+    vertical_scale=0.005,
+    slope_threshold=0.75,
+    use_cache=False,
+    sub_terrains={
+        "repeated_pyramids": terrain_gen.MeshRepeatedPyramidsTerrainCfg(
+            proportion=0.2,
+            object_params_start=terrain_gen.MeshRepeatedPyramidsTerrainCfg.ObjectCfg(
+                num_objects=40, height=0.05, radius=0.6, max_yx_angle=0.0, degrees=True
+            ),
+            object_params_end=terrain_gen.MeshRepeatedPyramidsTerrainCfg.ObjectCfg(
+                num_objects=80, height=0.15, radius=0.6, max_yx_angle=60.0, degrees=True
+            ),
+        ),
+    },
+)
+"""Repeated objects terrain configuration."""
