@@ -14,7 +14,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import G1_DEX_FIX  # isort: skip
+from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY  # isort: skip
 
 
 @configclass
@@ -175,7 +175,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # post init of parent
         super().__post_init__()
         # Scene
-        self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot = G1_DEX_EASY.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
 
         # Randomization
@@ -194,6 +194,14 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.undesired_contacts = None
         # no height scan
         self.scene.height_scanner = None
+        self.events.reset_base = None
+        self.events.randomize_friction
+        self.events.randomize_joint_param = None
+        self.events.randomize_link_mass = None
+        self.events.randomize_base_mass = None
+        self.events.randomize_base_com = None
+        self.events.randomize_pd_gains = None
+        self.events.randomize_motor_zero_offset = None
 
 
 
