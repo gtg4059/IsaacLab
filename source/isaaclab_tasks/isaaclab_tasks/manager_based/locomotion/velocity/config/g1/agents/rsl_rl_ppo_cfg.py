@@ -15,6 +15,8 @@ class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     save_interval = 500
     experiment_name = "g1_rough"
     empirical_normalization = False
+    clip_actions = 50.0
+    max_iterations = 9000000
     # policy = RslRlPpoActorCriticCfg(
     #     init_noise_std=1.0,
     #     actor_hidden_dims=[512, 256, 128],
@@ -50,8 +52,8 @@ class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
 class G1FlatPPORunnerCfg(G1RoughPPORunnerCfg):
     def __post_init__(self):
         super().__post_init__()
-        self.clip_actions = 50.0
-        self.max_iterations = 9000000
+        # self.clip_actions = 50.0
+        # self.max_iterations = 9000000
         self.experiment_name = "g1_flat"
         # self.policy.actor_hidden_dims = [512, 256, 128]
         # self.policy.critic_hidden_dims = [512, 256, 128]
