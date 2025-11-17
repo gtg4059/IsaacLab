@@ -198,6 +198,14 @@ class RFI_PDActuatorCfg(ActuatorBaseCfg):
     class_type: type = actuator_pd.RFI_PDActuator
 
     rfi: tuple[float, float] = MISSING
+    """Random force/torque input to the actuator. Defaults to None."""
+    
+    min_delay: int = 0
+    """Minimum number of physics time-steps with which the actuator command may be delayed. Defaults to 0."""
+
+    max_delay: int = 0
+    """Maximum number of physics time-steps with which the actuator command may be delayed. Defaults to 0."""
+
 
 @configclass
 class DCMotorCfg(IdealPDActuatorCfg):
