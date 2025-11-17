@@ -16,7 +16,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
-
+        self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
         # change terrain to flat
         self.scene.terrain.terrain_type = "plane"
         self.scene.terrain.terrain_generator = None
