@@ -18,48 +18,12 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         super().__post_init__()
 
         # change terrain to flat
-        # self.scene.terrain.terrain_type = "plane"
-        # self.scene.terrain.terrain_generator = None
+        self.scene.terrain.terrain_type = "plane"
+        self.scene.terrain.terrain_generator = None
+        self.curriculum.terrain_levels = None
         # no height scan
         self.scene.height_scanner = None
-        # self.observations.policy.height_scan = None
-        # no terrain curriculum
-        self.curriculum.terrain_levels = None
-
-        # New Rewards
-        # self.rewards.joint_deviation_arms.weight = -0.2
-        # # self.rewards.joint_deviation_fingers.weight = -0.1
-        # self.rewards.joint_deviation_torso.weight = -0.2
-        # self.rewards.joint_deviation_hip.weight = -0.2
-        # Main Rewards
-        # Rewards
-        self.rewards.lin_vel_z_l2.weight = -0.2
         
-        
-        # self.rewards.feet_air_time.weight = 0.75
-        # self.rewards.feet_air_time.params["threshold"] = 0.4
-        
-        # G1_29_no_hand
-        self.rewards.joint_deviation_arms.weight = -1.0
-        self.rewards.joint_deviation_torso.weight = -1.0
-
-        # self.events.push_robot = None
-        # curriculum
-        # self.rewards.track_lin_vel_xy_exp.weight = 2.0
-        # self.rewards.track_ang_vel_z_exp.weight = 2.0
-        
-        self.rewards.foot_clearance.weight = 0.75
-        self.rewards.feet_air_time.weight = 0.0
-        self.rewards.contact_forces.weight = -0.0
-        self.rewards.action_rate_l2.weight = -0.001
-        self.rewards.dof_acc_l2.weight = -1.25e-7
-        self.rewards.dof_acc_l2.params["asset_cfg"] = SceneEntityCfg(
-            "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
-        )
-        self.rewards.dof_torques_l2.weight = -1.5e-7
-        self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
-            "robot", joint_names=[".*_hip_.*", ".*_knee_joint", ".*_ankle_.*"]
-        )
 
 
 
