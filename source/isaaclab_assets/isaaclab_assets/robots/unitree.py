@@ -484,6 +484,8 @@ G1_DEX_FIX = ArticulationCfg(
                 "waist_.*": 0.01,
             },
             rfi=(-0.01, 0.01),
+            min_delay=1,
+            max_delay=4,
         ),
         "feet": RFI_PDActuatorCfg(
             effort_limit=50,
@@ -493,6 +495,8 @@ G1_DEX_FIX = ArticulationCfg(
             damping=2.0,
             armature=0.01,
             rfi=(-0.01, 0.01),
+            min_delay=1,
+            max_delay=4,
         ),
         "arms": RFI_PDActuatorCfg(
             joint_names_expr=[
@@ -546,37 +550,9 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_wrist_.*": 0.01,
             },
             rfi=(-0.01, 0.01),
+            min_delay=1,
+            max_delay=4,
         ),
-        # "hands": IdealPDActuatorCfg(
-        #     joint_names_expr=[
-        #         # '.*_thumb_proximal_yaw_joint',
-        #         # '.*_thumb_proximal_pitch_joint',
-        #         # '.*_proximal_joint'
-        #         "R_.*",
-        #         "L_.*",
-        #     ],
-        #     effort_limit=1,
-        #     velocity_limit=0.5,
-        #     stiffness=10.0,
-        #     damping=0.5,
-        #     armature={
-        #         "R_.*": 0.001,
-        #         "L_.*": 0.001,
-        #     },
-        # ),
-        # "finger": RFI_PDActuatorCfg(
-        #     joint_names_expr=[
-        #         '.*_proximal_joint'
-        #     ],
-        #     effort_limit=1,
-        #     velocity_limit=0.5,
-        #     stiffness=10.0,
-        #     damping=0.5,
-        #     armature={
-        #         '.*_proximal_joint': 0.001,
-        #     },
-        #     rfi=(-0.0, 0.0),
-        # ),
     },
 )
 
