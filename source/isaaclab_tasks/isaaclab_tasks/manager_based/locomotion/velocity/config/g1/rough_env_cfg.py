@@ -80,6 +80,12 @@ class G1Rewards(RewardsCfg):
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_roll_joint"])},
     )
 
+    joint_deviation_hip_yaw = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-0.1,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint"])},
+    )
+
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-1.0,
@@ -194,14 +200,15 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.undesired_contacts = None
         # no height scan
         self.scene.height_scanner = None
-        self.events.reset_base = None
-        self.events.randomize_friction
-        self.events.randomize_joint_param = None
-        self.events.randomize_link_mass = None
-        self.events.randomize_base_mass = None
-        self.events.randomize_base_com = None
-        self.events.randomize_pd_gains = None
-        self.events.randomize_motor_zero_offset = None
+        # randomization select
+        # self.events.reset_base = None
+        # self.events.randomize_friction
+        # self.events.randomize_joint_param = None
+        # self.events.randomize_link_mass = None
+        # self.events.randomize_base_mass = None
+        # self.events.randomize_base_com = None
+        # self.events.randomize_pd_gains = None
+        # self.events.randomize_motor_zero_offset = None
 
 
 

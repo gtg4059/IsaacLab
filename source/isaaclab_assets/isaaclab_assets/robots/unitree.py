@@ -484,8 +484,8 @@ G1_DEX_FIX = ArticulationCfg(
                 "waist_.*": 0.01,
             },
             rfi=(-0.01, 0.01),
-            min_delay=1,
-            max_delay=4,
+            min_delay=2,
+            max_delay=6,
         ),
         "feet": RFI_PDActuatorCfg(
             effort_limit=50,
@@ -495,8 +495,8 @@ G1_DEX_FIX = ArticulationCfg(
             damping=2.0,
             armature=0.01,
             rfi=(-0.01, 0.01),
-            min_delay=1,
-            max_delay=4,
+            min_delay=2,
+            max_delay=6,
         ),
         "arms": RFI_PDActuatorCfg(
             joint_names_expr=[
@@ -550,8 +550,8 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_wrist_.*": 0.01,
             },
             rfi=(-0.01, 0.01),
-            min_delay=1,
-            max_delay=4,
+            min_delay=2,
+            max_delay=6,
         ),
     },
 )
