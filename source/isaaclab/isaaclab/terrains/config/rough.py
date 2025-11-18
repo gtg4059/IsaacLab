@@ -69,8 +69,8 @@ REPEATED_OBJECTS_TERRAINS_CFG = TerrainGeneratorCfg(
             border_width=0.0,
             num_obstacles=100,
             obstacle_height_mode="choice",
-            obstacle_width_range=(0.4, 0.6),
-            obstacle_height_range=(0.0, 0.04),
+            obstacle_width_range=(0.34, 0.6),
+            obstacle_height_range=(0.0, 0.1),
             platform_width=1.0,
         ),
         # "random_rough2": terrain_gen.HfDiscreteObstaclesTerrainCfg(

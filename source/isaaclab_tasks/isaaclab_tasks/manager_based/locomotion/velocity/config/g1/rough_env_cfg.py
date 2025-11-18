@@ -201,8 +201,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # no height scan
         self.scene.height_scanner = None
         # randomization select
-        # self.events.reset_base = None
-        # self.events.randomize_friction
+        # self.events.randomize_friction = None
         # self.events.randomize_joint_param = None
         # self.events.randomize_link_mass = None
         # self.events.randomize_base_mass = None
