@@ -45,12 +45,12 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
         self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
         # self.commands.base_velocity.ranges.heading = (0.0, 0.0)
-        self.events.randomize_base_mass = None
-        self.events.randomize_base_com = None
-        self.events.randomize_pd_gains = None
-        self.events.randomize_link_mass = None
-        self.events.randomize_motor_zero_offset = None
-        self.events.randomize_joint_param = None
+        # self.events.randomize_base_mass = None
+        # self.events.randomize_base_com = None
+        # self.events.randomize_pd_gains = None
+        # self.events.randomize_link_mass = None
+        # self.events.randomize_motor_zero_offset = None
+        # self.events.randomize_joint_param = None
 
 
 class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
