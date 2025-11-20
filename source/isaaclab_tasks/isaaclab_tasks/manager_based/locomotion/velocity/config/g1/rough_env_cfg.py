@@ -152,9 +152,9 @@ class G1RoughCurriculumCfg(CurriculumCfg):
         func=mdp.modify_reward_weight,
         params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 500000}
     )
-    feet_air_time_weight = CurrTerm(
+    feet_land_time_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "feet_air_time", "weight": 1.2, "num_steps": 500000}
+        params={"term_name": "feet_land_time", "weight": 1.2, "num_steps": 500000}
     )
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
@@ -180,7 +180,7 @@ class G1RoughCurriculumCfg(CurriculumCfg):
 @configclass
 class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
     rewards: G1Rewards = G1Rewards()
-    # curriculum: G1RoughCurriculumCfg = G1RoughCurriculumCfg()
+    curriculum: G1RoughCurriculumCfg = G1RoughCurriculumCfg()
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
