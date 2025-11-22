@@ -101,7 +101,7 @@ def main():
     # load the trained jit policy
     # policy_path = os.path.abspath(args_cli.checkpoint)
     # runner
-    policy_path1 = "./logs/rsl_rl/g1_flat/2025-11-17_15-46-14/exported/policy.pt"
+    policy_path1 = "./logs/rsl_rl/g1_flat/2025-11-22_09-42-40/exported/policy.pt"
     file_content1 = omni.client.read_file(policy_path1)[2]
     file1 = io.BytesIO(memoryview(file_content1).tobytes())
     policy_run = torch.jit.load(file1)
