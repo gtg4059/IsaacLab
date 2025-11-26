@@ -160,12 +160,21 @@ def main():
     while simulation_app.is_running():
 
         # walk command
-        if k > 50 and k <= 175:
-            command[0] = 1.0
+        # if k > 50 and k <= 170:
+        #     command[0] = 2.0
+        # else:
+        #     command[0] = 0.0
+        # run command
+        if k > 50 and k <= 220:
+            command[0] = 4.0
         else:
             command[0] = 0.0
-        # # run command
-        # if k > 50 and k <= 170:
+        # # sim test
+        # if k > 20 and k <= 120:
+        #     command[0] = 2.0
+        # elif k > 120 and k <= 240:
+        #     command[0] = 4.0
+        # elif k > 240 and k <= 340:
         #     command[0] = 2.0
         # else:
         #     command[0] = 0.0
@@ -253,6 +262,11 @@ def main():
         data_row[f'left'] = int(left_force_magnitude > 0 and right_force_magnitude <= 0)
         data_row[f'right'] = int(right_force_magnitude > 0 and left_force_magnitude <= 0)
         data_row[f'double'] = int(left_force_magnitude > 0 and right_force_magnitude > 0)
+        # 로봇의 전방 속도 (world 좌표계 x 방향 속도)
+        robot = env.scene["robot"]
+        forward_velocity = robot.data.root_lin_vel_w[0, 0].item()  # x 방향 속도
+        data_row[f'command'] = command[0].item()/2
+        data_row[f'forward_velocity'] = forward_velocity
         # # obs 위치 추가
         # for i in range(len(self.obs)):
         #     data_row[f'obs_{i}'] = float(self.obs[i])
