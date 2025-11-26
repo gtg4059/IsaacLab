@@ -159,18 +159,16 @@ def main():
     k = 0
     while simulation_app.is_running():
 
-        # if k > 50 and k <= 150:
-        #     command[0] = 2.0
-        # elif k > 150 and k <= 250:
-        #     command[0] = 2.0
-        # elif k > 250 and k < 350:
-        #     command[0] = 0.0
-        # else:
-        #     command[0] = 0.0
+        # walk command
         if k > 50 and k <= 175:
             command[0] = 1.0
         else:
             command[0] = 0.0
+        # # run command
+        # if k > 50 and k <= 170:
+        #     command[0] = 2.0
+        # else:
+        #     command[0] = 0.0
         action = policy_run(torch.cat((obs["Run"][:,:-3],command.unsqueeze(0)),dim=1))
         # ankle_roll_link의 contact sensor 데이터 가져오기
         # net_forces_w: (num_envs, num_bodies, 3) - 현재 접촉 힘
@@ -252,9 +250,9 @@ def main():
         # 힘의 크기(norm)가 0보다 큰지 확인하여 접촉 여부 판단
         left_force_magnitude = torch.norm(ankle_roll_forces[0, 0, :]).item()
         right_force_magnitude = torch.norm(ankle_roll_forces[0, 1, :]).item()
-        data_row[f'left_force'] = int(left_force_magnitude > 0 and right_force_magnitude <= 0)
-        data_row[f'right_force'] = int(right_force_magnitude > 0 and left_force_magnitude <= 0)
-        data_row[f'double_force'] = int(left_force_magnitude > 0 and right_force_magnitude > 0)
+        data_row[f'left'] = int(left_force_magnitude > 0 and right_force_magnitude <= 0)
+        data_row[f'right'] = int(right_force_magnitude > 0 and left_force_magnitude <= 0)
+        data_row[f'double'] = int(left_force_magnitude > 0 and right_force_magnitude > 0)
         # # obs 위치 추가
         # for i in range(len(self.obs)):
         #     data_row[f'obs_{i}'] = float(self.obs[i])
