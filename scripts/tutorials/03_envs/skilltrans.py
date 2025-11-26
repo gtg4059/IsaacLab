@@ -46,6 +46,7 @@ import omni
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
+from isaaclab.sensors import ContactSensor
 
 from isaaclab_tasks.manager_based.locomotion.velocity.config.g1.flat_env_cfg import G1FlatEnvCfg_PLAY
 import torch
@@ -101,7 +102,7 @@ def main():
     # load the trained jit policy
     # policy_path = os.path.abspath(args_cli.checkpoint)
     # runner
-    policy_path1 = "./logs/rsl_rl/g1_flat/2025-11-22_09-42-40/exported/policy.pt"
+    policy_path1 = "./logs/rsl_rl/ptcontainer/policy.pt"
     file_content1 = omni.client.read_file(policy_path1)[2]
     file1 = io.BytesIO(memoryview(file_content1).tobytes())
     policy_run = torch.jit.load(file1)
@@ -147,9 +148,55 @@ def main():
     # env_cfg.gamepad.add_callback(carb.input.GamepadInput.X, print_cb)
     obs, _ = env.reset()
     
+        # Contact sensor 접근
+    contact_sensor = env.scene.sensors["contact_forces"]
+    # 타입 체크: ContactSensor인지 확인
+    assert isinstance(contact_sensor, ContactSensor), "contact_forces sensor must be a ContactSensor"
+    # ankle_roll_link의 body ID 찾기
+    ankle_roll_body_ids, ankle_roll_body_names = contact_sensor.find_bodies(".*_ankle_roll_link")
+    print(f"Found ankle_roll_link bodies: {ankle_roll_body_names} with IDs: {ankle_roll_body_ids}")
+    
     k = 0
     while simulation_app.is_running():
-        action = policy_run(obs["Run"])
+
+        # if k > 50 and k <= 150:
+        #     command[0] = 2.0
+        # elif k > 150 and k <= 250:
+        #     command[0] = 2.0
+        # elif k > 250 and k < 350:
+        #     command[0] = 0.0
+        # else:
+        #     command[0] = 0.0
+        if k > 50 and k <= 175:
+            command[0] = 1.0
+        else:
+            command[0] = 0.0
+        action = policy_run(torch.cat((obs["Run"][:,:-3],command.unsqueeze(0)),dim=1))
+        # ankle_roll_link의 contact sensor 데이터 가져오기
+        # net_forces_w: (num_envs, num_bodies, 3) - 현재 접촉 힘
+        contact_data = contact_sensor.data
+        if contact_data.net_forces_w is not None:
+            ankle_roll_forces = contact_data.net_forces_w[:, ankle_roll_body_ids, :]
+        # net_forces_w_history: (num_envs, history_length, num_bodies, 3) - 히스토리
+        if contact_data.net_forces_w_history is not None:
+            ankle_roll_forces_history = contact_data.net_forces_w_history[:, :, ankle_roll_body_ids, :]
+        # current_contact_time: (num_envs, num_bodies) - 현재 접촉 시간
+        if contact_data.current_contact_time is not None:
+            ankle_roll_contact_time = contact_data.current_contact_time[:, ankle_roll_body_ids]
+        # current_air_time: (num_envs, num_bodies) - 현재 공중에 있는 시간
+        if contact_data.current_air_time is not None:
+            ankle_roll_air_time = contact_data.current_air_time[:, ankle_roll_body_ids]
+        
+        # # 예시: 첫 번째 환경의 ankle_roll_link contact force 출력
+        # if k % 100 == 0:  # 100 스텝마다 출력
+        #     print(f"Step {k}:")
+        #     if contact_data.net_forces_w is not None:
+        #         print(f"  Left ankle roll force: {ankle_roll_forces[0, 0, :]}")
+        #         print(f"  Right ankle roll force: {ankle_roll_forces[0, 1, :]}")
+        #     if contact_data.current_contact_time is not None:
+        #         print(f"  Contact time: {ankle_roll_contact_time[0, :]}")
+        #     if contact_data.current_air_time is not None:
+        #         print(f"  Air time: {ankle_roll_air_time[0, :]}")
 
         # print(obs["Run"][0,6:35])
 
@@ -192,27 +239,32 @@ def main():
 
         obs, _, _, _, _ = env.step(action)
 
-        # target_dof_pos = action * 0.25
-        # # 데이터 수집 (매 스텝마다)
-        # data_row = {}
-        
-        # # 액션과 목표 위치 추가
-        # for i in range(len(action[0])):
-        #     data_row[f'action_{i}'] = float(action[0,i])
-        #     data_row[f'target_dof_pos_{i}'] = float(target_dof_pos[0,i])
-        #     data_row[f'qj{i}'] = float(obs["Run"][0,6+i])
-        #     data_row[f'dqj{i}'] = float(obs["Run"][0,35+i])
+        target_dof_pos = action * 0.25
+        # 데이터 수집 (매 스텝마다)
+        data_row = {}
+        # 액션과 목표 위치 추가
+        for i in range(len(action[0])):
             
-        # # # obs 위치 추가
-        # # for i in range(len(self.obs)):
-        # #     data_row[f'obs_{i}'] = float(self.obs[i])
+            data_row[f'action_{i}'] = float(action[0,i])
+            data_row[f'target_dof_pos_{i}'] = float(target_dof_pos[0,i])
+            data_row[f'qj{i}'] = float(obs["Run"][0,6+i])
+            data_row[f'dqj{i}'] = float(obs["Run"][0,35+i])
+        # 힘의 크기(norm)가 0보다 큰지 확인하여 접촉 여부 판단
+        left_force_magnitude = torch.norm(ankle_roll_forces[0, 0, :]).item()
+        right_force_magnitude = torch.norm(ankle_roll_forces[0, 1, :]).item()
+        data_row[f'left_force'] = int(left_force_magnitude > 0 and right_force_magnitude <= 0)
+        data_row[f'right_force'] = int(right_force_magnitude > 0 and left_force_magnitude <= 0)
+        data_row[f'double_force'] = int(left_force_magnitude > 0 and right_force_magnitude > 0)
+        # # obs 위치 추가
+        # for i in range(len(self.obs)):
+        #     data_row[f'obs_{i}'] = float(self.obs[i])
         
-        # robot_data.append(data_row)
-        # # print(data_row)
+        robot_data.append(data_row)
+        # print(data_row)
 
-        # k += 1
-        # if k >= 300:
-        #     break
+        k += 1
+        if k >= 300:
+            break
 
 
 if __name__ == "__main__":
