@@ -19,8 +19,11 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         super().__post_init__()
 
         # change terrain to flat
+        # self.scene.terrain.terrain_type = "generator"
+        # self.viewer.eye = (-40.0, -85.0, 2.0)
         self.scene.terrain.terrain_type = "plane"
-        self.scene.terrain.terrain_generator = None
+
+        # self.scene.terrain.terrain_generator = None
         # self.observations.policy.height_scan = None
         # no terrain curriculum
         self.curriculum.terrain_levels = None
@@ -73,8 +76,8 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         )
         self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
         # make a smaller scene for play
-        self.scene.num_envs = 50
-        self.scene.env_spacing = 2.5
+        self.scene.num_envs = 1
+        self.scene.env_spacing = 0
         # disable randomization for play
 
         # # remove random pushing
