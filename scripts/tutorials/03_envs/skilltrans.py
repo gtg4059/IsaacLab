@@ -165,10 +165,10 @@ def main():
         # else:
         #     command[0] = 0.0
         # run command
-        if k > 50 and k <= 220:
-            command[0] = 4.0
-        else:
-            command[0] = 0.0
+        # if k > 50 and k <= 220:
+        #     command[0] = 4.0
+        # else:
+        #     command[0] = 0.0
         # # sim test
         # if k > 20 and k <= 120:
         #     command[0] = 2.0
@@ -178,7 +178,8 @@ def main():
         #     command[0] = 2.0
         # else:
         #     command[0] = 0.0
-        action = policy_run(torch.cat((obs["Run"][:,:-3],command.unsqueeze(0)),dim=1))
+        action = policy_run(obs["Run"])
+        # action = policy_run(torch.cat((obs["Run"][:,:-3],command.unsqueeze(0)),dim=1))
         # ankle_roll_link의 contact sensor 데이터 가져오기
         # net_forces_w: (num_envs, num_bodies, 3) - 현재 접촉 힘
         contact_data = contact_sensor.data
@@ -246,37 +247,37 @@ def main():
 
         obs, _, _, _, _ = env.step(action)
 
-        target_dof_pos = action * 0.25
-        # 데이터 수집 (매 스텝마다)
-        data_row = {}
-        # 액션과 목표 위치 추가
-        for i in range(len(action[0])):
+        # target_dof_pos = action * 0.25
+        # # 데이터 수집 (매 스텝마다)
+        # data_row = {}
+        # # 액션과 목표 위치 추가
+        # for i in range(len(action[0])):
             
-            data_row[f'action_{i}'] = float(action[0,i])
-            data_row[f'target_dof_pos_{i}'] = float(target_dof_pos[0,i])
-            data_row[f'qj{i}'] = float(obs["Run"][0,6+i])
-            data_row[f'dqj{i}'] = float(obs["Run"][0,35+i])
-        # 힘의 크기(norm)가 0보다 큰지 확인하여 접촉 여부 판단
-        left_force_magnitude = torch.norm(ankle_roll_forces[0, 0, :]).item()
-        right_force_magnitude = torch.norm(ankle_roll_forces[0, 1, :]).item()
-        data_row[f'left'] = int(left_force_magnitude > 0 and right_force_magnitude <= 0)
-        data_row[f'right'] = int(right_force_magnitude > 0 and left_force_magnitude <= 0)
-        data_row[f'double'] = int(left_force_magnitude > 0 and right_force_magnitude > 0)
-        # 로봇의 전방 속도 (world 좌표계 x 방향 속도)
-        robot = env.scene["robot"]
-        forward_velocity = robot.data.root_lin_vel_w[0, 0].item()  # x 방향 속도
-        data_row[f'command'] = command[0].item()/2
-        data_row[f'forward_velocity'] = forward_velocity
-        # # obs 위치 추가
-        # for i in range(len(self.obs)):
-        #     data_row[f'obs_{i}'] = float(self.obs[i])
+        #     data_row[f'action_{i}'] = float(action[0,i])
+        #     data_row[f'target_dof_pos_{i}'] = float(target_dof_pos[0,i])
+        #     data_row[f'qj{i}'] = float(obs["Run"][0,6+i])
+        #     data_row[f'dqj{i}'] = float(obs["Run"][0,35+i])
+        # # 힘의 크기(norm)가 0보다 큰지 확인하여 접촉 여부 판단
+        # left_force_magnitude = torch.norm(ankle_roll_forces[0, 0, :]).item()
+        # right_force_magnitude = torch.norm(ankle_roll_forces[0, 1, :]).item()
+        # data_row[f'left'] = int(left_force_magnitude > 0 and right_force_magnitude <= 0)
+        # data_row[f'right'] = int(right_force_magnitude > 0 and left_force_magnitude <= 0)
+        # data_row[f'double'] = int(left_force_magnitude > 0 and right_force_magnitude > 0)
+        # # 로봇의 전방 속도 (world 좌표계 x 방향 속도)
+        # robot = env.scene["robot"]
+        # forward_velocity = robot.data.root_lin_vel_w[0, 0].item()  # x 방향 속도
+        # data_row[f'command'] = command[0].item()/2
+        # data_row[f'forward_velocity'] = forward_velocity
+        # # # obs 위치 추가
+        # # for i in range(len(self.obs)):
+        # #     data_row[f'obs_{i}'] = float(self.obs[i])
         
-        robot_data.append(data_row)
-        # print(data_row)
+        # robot_data.append(data_row)
+        # # print(data_row)
 
-        k += 1
-        if k >= 300:
-            break
+        # k += 1
+        # if k >= 300:
+        #     break
 
 
 if __name__ == "__main__":
