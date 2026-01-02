@@ -219,7 +219,8 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # self.events.reset_robot_joints.params["position_range"] = (1.0, 1.0)
         # self.events.base_external_force_torque.params["asset_cfg"].body_names = ["waist_yaw_link"]
         self.events.reset_base.params = {
-            "pose_range": {"x": (-3.50, -3.50), "y": (-0.00, -0.00), "yaw": (-0.0, 0.0)},
+            # "pose_range": {"x": (-3.50, -3.50), "y": (-0.00, -0.00), "yaw": (-0.0, 0.0)},
+            "pose_range": {"x": (-0.00, -0.00), "y": (-0.00, -0.00), "yaw": (-0.0, 0.0)},
             "velocity_range": {
                 "x": (0.0, 0.0),
                 "y": (0.0, 0.0),
@@ -252,7 +253,7 @@ class G1RoughEnvCfg_PLAY(G1RoughEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
-
+        self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
         # make a smaller scene for play
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
