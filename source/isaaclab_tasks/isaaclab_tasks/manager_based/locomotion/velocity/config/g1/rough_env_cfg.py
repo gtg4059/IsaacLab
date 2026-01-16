@@ -150,31 +150,31 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     
     foot_clearance_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 200000}
+        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 8000000}
     )
     feet_land_time_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "feet_land_time", "weight": 1.2, "num_steps": 200000}
+        params={"term_name": "feet_land_time", "weight": 1.2, "num_steps": 8000000}
     )
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 200000}
+        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 8000000}
     )
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.01, "num_steps": 200000}
+        params={"term_name": "action_rate_l2", "weight": -0.0005, "num_steps": 8000000}
     )
     dof_acc_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_acc_l2", "weight": -1.0e-6, "num_steps": 200000}
+        params={"term_name": "dof_acc_l2", "weight": -1.0e-7, "num_steps": 8000000}
     )
     dof_torques_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 200000}
+        params={"term_name": "dof_torques_l2", "weight": -1.0e-7, "num_steps": 8000000}
     )
     joint_deviation_hip_yaw_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 200000}
+        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 8000000}
     )
 
 @configclass
@@ -187,7 +187,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # Scene
         self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
-        self.curriculum.terrain_levels = None
+        # self.curriculum.terrain_levels = None
         # Randomization
         self.events.reset_base.params = {
             "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},

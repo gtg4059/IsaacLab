@@ -549,9 +549,9 @@ class RewardsCfg:
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.2)
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-8)
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-8)
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.5e-7)
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.25e-7)
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-1.0e-5)
     # action_rate_arm = RewTerm(func=mdp.action_rate_arm, weight=-0.1)
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
