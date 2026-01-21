@@ -289,15 +289,15 @@ robot_data = []
 def main():
     """Main function."""
 
-    # onnx_path = "/home/safetics/IsaacLab/logs/rsl_rl/ptcontainer/policy.onnx"
-    # engine_path = "/home/safetics/IsaacLab/logs/rsl_rl/ptcontainer/policy_fp16.engine"
-    # build_engine_from_onnx(onnx_path, engine_path, fp16=True)
+    onnx_path = "/home/safetics/IsaacLab/logs/rsl_rl/ptcontainer/policy.onnx"
+    engine_path = "/home/safetics/IsaacLab/logs/rsl_rl/ptcontainer/policy_fp16.engine"
+    build_engine_from_onnx(onnx_path, engine_path, fp16=True)
 
-    # runner
-    policy_path1 = "./logs/rsl_rl/ptcontainer/policy.pt"
-    file_content1 = omni.client.read_file(policy_path1)[2]
-    file1 = io.BytesIO(memoryview(file_content1).tobytes())
-    policy_run = torch.jit.load(file1)
+    # # runner
+    # policy_path1 = "./logs/rsl_rl/ptcontainer/policy.pt"
+    # file_content1 = omni.client.read_file(policy_path1)[2]
+    # file1 = io.BytesIO(memoryview(file_content1).tobytes())
+    # policy_run = torch.jit.load(file1)
 
     engine_path = "/home/safetics/IsaacLab/logs/rsl_rl/ptcontainer/policy_fp16.engine"
     runner = TrtPolicyRunner(engine_path, num_layers=1, hidden_size=32)
