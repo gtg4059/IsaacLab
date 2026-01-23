@@ -192,6 +192,24 @@ class IdealPDActuatorCfg(ActuatorBaseCfg):
     class_type: type = actuator_pd.IdealPDActuator
 
 @configclass
+class RFI_PDActuatorCfg(ActuatorBaseCfg):
+    """Configuration for an ideal PD actuator."""
+
+    class_type: type = actuator_pd.RFI_PDActuator
+
+    rfi: tuple[float, float] = MISSING
+    """Random force/torque input to the actuator. Defaults to None."""
+    # ### case1
+    min_delay: int = 0
+    """Minimum number of physics time-steps with which the actuator command may be delayed. Defaults to 0."""
+
+    max_delay: int = 0
+    """Maximum number of physics time-steps with which the actuator command may be delayed. Defaults to 0."""
+
+    # ### case2
+    # motor_strength_range: tuple[float, float] = (0.9, 1.1)
+
+@configclass
 class DCMotorCfg(IdealPDActuatorCfg):
     """Configuration for direct control (DC) motor actuator model."""
 

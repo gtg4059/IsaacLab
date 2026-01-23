@@ -4,49 +4,73 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from isaaclab.managers import RewardTermCfg as RewTerm
+from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
-from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg, RewardsCfg
+from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg, RewardsCfg, CurriculumCfg
 
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import G1_DEX_FIX  # isort: skip
+from isaaclab_assets import G1_MINIMAL_CFG, G1_DEX_FIX  # isort: skip
 
 
 @configclass
 class G1Rewards(RewardsCfg):
     """Reward terms for the MDP."""
 
-    base_height = RewTerm(func=mdp.base_height_l2, weight=-150.0, params={"target_height": 0.78})
+    base_height = RewTerm(func=mdp.base_height_l2, weight=-100.0, params={"target_height": 0.78}) #weight=-100.0
+    
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=2.0,
+        weight=1.0,
         params={"command_name": "base_velocity", "std": 1.0},
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "base_velocity", "std": 1.0}
+        func=mdp.track_ang_vel_z_world_exp, weight=1.0, params={"command_name": "base_velocity", "std": 1.0}
     )
+
+    foot_clearance = RewTerm(
+        func=mdp.foot_clearance_reward,
+        weight=0.75, #0.75,
+        params={
+            "std": 0.05,
+            "target_height": 0.08,
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
+        },
+    )
+
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
-        weight=0.25,
+        weight=0.0,#0.0,
         params={
             "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
             "threshold": 0.4,
         },
     )
+
     feet_slide = RewTerm(
         func=mdp.feet_slide,
-        weight=-0.1,
+        weight=-1.0,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
         },
     )
+
+    # balance_air_time = RewTerm(
+    #     func=mdp.balance_air_time_reward,
+    #     weight=-0.3,
+    #     params={
+    #         #"command_name": "base_velocity",
+    #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
+    #     },
+    # )
 
     # Penalize ankle joint limits
     dof_pos_limits = RewTerm(
@@ -58,12 +82,20 @@ class G1Rewards(RewardsCfg):
             ".*_knee_joint"
             ])},
     )
+    
     # Penalize deviation from default of the joints that are not essential for locomotion
-    joint_deviation_hip = RewTerm(
+    joint_deviation_hip_roll = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint"])},
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_roll_joint"])},
     )
+
+    joint_deviation_hip_yaw = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-1.0,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint"])},
+    )
+
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-1.0,
@@ -71,13 +103,32 @@ class G1Rewards(RewardsCfg):
             "asset_cfg": SceneEntityCfg(
                 "robot",
                 joint_names=[
-                    ".*_shoulder_pitch_joint",
+                    # ".*_shoulder_pitch_joint",
                     ".*_shoulder_roll_joint",
                     ".*_shoulder_yaw_joint",
-                    ".*_elbow_joint",
+                    # ".*_elbow_joint",
                     ".*_wrist_roll_joint",
                     ".*_wrist_pitch_joint",
                     ".*_wrist_yaw_joint",
+                ],
+            )
+        },
+    )
+    
+    joint_deviation_shoulders = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-0.1,
+        params={
+            "asset_cfg": SceneEntityCfg(
+                "robot",
+                joint_names=[
+                    ".*_shoulder_pitch_joint",
+                    # ".*_shoulder_roll_joint",
+                    # ".*_shoulder_yaw_joint",
+                    ".*_elbow_joint",
+                    # ".*_wrist_roll_joint",
+                    # ".*_wrist_pitch_joint",
+                    # ".*_wrist_yaw_joint",
                 ],
             )
         },
@@ -86,7 +137,7 @@ class G1Rewards(RewardsCfg):
     # G1_29_no_hand
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.1,
+        weight=-1.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
             "waist_roll_joint",
             "waist_pitch_joint",
@@ -94,78 +145,112 @@ class G1Rewards(RewardsCfg):
         ])},
     )
 
-    # # same motion
-    # motion_equality_hip = RewTerm(
-    #     func=mdp.motion_equality_cons,
-    #     weight=-0.5,
-    #     params={
-    #         "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_hip_pitch_joint"),
-    #     },
-    # )
-
-    # motion_equality_knee = RewTerm(
-    #     func=mdp.motion_equality_pros,
-    #     weight=-0.5,
-    #     params={
-    #         "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_knee_joint"),
-    #     },
-    # )
-
-    # motion_equality_ankle = RewTerm(
-    #     func=mdp.motion_equality_pros,
-    #     weight=-0.5,
-    #     params={
-    #         "std": 0.2,"asset_cfg": SceneEntityCfg("robot", joint_names=".*_ankle_pitch_joint"),
-    #     },
-    # )
-
-    # # G1_inspire_hand
-    # joint_deviation_fingers = RewTerm(
-    #     func=mdp.joint_deviation_l1,
-    #     weight=-0.05,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg(
-    #             "robot",
-    #             joint_names=[
-    #                 "R_.*",
-    #                 "L_.*",
-    #             ],
-    #         )
-    #     },
-    # )
-
-    set_robot_joints_targets = RewTerm(
-        func=mdp.reset_joints_targets,
-        weight=-0.00001,
-        params={
-            "asset_cfg": SceneEntityCfg("robot",
-                joint_names=[
-                    ".*_shoulder_pitch_joint",
-                    ".*_shoulder_roll_joint",
-                    ".*_shoulder_yaw_joint",
-                    ".*_elbow_joint",
-                    ".*_wrist_roll_joint",
-                    ".*_wrist_pitch_joint",
-                    ".*_wrist_yaw_joint",
-                            ],
-                preserve_order=True,
-            )
-        },
-    )
-
     contact_forces = RewTerm(
         func=mdp.contact_forces_minimize,
-        weight=-0.00000005,
+        weight=-0.0,
         params={
-            "threshold": 250.0,
+            "threshold": 0.0,
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
         },
     )
+
+    # reward term: name=base_velocity
+    # track_vel_compensated = RewTerm(
+    #     func=mdp.track_force_compensated_vel,
+    #     weight=1,
+    #     params={"std":0.2,
+    #             "damping":2.0,
+    #             # "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),},
+    #             "asset_cfg": SceneEntityCfg("robot"),},
+    # )
+
+
+##################### force reward terms #####################
+    # force_base_reward = RewTerm(  
+    #     func=mdp.tracking_lin_vel_force_world_reward,
+    #     weight=0.01,
+    #     params={"force_command_name": "base_force",
+    #             "vel_command_name": "base_velocity",
+    #             "damping": 0.5,
+    #             "sigma": 0.25,
+    #             "asset_cfg": SceneEntityCfg("robot")},
+    # )
+
+    # ang_vel_penalty = RewTerm(
+    #     func=mdp.base_angular_velocity_reward,
+    #     weight=-0.0,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
+    #         "waist_roll_joint",
+    #         "waist_pitch_joint",
+    #         "waist_yaw_joint",
+    #         ])},
+    # )
+
+########## log data ###########
+    # pos_data = RewTerm(
+    #     func=mdp.joint_pos_data,
+    #     weight=1.0e-11,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names=['left_hip_pitch_joint'])},
+    # )
+    # vel_data = RewTerm(
+    #     func=mdp.joint_vel_data,
+    #     weight=1.0e-11,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names=['left_hip_pitch_joint'])},
+    # )
+    # acc_data = RewTerm(
+    #     func=mdp.joint_acc_data,
+    #     weight=1.0e-11,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names=['left_hip_pitch_joint'])},
+    # )
+    # applied_torque_data = RewTerm(
+    #     func=mdp.joint_applied_torque_data,
+    #     weight=1.0e-11,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names=['left_hip_pitch_joint'])},
+    # )
+
+@configclass
+class G1RoughCurriculumCfg(CurriculumCfg):
+    """Curriculum configuration for G1 flat environment."""
+    
+    foot_clearance_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 120000}
+    )
+    feet_air_time_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "feet_air_time", "weight": 1.2, "num_steps": 120000}
+    )
+    contact_forces_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 120000}
+    )
+    action_rate_l2_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "action_rate_l2", "weight": -0.05, "num_steps": 120000}
+    )
+    dof_acc_l2_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "dof_acc_l2", "weight": -1.0e-6, "num_steps": 120000}
+    )
+    dof_torques_l2_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 120000}
+    )
+    joint_deviation_hip_yaw_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 120000}
+    )
+
 
 
 @configclass
 class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
     rewards: G1Rewards = G1Rewards()
+    curriculum: G1RoughCurriculumCfg = G1RoughCurriculumCfg()
 
     def __post_init__(self):
         # post init of parent
@@ -173,12 +258,8 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # Scene
         self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
-
+        self.curriculum.terrain_levels = None
         # Randomization
-        # self.events.push_robot = None
-        # self.events.add_base_mass = None
-        # self.events.reset_robot_joints.params["position_range"] = (1.0, 1.0)
-        self.events.base_external_force_torque.params["asset_cfg"].body_names = ["torso_link"]
         self.events.reset_base.params = {
             "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
             "velocity_range": {
@@ -190,7 +271,58 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
                 "yaw": (0.0, 0.0),
             },
         }
-        # self.events.base_com = None
+        # Rewards
+        # self.rewards.lin_vel_z_l2.weight = 0.0
+        self.rewards.undesired_contacts = None
+        # self.rewards.flat_orientation_l2.weight = -1.0
+        # self.rewards.action_rate_l2.weight = -0.005
+        # self.rewards.dof_acc_l2.weight = -1.25e-7
+        # self.rewards.dof_acc_l2.params["asset_cfg"] = SceneEntityCfg(
+        #     "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
+        # )
+        # self.rewards.dof_torques_l2.weight = -1.5e-7
+        # self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
+        #     "robot", joint_names=[".*_hip_.*", ".*_knee_joint", ".*_ankle_.*"]
+        # )
+        # no height scan
+        self.scene.height_scanner = None
+        # randomization select
+        # self.events.randomize_friction = None
+        # self.events.randomize_joint_param = None
+        # self.events.randomize_link_mass = None
+        # self.events.randomize_base_mass = None
+        # self.events.randomize_base_com = None
+        # self.events.randomize_pd_gains = None
+        # self.events.randomize_motor_zero_offset = None
+
+        # commands
+        # self.commands.base_force.resampling_time_range = (5.0, 5.0)
+        # self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
+        # self.commands.base_velocity.ranges.lin_vel_y = (-1.0, 1.0)
+        # self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
+
+
+
+@configclass
+class G1RoughEnvCfg_PLAY(G1RoughEnvCfg):
+    def __post_init__(self):
+        # post init of parent
+        super().__post_init__()
+
+        # make a smaller scene for play
+        self.scene.num_envs = 50
+        self.scene.env_spacing = 2.5
+        self.episode_length_s = 40.0
+        # spawn the robot randomly in the grid (instead of their terrain levels)
+        self.scene.terrain.max_init_terrain_level = None
+        # reduce the number of terrains to save memory
+        if self.scene.terrain.terrain_generator is not None:
+            self.scene.terrain.terrain_generator.num_rows = 5
+            self.scene.terrain.terrain_generator.num_cols = 5
+            self.scene.terrain.terrain_generator.curriculum = False
+
+        # disable randomization for play
+        self.observations.policy.enable_corruption = False
 
         # Rewards
         self.rewards.lin_vel_z_l2.weight = 0.0

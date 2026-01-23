@@ -20,11 +20,55 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers.manager_base import ManagerTermBase
 from isaaclab.managers.manager_term_cfg import ObservationTermCfg
 from isaaclab.sensors import Camera, Imu, RayCaster, RayCasterCamera, TiledCamera
-from isaaclab.utils.math import subtract_frame_transforms
+from isaaclab.utils.math import subtract_frame_transforms, quat_apply_inverse
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
 
+
+# from isaaclab.envs.utils.io_descriptors import (
+#     generic_io_descriptor,
+#     record_shape,
+# )
+
+# @generic_io_descriptor(dtype=torch.float32, observation_type="Body", on_inspect=[record_shape])
+def force_local(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Net force on bodies expressed in local body frames."""
+    asset: Articulation = env.scene[asset_cfg.name]
+    # Get forces in world frame
+    forces_world = asset.data.body_incoming_joint_wrench_b[:, asset_cfg.body_ids, :3]
+    # Get body orientations
+    body_quat = asset.data.body_quat_w[:, asset_cfg.body_ids]
+    # Transform to local body frames
+    forces_local = quat_apply_inverse(body_quat, forces_world)
+    return forces_local.view(env.num_envs, -1)
+
+
+# @generic_io_descriptor(observation_type="BodyState", on_inspect=[record_shape, record_dtype, record_body_names])
+def body_ori_w(
+    env: ManagerBasedEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """The flattened body orientations of the asset in Euler angles (roll, pitch, yaw) w.r.t the env.scene.origin.
+
+    Note: Only the bodies configured in :attr:`asset_cfg.body_ids` will have their orientations returned.
+
+    Args:
+        env: The environment.
+        asset_cfg: The SceneEntity associated with this observation.
+
+    Returns:
+        The orientations of bodies in articulation [num_env, 3 * num_bodies] in Euler angles. Output is stacked horizontally per body.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+
+    # access the body orientations in world frame
+    quat = asset.data.body_quat_w[:, asset_cfg.body_ids]
+    # Convert to Euler angles
+    roll, pitch, yaw = math_utils.euler_xyz_from_quat(quat)
+    euler_angles = torch.stack([roll, pitch, yaw], dim=-1)
+    return euler_angles.reshape(env.num_envs, -1)
 
 """
 Root state.

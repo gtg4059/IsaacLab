@@ -388,51 +388,11 @@ def randomize_rigid_body_com(
     coms = asset.root_physx_view.get_coms().clone()
 
     # Randomize the com in range
-    coms[:, body_ids, :3] += rand_samples
+    coms[env_ids[:, None], body_ids, :3] += rand_samples
 
     # Set the new coms
     asset.root_physx_view.set_coms(coms, env_ids)
 
-def randomize_object_com(
-    env: ManagerBasedEnv,
-    env_ids: torch.Tensor | None,
-    com_range: dict[str, tuple[float, float]],
-    asset_cfg: SceneEntityCfg,
-):
-    """Randomize the center of mass (CoM) of rigid bodies by adding a random value sampled from the given ranges.
-
-    .. note::
-        This function uses CPU tensors to assign the CoM. It is recommended to use this function
-        only during the initialization of the environment.
-    """
-    # extract the used quantities (to enable type-hinting)
-    asset: Articulation = env.scene[asset_cfg.name]
-    # resolve environment ids
-    if env_ids is None:
-        env_ids = torch.arange(env.scene.num_envs, device="cpu")
-    else:
-        env_ids = env_ids.cpu()
-
-    # resolve body indices
-    if asset_cfg.body_ids == slice(None):
-        body_ids = torch.arange(asset.num_bodies, dtype=torch.int, device="cpu")
-    else:
-        body_ids = torch.tensor(asset_cfg.body_ids, dtype=torch.int, device="cpu")
-
-    # sample random CoM values
-    range_list = [com_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z"]]
-    ranges = torch.tensor(range_list, device="cpu")
-    rand_samples = math_utils.sample_uniform(ranges[:, 0], ranges[:, 1], (len(env_ids), 3), device="cpu")#.unsqueeze(1)
-
-    # get the current com of the bodies (num_assets, num_bodies)
-    coms = asset.root_physx_view.get_coms().clone()
-
-    # print("coms.shape:",coms.shape)
-    # Randomize the com in range
-    coms[:,:3] += rand_samples
-
-    # Set the new coms
-    asset.root_physx_view.set_coms(coms, env_ids)
 
 def randomize_rigid_body_collider_offsets(
     env: ManagerBasedEnv,
@@ -621,26 +581,32 @@ def randomize_joint_parameters(
     distribution: Literal["uniform", "log_uniform", "gaussian"] = "uniform",
 ):
     """Randomize the simulated joint parameters of an articulation by adding, scaling, or setting random values.
+
     This function allows randomizing the joint parameters of the asset. These correspond to the physics engine
     joint properties that affect the joint behavior. The properties include the joint friction coefficient, armature,
     and joint position limits.
+
     The function samples random values from the given distribution parameters and applies the operation to the
     joint properties. It then sets the values into the physics simulation. If the distribution parameters are
     not provided for a particular property, the function does not modify the property.
+
     .. tip::
         This function uses CPU tensors to assign the joint properties. It is recommended to use this function
         only during the initialization of the environment.
     """
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
+
     # resolve environment ids
     if env_ids is None:
         env_ids = torch.arange(env.scene.num_envs, device=asset.device)
+
     # resolve joint indices
     if asset_cfg.joint_ids == slice(None):
         joint_ids = slice(None)  # for optimization purposes
     else:
         joint_ids = torch.tensor(asset_cfg.joint_ids, dtype=torch.int, device=asset.device)
+
     # sample joint properties from the given ranges and set into the physics simulation
     # joint friction coefficient
     if friction_distribution_params is not None:
@@ -655,6 +621,7 @@ def randomize_joint_parameters(
         asset.write_joint_friction_coefficient_to_sim(
             friction_coeff[env_ids[:, None], joint_ids], joint_ids=joint_ids, env_ids=env_ids
         )
+
     # joint viscous_friction coefficient
     if viscous_friction_distribution_params is not None:
         viscous_friction_coeff = _randomize_prop_by_op(
@@ -668,6 +635,7 @@ def randomize_joint_parameters(
         asset.write_joint_viscous_friction_coefficient_to_sim(
             viscous_friction_coeff[env_ids[:, None], joint_ids], joint_ids=joint_ids, env_ids=env_ids
         )
+
     # joint armature
     if armature_distribution_params is not None:
         armature = _randomize_prop_by_op(
@@ -679,6 +647,7 @@ def randomize_joint_parameters(
             distribution=distribution,
         )
         asset.write_joint_armature_to_sim(armature[env_ids[:, None], joint_ids], joint_ids=joint_ids, env_ids=env_ids)
+
     # joint position limits
     if lower_limit_distribution_params is not None or upper_limit_distribution_params is not None:
         joint_pos_limits = asset.data.default_joint_pos_limits.clone()
@@ -702,6 +671,7 @@ def randomize_joint_parameters(
                 operation=operation,
                 distribution=distribution,
             )
+
         # extract the position limits for the concerned joints
         joint_pos_limits = joint_pos_limits[env_ids[:, None], joint_ids]
         if (joint_pos_limits[..., 0] > joint_pos_limits[..., 1]).any():
@@ -953,52 +923,6 @@ def reset_root_state_uniform(
     asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
     asset.write_root_velocity_to_sim(velocities, env_ids=env_ids)
 
-# def reset_root_state_uniform_init(
-#     env: ManagerBasedEnv,
-#     env_ids: torch.Tensor,
-#     pose_range: dict[str, tuple[float, float]],
-#     velocity_range: dict[str, tuple[float, float]],
-#     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-#     init_cfg: SceneEntityCfg = SceneEntityCfg("object_init"),
-# ):
-#     """Reset the asset root state to a random position and velocity uniformly within the given ranges.
-
-#     This function randomizes the root position and velocity of the asset.
-
-#     * It samples the root position from the given ranges and adds them to the default root position, before setting
-#       them into the physics simulation.
-#     * It samples the root orientation from the given ranges and sets them into the physics simulation.
-#     * It samples the root velocity from the given ranges and sets them into the physics simulation.
-
-#     The function takes a dictionary of pose and velocity ranges for each axis and rotation. The keys of the
-#     dictionary are ``x``, ``y``, ``z``, ``roll``, ``pitch``, and ``yaw``. The values are tuples of the form
-#     ``(min, max)``. If the dictionary does not contain a key, the position or velocity is set to zero for that axis.
-#     """
-#     # extract the used quantities (to enable type-hinting)
-#     asset: RigidObject | Articulation = env.scene[asset_cfg.name]
-#     init: RigidObject | Articulation = env.scene[init_cfg.name]
-#     # get default root state
-#     root_states = asset.data.default_root_state[env_ids].clone()
-
-#     # poses
-#     range_list = [pose_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z", "roll", "pitch", "yaw"]]
-#     ranges = torch.tensor(range_list, device=asset.device)
-#     rand_samples = math_utils.sample_uniform(ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=asset.device)
-
-#     positions = root_states[:, 0:3] + env.scene.env_origins[env_ids] + rand_samples[:, 0:3]
-#     orientations_delta = math_utils.quat_from_euler_xyz(rand_samples[:, 3], rand_samples[:, 4], rand_samples[:, 5])
-#     orientations = math_utils.quat_mul(root_states[:, 3:7], orientations_delta)
-#     # velocities
-#     range_list = [velocity_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z", "roll", "pitch", "yaw"]]
-#     ranges = torch.tensor(range_list, device=asset.device)
-#     rand_samples = math_utils.sample_uniform(ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=asset.device)
-
-#     velocities = root_states[:, 7:13] + rand_samples
-
-#     # set into the physics simulation
-#     init.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
-#     asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
-#     asset.write_root_velocity_to_sim(velocities, env_ids=env_ids)
 
 def reset_root_state_with_random_orientation(
     env: ManagerBasedEnv,
@@ -1172,29 +1096,19 @@ def reset_joints_by_offset(
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
 
-    # # get default joint state
-    # joint_pos = asset.data.default_joint_pos[env_ids, asset_cfg.joint_ids].clone()
-    # joint_vel = asset.data.default_joint_vel[env_ids, asset_cfg.joint_ids].clone()
     # get default joint state
-    joint_pos = asset.data.default_joint_pos[env_ids][:, asset_cfg.joint_ids].clone()
-    joint_vel = asset.data.default_joint_vel[env_ids][:, asset_cfg.joint_ids].clone()
+    joint_pos = asset.data.default_joint_pos[env_ids, asset_cfg.joint_ids].clone()
+    joint_vel = asset.data.default_joint_vel[env_ids, asset_cfg.joint_ids].clone()
 
     # bias these values randomly
     joint_pos += math_utils.sample_uniform(*position_range, joint_pos.shape, joint_pos.device)
     joint_vel += math_utils.sample_uniform(*velocity_range, joint_vel.shape, joint_vel.device)
 
-    # # clamp joint pos to limits
-    # joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids, asset_cfg.joint_ids]
-    # joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
-    # # clamp joint vel to limits
-    # joint_vel_limits = asset.data.soft_joint_vel_limits[env_ids, asset_cfg.joint_ids]
-    # joint_vel = joint_vel.clamp_(-joint_vel_limits, joint_vel_limits)
-
     # clamp joint pos to limits
-    joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids][:, asset_cfg.joint_ids]
+    joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids, asset_cfg.joint_ids]
     joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
     # clamp joint vel to limits
-    joint_vel_limits = asset.data.soft_joint_vel_limits[env_ids][:, asset_cfg.joint_ids]
+    joint_vel_limits = asset.data.soft_joint_vel_limits[env_ids, asset_cfg.joint_ids]
     joint_vel = joint_vel.clamp_(-joint_vel_limits, joint_vel_limits)
 
     # set into the physics simulation

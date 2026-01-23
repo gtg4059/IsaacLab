@@ -141,6 +141,116 @@ class ImplicitActuator(ActuatorBase):
         return control_action
 
 
+class RFI_PDActuator(ActuatorBase):
+
+    cfg: RFI_PDActuatorCfg
+    """The configuration for the actuator model."""
+
+    """
+    Operations.
+    """
+    ######## case1: delay+RFI #############
+    def __init__(self, cfg: RFI_PDActuatorCfg, *args, **kwargs):
+        super().__init__(cfg, *args, **kwargs)
+        # parse configuration
+        # self._rfi = self.r.uniform_(*self.cfg.rfi) 
+        self.r = torch.zeros_like(self.computed_effort)
+        # instantiate the delay buffers
+        self.positions_delay_buffer = DelayBuffer(cfg.max_delay, self._num_envs, device=self._device)
+        self.velocities_delay_buffer = DelayBuffer(cfg.max_delay, self._num_envs, device=self._device)
+        self.efforts_delay_buffer = DelayBuffer(cfg.max_delay, self._num_envs, device=self._device)
+        # all of the envs
+        self._ALL_INDICES = torch.arange(self._num_envs, dtype=torch.long, device=self._device)
+
+    def reset(self, env_ids: Sequence[int]):
+        self._rfi = self.r.uniform_(*self.cfg.rfi) 
+        # number of environments (since env_ids can be a slice)
+        if env_ids is None or env_ids == slice(None):
+            num_envs = self._num_envs
+        else:
+            num_envs = len(env_ids)
+        # set a new random delay for environments in env_ids
+        time_lags = torch.randint(
+            low=self.cfg.min_delay,
+            high=self.cfg.max_delay + 1,
+            size=(num_envs,),
+            dtype=torch.int,
+            device=self._device,
+        )
+        # set delays
+        self.positions_delay_buffer.set_time_lag(time_lags, env_ids)
+        self.velocities_delay_buffer.set_time_lag(time_lags, env_ids)
+        self.efforts_delay_buffer.set_time_lag(time_lags, env_ids)
+        # reset buffers
+        self.positions_delay_buffer.reset(env_ids)
+        self.velocities_delay_buffer.reset(env_ids)
+        self.efforts_delay_buffer.reset(env_ids)
+
+    def compute(
+        self, control_action: ArticulationActions, joint_pos: torch.Tensor, joint_vel: torch.Tensor
+    ) -> ArticulationActions:
+        # apply delay based on the delay the model for all the setpoints
+        control_action.joint_positions = self.positions_delay_buffer.compute(control_action.joint_positions)
+        control_action.joint_velocities = self.velocities_delay_buffer.compute(control_action.joint_velocities)
+        control_action.joint_efforts = self.efforts_delay_buffer.compute(control_action.joint_efforts)
+        # compute errors
+        error_pos = control_action.joint_positions - joint_pos
+        error_vel = control_action.joint_velocities - joint_vel
+        # calculate the desired joint torques
+        self.computed_effort = self.stiffness * error_pos + self.damping * error_vel + control_action.joint_efforts + self._rfi * self.effort_limit
+        # clip the torques based on the motor limits
+        self.applied_effort = self._clip_effort(self.computed_effort)
+        # set the computed actions back into the control action
+        control_action.joint_efforts = self.applied_effort
+        control_action.joint_positions = None
+        control_action.joint_velocities = None
+        return control_action
+
+
+    # ###### case2: motor torque #############
+    # def __init__(self, cfg: RFI_PDActuatorCfg, *args, **kwargs):
+    #     super().__init__(cfg, *args, **kwargs)
+
+    #     # self._motor_strength = torch.ones_like(self.computed_effort)
+    #     # # self.r = torch.zeros_like(self.computed_effort)
+    #     # self._rfi = torch.zeros_like(self.computed_effort)
+
+    #     self._motor_strength = None
+    #     self._rfi = None        
+
+    # def reset(self, env_ids):
+    #     #0105 추가
+    #     if self._motor_strength is None:
+    #         # self.computed_effort와 동일한 장치와 크기로 생성
+    #         self._motor_strength = torch.ones_like(self.computed_effort)
+    #         self._rfi = torch.zeros_like(self.computed_effort)  
+
+    #     # env별 motor strength 샘플링
+    #     low, high = self.cfg.motor_strength_range
+    #     self._motor_strength[env_ids] = torch.empty_like(
+    #         self._motor_strength[env_ids]
+    #     ).uniform_(low, high)
+
+    #     # RFI
+    #     # self._rfi = torch.empty_like(self.computed_effort).uniform_(*self.cfg.rfi)
+    #     self._rfi[env_ids] = torch.empty_like(self._rfi[env_ids]).uniform_(*self.cfg.rfi)
+
+    # def compute(self, control_action, joint_pos, joint_vel):
+    #     error_pos = control_action.joint_positions - joint_pos
+    #     error_vel = control_action.joint_velocities - joint_vel
+
+    #     pd_torque = self.stiffness * error_pos + self.damping * error_vel
+
+    #     self.computed_effort = (
+    #         self._motor_strength * pd_torque + control_action.joint_efforts + self._rfi * self.effort_limit
+    #     )
+
+    #     self.applied_effort = self._clip_effort(self.computed_effort)
+    #     control_action.joint_efforts = self.applied_effort
+    #     control_action.joint_positions = None
+    #     control_action.joint_velocities = None
+    #     return control_action
+
 """
 Explicit Actuator Models.
 """

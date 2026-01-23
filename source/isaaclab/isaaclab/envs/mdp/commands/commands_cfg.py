@@ -8,13 +8,14 @@ from dataclasses import MISSING
 
 from isaaclab.managers import CommandTermCfg
 from isaaclab.markers import VisualizationMarkersCfg
-from isaaclab.markers.config import BLUE_ARROW_X_MARKER_CFG, FRAME_MARKER_CFG, GREEN_ARROW_X_MARKER_CFG
+from isaaclab.markers.config import BLUE_ARROW_X_MARKER_CFG, FRAME_MARKER_CFG, GREEN_ARROW_X_MARKER_CFG, RED_ARROW_X_MARKER_CFG
 from isaaclab.utils import configclass
 
 from .null_command import NullCommand
 from .pose_2d_command import TerrainBasedPose2dCommand, UniformPose2dCommand
 from .pose_command import UniformPoseCommand
 from .velocity_command import NormalVelocityCommand, UniformVelocityCommand, UniformVelocityTargetCommand
+from .compliance_command import UniformForceCommand
 
 @configclass
 class UniformVelocityTargetCommandCfg(CommandTermCfg):
@@ -316,3 +317,52 @@ class TerrainBasedPose2dCommandCfg(UniformPose2dCommandCfg):
 
     ranges: Ranges = MISSING
     """Distribution ranges for the sampled commands."""
+
+
+@configclass
+class UniformForceCommandCfg(CommandTermCfg):
+    """Configuration for the uniform force command generator."""
+
+    class_type: type = UniformForceCommand
+
+    asset_name: str = MISSING #"robot"
+    """Name of the asset in the environment for which the commands are generated."""
+
+    body_name: str = MISSING #"base"
+    """Name of the body in the asset for which the commands are generated."""
+
+    apply_probability: float = 0.5
+    """Probability of applying force."""
+
+    force_z_scale: float = 0.1
+    """Scale factor for z-force. falling inducement etc."""
+
+    debug_vis: bool = True
+    """Whether to visualize the force command."""
+
+    force_vis_scale: float = 0.05
+
+    debug_vis_height_offset: float = 0.02
+
+
+    @configclass
+    class Ranges:
+        force_range: tuple[float, float] = MISSING
+        """Range for the force magnitude (in Newtons)."""
+
+        duration_range_s: tuple[float, float] = MISSING # (0.5, 2.0)
+        """Range for the duration of force application (in seconds)."""
+
+        interval_range_s: tuple[float, float] = MISSING # (2.5, 5.0)
+        """Range for the interval between force applications (in seconds).
+        resampling time_range>interval_range_s"""
+
+    ranges: Ranges = MISSING
+    """Distribution ranges for the force commands."""    
+
+    applied_force_visualizer_cfg: VisualizationMarkersCfg = RED_ARROW_X_MARKER_CFG.replace(
+        prim_path="/Visuals/Command/force_current"
+    )
+    """The configuration for the current force visualization marker. Defaults to RED_ARROW_X_MARKER_CFG.""" 
+    # Set the scale of the visualization markers to (0.5, 0.5, 0.5)
+    applied_force_visualizer_cfg.markers["arrow"].scale = (0.6, 0.6, 0.6)

@@ -61,9 +61,11 @@ def feet_air_time_positive_biped(env, command_name: str, threshold: float, senso
     contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
     in_contact = contact_time > 0.0
     in_mode_time = torch.where(in_contact, contact_time, air_time)
-    single_stance = torch.sum(in_contact.int(), dim=1) == 2
+    double_stance = torch.sum(in_contact.int(), dim=1) == 2
+    single_stance = torch.sum(in_contact.int(), dim=1) == 1
+
     reward = torch.min(torch.where(single_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
-    reward = torch.clamp(reward, max=threshold)
+    reward = torch.where(torch.norm(env.command_manager.get_command(command_name)[:, :3], dim=1) < 0.05,torch.clamp(reward, max=threshold),0)
     return reward
 
 
@@ -96,6 +98,7 @@ def foot_clearance_reward(
     in_contact = contact_time > 0.0
     in_mode_time = torch.where(in_contact, contact_time, air_time)
     single_stance = torch.sum(in_contact.int(), dim=1) == 1
+    double_stance = torch.sum(in_contact.int(), dim=1) == 2 
     """Reward the swinging feet for clearing a specified height off the ground"""
     asset = env.scene[asset_cfg.name]
     reward = torch.square(asset.data.body_pos_w[:, asset_cfg.body_ids, 2] - target_height)

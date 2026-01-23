@@ -5,22 +5,20 @@
 
 from isaaclab.utils import configclass
 
-from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, RslRlPpoAlgorithmCfg
+from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, RslRlPpoAlgorithmCfg, RslRlPpoActorCriticRecurrentCfg
 
 
 # @configclass
 # class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
 #     num_steps_per_env = 24
 #     max_iterations = 3000
-#     save_interval = 100 #100
+#     save_interval = 100
 #     experiment_name = "g1_rough"
 #     empirical_normalization = False
 #     policy = RslRlPpoActorCriticCfg(
-#         init_noise_std=1.0,#0.1
-#         #actor_hidden_dims=[512, 256, 128],
-#         #critic_hidden_dims=[512, 256, 128],
-#         actor_hidden_dims=[1024, 512, 256, 128],
-#         critic_hidden_dims=[1024, 512, 256, 128],        
+#         init_noise_std=1.0,
+#         actor_hidden_dims=[512, 256, 128],
+#         critic_hidden_dims=[512, 256, 128],
 #         activation="elu",
 #     )
 #     algorithm = RslRlPpoAlgorithmCfg(
@@ -43,25 +41,37 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
 # class G1FlatPPORunnerCfg(G1RoughPPORunnerCfg):
 #     def __post_init__(self):
 #         super().__post_init__()
-#         #self.resume=True
-#         self.max_iterations = 10000 #10000
+#         self.clip_actions = 50
+#         self.max_iterations = 7000
 #         self.experiment_name = "g1_flat"
-#         #self.policy.actor_hidden_dims = [512, 512, 256, 128, 64]
-#         #self.policy.critic_hidden_dims = [512, 512, 256, 128, 64]
-#         self.policy.actor_hidden_dims = [1024, 512, 256, 128]
-#         self.policy.critic_hidden_dims = [1024, 512, 256, 128]
+#         self.policy.actor_hidden_dims = [512, 256, 128]
+#         self.policy.critic_hidden_dims = [512, 256, 128]        
+
+############################################################
+
 @configclass
 class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
-    num_steps_per_env = 24
+    num_steps_per_env = 8
     max_iterations = 3000
     save_interval = 100
     experiment_name = "g1_rough"
     empirical_normalization = False
-    policy = RslRlPpoActorCriticCfg(
-        init_noise_std=1.0,
-        actor_hidden_dims=[512, 256, 128],
-        critic_hidden_dims=[512, 256, 128],
+    clip_actions = 50.0
+    max_iterations = 9000
+    # policy = RslRlPpoActorCriticCfg(
+    #     init_noise_std=1.0,
+    #     actor_hidden_dims=[512, 256, 128],
+    #     critic_hidden_dims=[512, 256, 128],
+    #     activation="elu",
+    # )
+    policy = RslRlPpoActorCriticRecurrentCfg(
+        init_noise_std=0.8,
+        actor_hidden_dims=[32],
+        critic_hidden_dims=[32],
         activation="elu",
+        rnn_hidden_dim=64,
+        rnn_num_layers=1,
+        rnn_type="lstm",
     )
     algorithm = RslRlPpoAlgorithmCfg(
         value_loss_coef=1.0,
@@ -83,8 +93,8 @@ class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
 class G1FlatPPORunnerCfg(G1RoughPPORunnerCfg):
     def __post_init__(self):
         super().__post_init__()
-        self.clip_actions = 50
-        self.max_iterations = 7000
+        # self.clip_actions = 50.0
+        self.max_iterations = 15000
         self.experiment_name = "g1_flat"
-        self.policy.actor_hidden_dims = [512, 256, 128]
-        self.policy.critic_hidden_dims = [512, 256, 128]        
+        # self.policy.actor_hidden_dims = [512, 256, 128]
+        # self.policy.critic_hidden_dims = [512, 256, 128]
