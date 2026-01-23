@@ -419,11 +419,88 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="base"),
-            "force_range": (0.0, 0.0),
-            "torque_range": (-0.0, 0.0),
+            "force_range": (-0.3, 0.3),
+            "torque_range": (-0.2, 0.2),
+        },
+    )
+    left_hand_force = EventTerm(
+        func=mdp.apply_external_force_torque,
+        mode="interval",
+        interval_range_s=(5.0, 10.0),
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="left_wrist_yaw_link"),
+            "force_range": (-5.0, 5.0),
+            "torque_range": (-0.5, 0.5),
+        },
+    )
+    right_hand_force = EventTerm(
+        func=mdp.apply_external_force_torque,
+        mode="interval",
+        interval_range_s=(5.0, 10.0),
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="right_wrist_yaw_link"),
+            "force_range": (-5.0, 5.0),
+            "torque_range": (-0.5, 0.5),
+        },
+    )
+    shoulder1_force = EventTerm(
+        func=mdp.apply_external_force_torque,
+        mode="interval",
+        interval_range_s=(5.0, 10.0),
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_shoulder_roll_link"),
+            "force_range": (-5.0, 5.0),
+            "torque_range": (-0.5, 0.5),
+        },
+    )
+    shoulder2_force = EventTerm(
+        func=mdp.apply_external_force_torque,
+        mode="interval",
+        interval_range_s=(5.0, 10.0),
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_shoulder_pitch_link"),
+            "force_range": (-5.0, 5.0),
+            "torque_range": (-0.5, 0.5),
         },
     )
 
+
+    randomize_shoulder_pitch_offset = EventTerm(
+        func=mdp.reset_joints_by_offset,
+        mode="reset",
+        params={
+            "position_range": (-0.5, 0.5), 
+            "velocity_range": (-0.0, 0.0),
+            "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_pitch_joint"]),
+        },
+    )
+    randomize_shoulder_roll_offset = EventTerm(
+        func=mdp.reset_joints_by_offset,
+        mode="reset",
+        params={
+            "position_range": (-0.3, 0.3), 
+            "velocity_range": (-0.0, 0.0),
+            "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_roll_joint"]),
+        },
+    )
+    randomize_shoulder_yaw_offset = EventTerm(
+        func=mdp.reset_joints_by_offset,
+        mode="reset",
+        params={
+            "position_range": (-0.1, 0.1), 
+            "velocity_range": (-0.0, 0.0),
+            "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_yaw_joint"]),
+        },
+    )
+    randomize_elbow_offset = EventTerm(
+        func=mdp.reset_joints_by_offset,
+        mode="reset",
+        params={
+            "position_range": (-0.5, 0.5), 
+            "velocity_range": (-0.0, 0.0),
+            "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_elbow_joint"]),
+        },
+    )
     reset_base = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
@@ -485,7 +562,7 @@ class RewardsCfg:
     
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
-    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
+    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.5)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)

@@ -376,7 +376,7 @@ G1_CFG = ArticulationCfg(
 
 G1_DEX_FIX = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        # usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_DFQ_lock/g1_29dof_rev_1_0_with_inspire_hand_DFQ_lock.usd",
+        # usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_DFQ_lock/g1_29dof_rev_1_0_with_inspire_hand_cam.usd",
         usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0_with_inspire_hand_th/g1_29dof_rev_1_0_with_inspire_hand_th.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
@@ -395,39 +395,6 @@ G1_DEX_FIX = ArticulationCfg(
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(0.0, 0.0, 0.8),
         joint_pos={
-
-            # 'left_hip_pitch_joint': -0.1017,
-            # 'right_hip_pitch_joint': -0.0961,
-            # 'waist_yaw_joint': -0.0069,
-            # 'left_hip_roll_joint': 0.0365,
-            # 'right_hip_roll_joint': -0.0045,
-            # 'waist_roll_joint': -0.0123,
-            # 'left_hip_yaw_joint': -0.0202,
-            # 'right_hip_yaw_joint': 0.0023,
-            # 'waist_pitch_joint': 0.0263,
-            # 'left_knee_joint': 0.3248,
-            # 'right_knee_joint': 0.3309,
-            # 'left_shoulder_pitch_joint': 0.4124,
-            # 'right_shoulder_pitch_joint': 0.4166,
-            # 'left_ankle_pitch_joint': -0.1765,
-            # 'right_ankle_pitch_joint': -0.1877,
-            # 'left_shoulder_roll_joint': 0.0286,
-            # 'right_shoulder_roll_joint': -0.0579,
-            # 'left_ankle_roll_joint': -0.0401,
-            # 'right_ankle_roll_joint': 0.0060,
-            # 'left_shoulder_yaw_joint': -0.0451,
-            # 'right_shoulder_yaw_joint': 0.0489,
-            # 'left_elbow_joint': -0.5138,
-            # 'right_elbow_joint': -0.4997,
-            # 'left_wrist_roll_joint': -0.0165,
-            # 'right_wrist_roll_joint': -0.0023,
-            # 'left_wrist_pitch_joint': 0.4587,
-            # 'right_wrist_pitch_joint': 0.4161,
-            # 'left_wrist_yaw_joint': -0.1943,
-            # 'right_wrist_yaw_joint': 0.1751,
-
-
-
             'left_hip_pitch_joint': -0.1,
             'left_hip_roll_joint': 0.0,
             'left_hip_yaw_joint': 0.0,
@@ -444,17 +411,29 @@ G1_DEX_FIX = ArticulationCfg(
             "waist_pitch_joint":0.0,
             "waist_roll_joint":0.0,
             "waist_yaw_joint":0.0,
+
             'left_shoulder_pitch_joint': 0.0,
             'left_shoulder_roll_joint': 0.2,
             'left_shoulder_yaw_joint': 0.1,
             'left_elbow_joint': 1.5708,
+            # 'left_shoulder_pitch_joint': -1.5, #0.0,
+            # 'left_shoulder_roll_joint': 0.67, #0.2,
+            # 'left_shoulder_yaw_joint': -1.2, #0.1,
+            # 'left_elbow_joint': 0.758, #1.5708,
+
             'left_wrist_roll_joint': -0.0,
             'left_wrist_pitch_joint': 0.0,
             'left_wrist_yaw_joint': 0.0,
+
             'right_shoulder_pitch_joint': 0.0,
             'right_shoulder_roll_joint': -0.2,
             'right_shoulder_yaw_joint': -0.1,
             'right_elbow_joint': 1.5708,
+            # 'right_shoulder_pitch_joint': -1.5, # 0.0,
+            # 'right_shoulder_roll_joint': 0.67, # -0.2,
+            # 'right_shoulder_yaw_joint': 1.2, #-0.1,
+            # 'right_elbow_joint': 0.758, #1.5708,
+
             'right_wrist_roll_joint': 0.0,
             'right_wrist_pitch_joint': 0.0,
             'right_wrist_yaw_joint': 0.0,
@@ -463,42 +442,6 @@ G1_DEX_FIX = ArticulationCfg(
             ".*_middle_proximal_joint":0.0,
             ".*_pinky_proximal_joint":0.2,
             ".*_ring_proximal_joint":0.2,
-            # "R_.*":0.2,
-            # "L_.*":0.2,
-        # 0.01 rad = 0.57 degree 
-
-            # 'left_hip_pitch_joint': -0.0097,
-            # 'left_hip_roll_joint': -0.04,
-            # 'left_hip_yaw_joint': -0.0266,
-            # 'left_knee_joint': -0.0399,
-            # 'left_ankle_pitch_joint': 0.0164,
-            # 'left_ankle_roll_joint': 0.2608,
-            # 'right_hip_pitch_joint': 0.0505,
-            # 'right_hip_roll_joint': -0.0078,
-            # 'right_hip_yaw_joint': -0.0246,
-            # 'right_knee_joint': -0.0227,
-            # 'right_ankle_pitch_joint': -0.0630,
-            # 'right_ankle_roll_joint': -0.2611,
-            # "waist_pitch_joint":-0.0342,
-            # "waist_roll_joint":0.0008,
-            # "waist_yaw_joint":0.0306,
-            # 'left_shoulder_pitch_joint': -0.0398,
-            # 'left_shoulder_roll_joint': 0.1407,
-            # 'left_shoulder_yaw_joint': -0.2351,
-            # 'left_elbow_joint': 0.0941,
-            # 'left_wrist_roll_joint': -0.2807,
-            # 'left_wrist_pitch_joint': -0.2176,
-            # 'left_wrist_yaw_joint': 0.2677,
-            # 'right_shoulder_pitch_joint': -0.0687,
-            # 'right_shoulder_roll_joint': -0.1435,
-            # 'right_shoulder_yaw_joint': 0.1259,
-            # 'right_elbow_joint': 0.2331,
-            # 'right_wrist_roll_joint': 0.5135,
-            # 'right_wrist_pitch_joint': -0.4658,
-            # 'right_wrist_yaw_joint': 0.0177,
-
-
-
         },
         joint_vel={".*": 0.0},
     ),
@@ -616,31 +559,14 @@ G1_DEX_FIX = ArticulationCfg(
                 ".*_wrist_.*": 0.01,
             },
         ),
-        # "hands": IdealPDActuatorCfg(
-        #     joint_names_expr=[
-        #         # '.*_thumb_proximal_yaw_joint',
-        #         # '.*_thumb_proximal_pitch_joint',
-        #         # '.*_proximal_joint'
-        #         "R_.*",
-        #         "L_.*",
-        #     ],
-        #     effort_limit=1,
-        #     velocity_limit=0.5,
-        #     stiffness=10.0,
-        #     damping=0.5,
-        #     armature={
-        #         "R_.*": 0.001,
-        #         "L_.*": 0.001,
-        #     },
-        # ),
         "finger": IdealPDActuatorCfg(
             joint_names_expr=[
                 '.*_proximal_joint'
             ],
-            effort_limit=1,
-            velocity_limit=0.5,
-            stiffness=10.0,
-            damping=0.5,
+            effort_limit=25,
+            velocity_limit=37.0,
+            stiffness=50.0,
+            damping=2.0,
             armature={
                 '.*_proximal_joint': 0.001,
             },

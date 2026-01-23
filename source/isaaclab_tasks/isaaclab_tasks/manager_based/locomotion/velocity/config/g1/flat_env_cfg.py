@@ -35,21 +35,21 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.track_ang_vel_z_exp.weight = 1.0
         # Rewards
         self.rewards.lin_vel_z_l2.weight = -0.2
-        self.rewards.action_rate_l2.weight = -0.02
+        self.rewards.action_rate_l2.weight = -0.08
         self.rewards.dof_acc_l2.weight = -1.0e-7
         self.rewards.feet_air_time.weight = 0.75
         self.rewards.feet_air_time.params["threshold"] = 0.4
-        self.rewards.dof_torques_l2.weight = -2.0e-4
+        self.rewards.dof_torques_l2.weight = -2.0e-6
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint"]
         )
         # G1_29_no_hand
         self.rewards.joint_deviation_arms.weight = -1.0
-        self.rewards.joint_deviation_torso.weight = -3.0
+        self.rewards.joint_deviation_torso.weight = -0.2
         
         # Commands
         self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
-        self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_y = (-1.0, 1.0)
         self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
         self.commands.base_velocity.ranges.heading = (-0.0, 0.0)
 
@@ -66,6 +66,9 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         # disable randomization for play
         self.observations.policy.enable_corruption = False
         # remove random pushing
+        # self.events.left_hand_force = None
+        # self.events.right_hand_force = None
+
         # self.events.randomize_friction = None
         # # self.events.push_robot = None
         # self.events.randomize_base_mass = None

@@ -20,7 +20,7 @@ from isaaclab_assets import G1_DEX_FIX  # isort: skip
 class G1Rewards(RewardsCfg):
     """Reward terms for the MDP."""
 
-    base_height = RewTerm(func=mdp.base_height_l2, weight=-100.0, params={"target_height": 0.78})
+    base_height = RewTerm(func=mdp.base_height_l2, weight=-150.0, params={"target_height": 0.78})
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
@@ -195,7 +195,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # Rewards
         self.rewards.lin_vel_z_l2.weight = 0.0
         self.rewards.undesired_contacts = None
-        self.rewards.flat_orientation_l2.weight = -5.0
+        self.rewards.flat_orientation_l2.weight = -7.0
         self.rewards.action_rate_l2.weight = -0.005
         self.rewards.dof_acc_l2.weight = -1.25e-7
         self.rewards.dof_acc_l2.params["asset_cfg"] = SceneEntityCfg(
