@@ -427,3 +427,91 @@ def motion_equality_cons(
     curr_pos_w1 = asset.data.joint_pos[:, asset_cfg.joint_ids[0]]
     curr_pos_w2 = asset.data.joint_pos[:, asset_cfg.joint_ids[1]]
     return torch.square(curr_pos_w1+curr_pos_w2)
+
+
+# def tracking_lin_vel_force_world_reward( 
+#     env: ManagerBasedRLEnv,
+#     asset_cfg: SceneEntityCfg, 
+#     force_command_name: str, 
+#     command_name: str, 
+#     base_force_kds: torch.Tensor, 
+#     tracking_sigma: float, 
+#     lin_vel_x_clip: float, 
+#     lin_vel_y_clip: float, 
+#     ang_vel_yaw_clip: float, 
+#     ) -> torch.Tensor: 
+#     """ 
+#     Reward for tracking linear velocity while accounting for external force. 
+#     """ 
+#     # --- robot --- 
+#     asset: Articulation = env.scene[asset_cfg.name] 
+
+#     # base linear velocity (world frame) 
+#     # shape: (num_envs, 3) 
+#     base_lin_vel_w = asset.data.root_lin_vel_w 
+
+#     # base orientation 
+#     base_quat_w = asset.data.root_quat_w 
+
+#     # --- yaw-only quaternion --- 
+#     from isaaclab.utils.math import euler_xyz_from_quat, quat_from_euler_xyz 
+#     roll, pitch, yaw = euler_xyz_from_quat(base_quat_w) 
+#     zeros = torch.zeros_like(yaw) 
+#     base_yaw_quat = quat_from_euler_xyz(zeros, zeros, yaw) 
+
+#     # --- external force command (base frame) --- 
+#     # shape: (num_envs, 3) 
+#     force_cmd_base = env.command_manager.get_command(force_command_name) 
+
+#     # world → base(yaw) frame 
+#     from isaaclab.utils.math import quat_rotate_inverse force_base_local = quat_rotate_inverse(base_yaw_quat, force_cmd_base) 
+
+#     # --- velocity command --- 
+#     # shape: (num_envs, 3) : [vx, vy, wz] 
+#     vel_cmd = env.command_manager.get_command(command_name) 
+
+#     # force → velocity offset 
+#     base_lin_vel_offset = (force_base_local / base_force_kds)[:, :2] + vel_cmd[:, :2] 
+
+#     # --- stop gating --- 
+#     non_stop = ( (torch.abs(base_lin_vel_offset[:, 0]) > lin_vel_x_clip) 
+#                 | (torch.abs(base_lin_vel_offset[:, 1]) > lin_vel_y_clip) 
+#                 | (torch.abs(vel_cmd[:, 2]) > ang_vel_yaw_clip) 
+#                 ) 
+#     base_lin_vel_offset *= non_stop.unsqueeze(1) 
+
+#     # --- tracking error --- 
+#     lin_vel_error = torch.sum( 
+#         torch.square(base_lin_vel_offset - base_lin_vel_w[:, :2]), dim=1 
+#         ) 
+    
+#     return torch.exp(-lin_vel_error / tracking_sigma)
+
+def tracking_lin_vel_force_reward( 
+    env: ManagerBasedRLEnv, 
+    asset_cfg: SceneEntityCfg, 
+    force_command_name: str, 
+    vel_command_name: str, 
+    damping: float, 
+    sigma: float, 
+    vel_clip: float = 0.01 
+    # 정지 상태 판정 임계값 
+    ) -> torch.Tensor: 
+    asset: Articulation = env.scene[asset_cfg.name] 
+    # 1. 실제 속도 (Base XY frame) 
+    vel_actual = asset.data.root_lin_vel_b[:, :2] 
+    # 2. 명령 속도 (v_cmd) 
+    vel_cmd = env.command_manager.get_command(vel_command_name)[:, :2] 
+    # 3. 외력 보상 (F_ext / D) 
+    # UniformForceCommand에서 가져온 힘 (이미 Base Frame) 
+    force_cmd = env.command_manager.get_command(force_command_name)[:, :2] 
+    force_offset = force_cmd / damping 
+    # 4. 최종 목표 속도 계산 
+    target_vel = vel_cmd + force_offset #
+    # 5. Stop Gating: 명령이 거의 0이면 타겟도 0으로 간주 
+    is_moving = torch.norm(target_vel, dim=1) > vel_clip 
+    target_vel *= is_moving.unsqueeze(1) 
+    # 6. 오차 제곱 및 보상 계산 
+    # 수식: exp(- ||v_act - v_target||^2 / sigma) 
+    error_sq = torch.sum(torch.square(vel_actual - target_vel), dim=1) 
+    return torch.exp(-error_sq / sigma)
