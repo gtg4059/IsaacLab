@@ -74,7 +74,7 @@ REPEATED_OBJECTS_TERRAINS_CFG = TerrainGeneratorCfg(
         #     platform_width=1.0,
         # ),
         "random_rough": terrain_gen.HfRandomUniformTerrainCfg(
-            proportion=0.2, noise_range=(0.02, 0.10), noise_step=0.02, border_width=0.25
+            proportion=0.2, noise_range=(0.02, 0.06), noise_step=0.02, border_width=0.25
         ),
 
     },
