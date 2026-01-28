@@ -41,15 +41,6 @@ from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG, RANDOM_ROUGH_TERR
 ##
 from isaaclab.devices.gamepad import Se2bGamepad, Se2bGamepadCfg
 
-def gamepad_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
-    """게임패드(조이스틱) 입력을 받아옴."""
-    if not hasattr(env, "gamepad"):
-        env.gamepad = Se2bGamepad(Se2bGamepadCfg(
-            v_x_sensitivity=1.0, v_y_sensitivity=1.0, omega_z_sensitivity=0.25, dead_zone=0.1
-        ))
-        env.gamepad.reset()
-    command = env.gamepad.advance()
-    return torch.tensor([command[0],-command[1],-command[2]], device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
 
 def keyboard_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
     """키보드로부터 명령을 받아옵니다."""
@@ -102,30 +93,6 @@ class MySceneCfg(InteractiveSceneCfg):
         ),
     )
 
-
-    # # #Set Cube as object
-    # object = RigidObjectCfg(
-    #     prim_path="{ENV_REGEX_NS}/Object",
-    #     init_state=RigidObjectCfg.InitialStateCfg(
-    #         pos=[0.32, 10.0, 0.82],# 0.37, 0, 0.82
-    #         rot=[1.0, 0.0 ,0.0, 0.0]),
-    #     spawn=sim_utils.UsdFileCfg(
-    #         # white wing-box
-    #         usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
-    #         scale=(11.5,7.78,5.357),# 380,250,150
-    #         mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
-    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
-    #             # kinematic_enabled=True,
-    #             solver_position_iteration_count=8, #16,
-    #             solver_velocity_iteration_count=1,
-    #             max_angular_velocity=1000.0,
-    #             max_linear_velocity=1000.0,
-    #             max_depenetration_velocity=5.0,
-    #             disable_gravity=False,
-    #         ),
-    #     ),
-    # )
-    
 
 ##
 # MDP settings
@@ -295,26 +262,26 @@ class ObservationsCfg:
 class EventCfg:
     """Configuration for events."""
 
-    # # interval
-    # push_robot = EventTerm(
-    #     func=mdp.push_by_setting_velocity,
-    #     mode="interval",
-    #     interval_range_s=(5.0, 10.0),
-    #     params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
-    # )
+    # interval
+    push_robot = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="interval",
+        interval_range_s=(5.0, 10.0),
+        params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+    )
 
     reset_base = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
-            "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
+            "pose_range": {"x": (-0.00, -0.00), "y": (-0.00, -0.00), "yaw": (-0.0, 0.0)},
             "velocity_range": {
-                "x": (-0.5, 0.5),
-                "y": (-0.5, 0.5),
-                "z": (-0.5, 0.5),
-                "roll": (-0.5, 0.5),
-                "pitch": (-0.5, 0.5),
-                "yaw": (-0.5, 0.5),
+                "x": (0.0, 0.0),
+                "y": (0.0, 0.0),
+                "z": (0.0, 0.0),
+                "roll": (0.0, 0.0),
+                "pitch": (0.0, 0.0),
+                "yaw": (0.0, 0.0),
             },
         },
     )
@@ -525,9 +492,7 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physics_material = self.scene.terrain.physics_material
         self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
         self.sim.physx.bounce_threshold_velocity = 0.1
-        # eye: tuple[float, float, float] = (7.5, 7.5, 7.5),
-        # lookat: tuple[float, float, float] = (0, 0, 0),
-        self.viewer.eye = (2.0, 2.0, 3.0)#(-2.0, 0, 5.0)
+        self.viewer.eye = (2.0, 2.0, 3.0)
         # update sensor update periods
         # we tick all the sensors based on the smallest update period (physics update period)
         if self.scene.contact_forces is not None:
