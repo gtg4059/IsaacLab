@@ -51,7 +51,7 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
 )
 """Rough terrains configuration."""
 
-REPEATED_OBJECTS_TERRAINS_CFG = TerrainGeneratorCfg(
+RANDOM_ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
     size=(8.0, 8.0),
     border_width=20.0,
     num_rows=10,
