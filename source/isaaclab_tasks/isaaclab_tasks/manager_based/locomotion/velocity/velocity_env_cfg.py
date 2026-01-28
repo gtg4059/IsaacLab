@@ -34,25 +34,22 @@ from isaaclab.devices.keyboard.se2_keyboard import Se2KeyboardCfg
 ##
 # Pre-defined configs
 ##
-from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG, REPEATED_OBJECTS_TERRAINS_CFG  # isort: skip
+from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG, RANDOM_ROUGH_TERRAINS_CFG  # isort: skip
 
 ##
 # Scene definition
 ##
 from isaaclab.devices.gamepad import Se2bGamepad, Se2bGamepadCfg
 
-# def gamepad_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
-#     """게임패드(조이스틱) 입력을 받아옴."""
-#     if not hasattr(env, "gamepad"):
-#         env.gamepad = Se2bGamepad(Se2bGamepadCfg(
-#             # pos_sensitivity=2.0,
-#             # rot_sensitivity=0.25,
-#             v_x_sensitivity=1.0, v_y_sensitivity=1.0, omega_z_sensitivity=0.25, dead_zone=0.1
-#         ))
-#         env.gamepad.reset()
-#     command = env.gamepad.advance()
-#     # print(command)
-#     return torch.tensor([command[0],-command[1],-command[2]], device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
+def gamepad_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
+    """게임패드(조이스틱) 입력을 받아옴."""
+    if not hasattr(env, "gamepad"):
+        env.gamepad = Se2bGamepad(Se2bGamepadCfg(
+            v_x_sensitivity=1.0, v_y_sensitivity=1.0, omega_z_sensitivity=0.25, dead_zone=0.1
+        ))
+        env.gamepad.reset()
+    command = env.gamepad.advance()
+    return torch.tensor([command[0],-command[1],-command[2]], device=env.device, dtype=torch.float32).unsqueeze(0).repeat(env.num_envs, 1)
 
 def keyboard_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
     """키보드로부터 명령을 받아옵니다."""
@@ -61,7 +58,6 @@ def keyboard_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
             v_x_sensitivity=1.0, v_y_sensitivity=1.0, omega_z_sensitivity=1.0
             )
         )
-        # env.keyboard.add_callback("a", print_cb)
         env.keyboard.reset()
     
     command = env.keyboard.advance()
@@ -75,7 +71,7 @@ class MySceneCfg(InteractiveSceneCfg):
     terrain = TerrainImporterCfg(
         prim_path="/World/ground",
         terrain_type="generator",
-        terrain_generator=REPEATED_OBJECTS_TERRAINS_CFG,
+        terrain_generator=RANDOM_ROUGH_TERRAINS_CFG,
         max_init_terrain_level=5,
         collision_group=-1,
         physics_material=sim_utils.RigidBodyMaterialCfg(
@@ -106,19 +102,21 @@ class MySceneCfg(InteractiveSceneCfg):
         ),
     )
 
-    # # Set Cube as object
+
+    # # #Set Cube as object
     # object = RigidObjectCfg(
     #     prim_path="{ENV_REGEX_NS}/Object",
     #     init_state=RigidObjectCfg.InitialStateCfg(
-    #         pos=[0.31, 0, 0.82], 
+    #         pos=[0.32, 10.0, 0.82],# 0.37, 0, 0.82
     #         rot=[1.0, 0.0 ,0.0, 0.0]),
     #     spawn=sim_utils.UsdFileCfg(
-    #         usd_path="./source/isaaclab_assets/data/Robots/DexCube.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-    #         scale=((6.33,4.17,2.5)), # 380,250,150
-    #         mass_props=sim_utils.MassPropertiesCfg(mass=0.5),
+    #         # white wing-box
+    #         usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
+    #         scale=(11.5,7.78,5.357),# 380,250,150
+    #         mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
     #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
     #             # kinematic_enabled=True,
-    #             solver_position_iteration_count=8,
+    #             solver_position_iteration_count=8, #16,
     #             solver_velocity_iteration_count=1,
     #             max_angular_velocity=1000.0,
     #             max_linear_velocity=1000.0,
@@ -127,123 +125,7 @@ class MySceneCfg(InteractiveSceneCfg):
     #         ),
     #     ),
     # )
-
-    # #Set Cube as object
-    object = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/Object",
-        init_state=RigidObjectCfg.InitialStateCfg(
-            pos=[0.32, 10.0, 0.82],# 0.37, 0, 0.82
-            rot=[1.0, 0.0 ,0.0, 0.0]),
-        spawn=sim_utils.UsdFileCfg(
-            # white wing-box
-            usd_path="./source/isaaclab_assets/data/Assets/Wingbox.usd",
-            scale=(11.5,7.78,5.357),# 380,250,150
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.8),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                # kinematic_enabled=True,
-                solver_position_iteration_count=8, #16,
-                solver_velocity_iteration_count=1,
-                max_angular_velocity=1000.0,
-                max_linear_velocity=1000.0,
-                max_depenetration_velocity=5.0,
-                disable_gravity=False,
-            ),
-        ),
-    )
     
-
-    # add cube
-    # object_init: RigidObjectCfg = RigidObjectCfg(
-    #     prim_path="{ENV_REGEX_NS}/object_init",
-    #     init_state=RigidObjectCfg.InitialStateCfg(
-    #         # # white-box
-    #         # pos=[0.43, 0, 0.86], 
-    #         # 4-box
-    #         pos=[0.37, 0, 0.93], 
-    #         rot=[1.0, 0.0 ,0.0, 0.0]),
-    #     spawn=sim_utils.CuboidCfg(
-    #         size=(0.1,0.1,0.1),
-    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(max_depenetration_velocity=1.0, 
-    #                                                      disable_gravity=True,
-    #                                                      kinematic_enabled=True),
-    #         # mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
-    #         # physics_material=sim_utils.RigidBodyMaterialCfg(),
-    #         # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.0, 0.0)),
-    #     ),
-    # )
-# mount
-    # table = RigidObjectCfg(
-    #     prim_path="{ENV_REGEX_NS}/Table",
-    #     init_state=RigidObjectCfg.InitialStateCfg(
-    #         pos=[0.39, 0, 0.74], 
-    #         rot=[1.0, 0.0 ,0.0, 0.0]),
-    #     spawn=sim_utils.UsdFileCfg(
-    #         usd_path="./source/isaaclab_assets/data/Assets/table/danny_inst.usd",# f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd", 
-    #         scale=(4.0, 4.0, 1.00),
-    #         mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
-    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
-    #             kinematic_enabled=True,
-    #             solver_position_iteration_count=16,
-    #             solver_velocity_iteration_count=1,
-    #             max_angular_velocity=1000.0,
-    #             max_linear_velocity=1000.0,
-    #             max_depenetration_velocity=5.0,
-    #             disable_gravity=True,
-    #         ),
-    #         activate_contact_sensors=True,
-    #     ),
-    # )
-    # 
-
-    # table = AssetBaseCfg(
-    #     prim_path="{ENV_REGEX_NS}/Table",
-    #     init_state=AssetBaseCfg.InitialStateCfg(pos=(0.40, 0.2, 0.78), rot=[0.707, 0, 0, -0.707]),
-    #     spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table/table.usd",
-    #     # init_state=AssetBaseCfg.InitialStateCfg(pos=(0.38, 0.0, 0.05), rot=[0.707, 0, 0, -0.707]),
-    #     # spawn=sim_utils.UsdFileCfg(usd_path="./source/isaaclab_assets/data/Assets/table_inst.usd",
-    #             scale=(0.8, 0.8, 0.1),
-    #             rigid_props=sim_utils.RigidBodyPropertiesCfg(
-    #                 kinematic_enabled=True,
-    #                 # solver_position_iteration_count=8,
-    #                 # solver_velocity_iteration_count=1,
-    #                 # max_angular_velocity=1000.0,
-    #                 # max_linear_velocity=1000.0,
-    #                 # max_depenetration_velocity=5.0,
-    #                 disable_gravity=True,
-    #             ),
-    #         ),
-    # )
-
-    # table = AssetBaseCfg(
-    #     prim_path="{ENV_REGEX_NS}/Table",
-    #     spawn=sim_utils.UsdFileCfg(
-            # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd", scale=(4.0, 4.0, 1.0),
-    #     ),
-    #     init_state=AssetBaseCfg.InitialStateCfg(pos=(0.1, 0.0, 0.0), rot=(1.0, 0.0, 0.0, 0.0)),
-    # )
-
-    # camera = TiledCameraCfg(
-    #     prim_path="{ENV_REGEX_NS}/Robot/torso_link/d435_link/camera",
-    #     update_period=1000.0,
-    #     height=480,
-    #     width=640,
-    #     debug_vis=True,
-    #     data_types=["instance_id_segmentation_fast"],
-    #     colorize_instance_id_segmentation=True,
-    #     spawn=sim_utils.PinholeCameraCfg(
-    #         focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5)
-    #     ),
-    #     offset=TiledCameraCfg.OffsetCfg(pos=(0.0, 0.0, 0.0), rot=(0.5, -0.5, 0.5, -0.5), convention="ros"),
-    # )
-
-    # contact_table = ContactSensorCfg(
-    #         prim_path="{ENV_REGEX_NS}/Table",
-    #         debug_vis=False,
-    #         history_length=3,
-    #         update_period=0.0,
-    #         track_air_time=True,
-    #     )
-
 
 ##
 # MDP settings
@@ -263,24 +145,8 @@ class CommandsCfg:
             debug_vis=True,
             ranges=mdp.UniformVelocityCommandCfg.Ranges(
                 lin_vel_x=(-1.0, 2.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
-                # lin_vel_x=(2.0, 2.0), lin_vel_y=(1.0, 1.0), ang_vel_z=(1.0, 1.0), heading=(-math.pi, math.pi)
             ),
         )
-    # dual_ee_pose = mdp.DualPoseCommandCfg(
-    #     asset_name="robot",
-    #     left_body_name="L_middle_proximal",
-    #     right_body_name="R_middle_proximal",
-    #     resampling_time_range=(5.0, 10.0),
-    #     debug_vis=True,
-    #     ranges=mdp.DualPoseCommandCfg.Ranges(
-    #         pos_x=(0.31, 0.31),
-    #         pos_y=(0.12, 0.12),
-    #         pos_z=(0.20, 0.20),# 0.02
-    #         roll=(-0.0, 0.0),
-    #         pitch=(-0.0, 0.0),
-    #         yaw=(math.pi / 2.0, math.pi / 2.0),
-    #     ),
-    # )
 
 @configclass
 class ActionsCfg:
@@ -328,200 +194,6 @@ class ActionsCfg:
 @configclass
 class ObservationsCfg:
     """Observation specifications for the MDP."""
-
-    # @configclass
-    # class PickupCfg(ObsGroup):
-    #     """Observations for policy group."""
-
-    #     # observation terms (order preserved)
-    #     base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2),scale=0.25)
-    #     projected_gravity = ObsTerm(
-    #         func=mdp.projected_gravity,
-    #         noise=Unoise(n_min=-0.05, n_max=0.05),
-    #     )
-    #     joint_pos = ObsTerm(func=mdp.joint_pos, 
-    #                         params={"asset_cfg": SceneEntityCfg("robot",
-    #                                 joint_names=[
-    #                                             'left_hip_pitch_joint', 
-    #                                             'left_hip_roll_joint', 
-    #                                             'left_hip_yaw_joint', 
-    #                                             'left_knee_joint', 
-    #                                             'left_ankle_pitch_joint', 
-    #                                             'left_ankle_roll_joint', 
-    #                                             'right_hip_pitch_joint', 
-    #                                             'right_hip_roll_joint', 
-    #                                             'right_hip_yaw_joint', 
-    #                                             'right_knee_joint', 
-    #                                             'right_ankle_pitch_joint', 
-    #                                             'right_ankle_roll_joint',
-    #                                             # G1_29_no_hand
-    #                                             "waist_yaw_joint",
-    #                                             "waist_roll_joint",
-    #                                             "waist_pitch_joint",
-    #                                             "left_shoulder_pitch_joint",
-    #                                             "left_shoulder_roll_joint",
-    #                                             "left_shoulder_yaw_joint",
-    #                                             "left_elbow_joint",
-    #                                             "left_wrist_roll_joint",
-    #                                             "left_wrist_pitch_joint",
-    #                                             "left_wrist_yaw_joint",
-    #                                             "right_shoulder_pitch_joint",
-    #                                             "right_shoulder_roll_joint",
-    #                                             "right_shoulder_yaw_joint",
-    #                                             "right_elbow_joint",
-    #                                             "right_wrist_roll_joint",
-    #                                             "right_wrist_pitch_joint",
-    #                                             "right_wrist_yaw_joint",
-    #                                             ],
-    #                                 preserve_order=True,
-    #                                 )},
-    #                         noise=Unoise(n_min=-0.01, n_max=0.01),scale=1.0)
-    #     joint_vel = ObsTerm(func=mdp.joint_vel_rel, 
-    #                         params={"asset_cfg": SceneEntityCfg("robot",
-    #                                 joint_names=[
-    #                                             'left_hip_pitch_joint', 
-    #                                             'left_hip_roll_joint', 
-    #                                             'left_hip_yaw_joint', 
-    #                                             'left_knee_joint', 
-    #                                             'left_ankle_pitch_joint', 
-    #                                             'left_ankle_roll_joint', 
-    #                                             'right_hip_pitch_joint', 
-    #                                             'right_hip_roll_joint', 
-    #                                             'right_hip_yaw_joint', 
-    #                                             'right_knee_joint', 
-    #                                             'right_ankle_pitch_joint', 
-    #                                             'right_ankle_roll_joint',
-    #                                             # G1_29_no_hand
-    #                                             "waist_yaw_joint",
-    #                                             "waist_roll_joint",
-    #                                             "waist_pitch_joint",
-    #                                             "left_shoulder_pitch_joint",
-    #                                             "left_shoulder_roll_joint",
-    #                                             "left_shoulder_yaw_joint",
-    #                                             "left_elbow_joint",
-    #                                             "left_wrist_roll_joint",
-    #                                             "left_wrist_pitch_joint",
-    #                                             "left_wrist_yaw_joint",
-    #                                             "right_shoulder_pitch_joint",
-    #                                             "right_shoulder_roll_joint",
-    #                                             "right_shoulder_yaw_joint",
-    #                                             "right_elbow_joint",
-    #                                             "right_wrist_roll_joint",
-    #                                             "right_wrist_pitch_joint",
-    #                                             "right_wrist_yaw_joint",
-    #                                             ],
-    #                                 preserve_order=True,
-    #                                 )},
-    #                         noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
-    #     actions = ObsTerm(func=mdp.last_action)
-    #     #####################################################################################
-    #     # velocity_commands = ObsTerm(func=keyboard_commands)
-    #     dual_ee_pose_command = ObsTerm(
-    #         func=mdp.generated_commands,
-    #         params={"command_name": "dual_ee_pose"},
-    #     )
-    #     object_position = ObsTerm(func=mdp.object_position_in_robot_body_frame, noise=Unoise(n_min=-0.02, n_max=0.02),params={"robot_cfg": SceneEntityCfg("robot",body_names="camera")})
-
-    #     def __post_init__(self):
-    #         self.enable_corruption = True
-    #         self.concatenate_terms = True
-
-    # @configclass
-    # class PickWalkCfg(ObsGroup):
-    #     """Observations for policy group."""
-
-    #     # observation terms (order preserved)
-    #     base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2),scale=0.25)
-    #     projected_gravity = ObsTerm(
-    #         func=mdp.projected_gravity,
-    #         noise=Unoise(n_min=-0.05, n_max=0.05),
-    #     )
-    #     joint_pos = ObsTerm(func=mdp.joint_pos, 
-    #                         params={"asset_cfg": SceneEntityCfg("robot",
-    #                                 joint_names=[
-    #                                             'left_hip_pitch_joint', 
-    #                                             'left_hip_roll_joint', 
-    #                                             'left_hip_yaw_joint', 
-    #                                             'left_knee_joint', 
-    #                                             'left_ankle_pitch_joint', 
-    #                                             'left_ankle_roll_joint', 
-    #                                             'right_hip_pitch_joint', 
-    #                                             'right_hip_roll_joint', 
-    #                                             'right_hip_yaw_joint', 
-    #                                             'right_knee_joint', 
-    #                                             'right_ankle_pitch_joint', 
-    #                                             'right_ankle_roll_joint',
-    #                                             # G1_29_no_hand
-    #                                             "waist_yaw_joint",
-    #                                             "waist_roll_joint",
-    #                                             "waist_pitch_joint",
-    #                                             "left_shoulder_pitch_joint",
-    #                                             "left_shoulder_roll_joint",
-    #                                             "left_shoulder_yaw_joint",
-    #                                             "left_elbow_joint",
-    #                                             "left_wrist_roll_joint",
-    #                                             "left_wrist_pitch_joint",
-    #                                             "left_wrist_yaw_joint",
-    #                                             "right_shoulder_pitch_joint",
-    #                                             "right_shoulder_roll_joint",
-    #                                             "right_shoulder_yaw_joint",
-    #                                             "right_elbow_joint",
-    #                                             "right_wrist_roll_joint",
-    #                                             "right_wrist_pitch_joint",
-    #                                             "right_wrist_yaw_joint",
-    #                                             ],
-    #                                 preserve_order=True,
-    #                                 )},
-    #                         noise=Unoise(n_min=-0.01, n_max=0.01),scale=1.0)
-    #     joint_vel = ObsTerm(func=mdp.joint_vel_rel, 
-    #                         params={"asset_cfg": SceneEntityCfg("robot",
-    #                                 joint_names=[
-    #                                             'left_hip_pitch_joint', 
-    #                                             'left_hip_roll_joint', 
-    #                                             'left_hip_yaw_joint', 
-    #                                             'left_knee_joint', 
-    #                                             'left_ankle_pitch_joint', 
-    #                                             'left_ankle_roll_joint', 
-    #                                             'right_hip_pitch_joint', 
-    #                                             'right_hip_roll_joint', 
-    #                                             'right_hip_yaw_joint', 
-    #                                             'right_knee_joint', 
-    #                                             'right_ankle_pitch_joint', 
-    #                                             'right_ankle_roll_joint',
-    #                                             # G1_29_no_hand
-    #                                             "waist_yaw_joint",
-    #                                             "waist_roll_joint",
-    #                                             "waist_pitch_joint",
-    #                                             "left_shoulder_pitch_joint",
-    #                                             "left_shoulder_roll_joint",
-    #                                             "left_shoulder_yaw_joint",
-    #                                             "left_elbow_joint",
-    #                                             "left_wrist_roll_joint",
-    #                                             "left_wrist_pitch_joint",
-    #                                             "left_wrist_yaw_joint",
-    #                                             "right_shoulder_pitch_joint",
-    #                                             "right_shoulder_roll_joint",
-    #                                             "right_shoulder_yaw_joint",
-    #                                             "right_elbow_joint",
-    #                                             "right_wrist_roll_joint",
-    #                                             "right_wrist_pitch_joint",
-    #                                             "right_wrist_yaw_joint",
-    #                                             ],
-    #                                 preserve_order=True,
-    #                                 )},
-    #                         noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
-    #     actions = ObsTerm(func=mdp.last_action)
-    #     #####################################################################################
-    #     velocity_commands = ObsTerm(func=keyboard_commands)
-    #     # velocity_commands = ObsTerm(func=gamepad_commands)
-    #     dual_ee_pose_command = ObsTerm(
-    #         func=mdp.generated_commands,
-    #         params={"command_name": "dual_ee_pose"},
-    #     )
-
-    #     def __post_init__(self):
-    #         self.enable_corruption = True
-    #         self.concatenate_terms = True
 
     @configclass
     class RunCfg(ObsGroup):
@@ -609,17 +281,13 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
-        velocity_commands = ObsTerm(func=keyboard_commands,scale=(2.0,2.0,0.25)) #, scale=(2.0,2.0,0.25))# 3
-        # velocity_commands = ObsTerm(func=mdp.generated_commands, 
-        #                             params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))# 3
+        velocity_commands = ObsTerm(func=keyboard_commands,scale=(2.0,2.0,0.25))
 
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
 
     # observation groups
-    # Pickup: PickupCfg = PickupCfg()
-    # PickWalk: PickWalkCfg = PickWalkCfg()
     Run: RunCfg = RunCfg()
 
 
@@ -812,41 +480,7 @@ class RewardsCfg:
 class TerminationsCfg:
     """Termination terms for the MDP."""
 
-    # bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.6,"asset_cfg": SceneEntityCfg("object")})
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    # # base_contact = DoneTerm(
-    # #     func=mdp.illegal_contact,
-    # #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="torso_link"), "threshold": 500.0},
-    # # )
-    # base_contact2 = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names="pelvis"), "threshold": 10.0},
-    # )
-    # base_contact3 = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_hip_roll_link"), "threshold": 10.0},
-    # )
-    # # base_contact4 = DoneTerm(
-    # #     func=mdp.illegal_contact,
-    # #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_wrist_pitch_link"), "threshold": 10.0},
-    # # )
-    # # base_contact5 = DoneTerm(
-    # #     func=mdp.illegal_contact,
-    # #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=".*_elbow_link"), "threshold": 10.0},
-    # # )
-    # # base_contact6 = DoneTerm(
-    # #     func=mdp.illegal_contact,
-    # #     params={"sensor_cfg": SceneEntityCfg("contact_forces",body_names=[
-    # #                                                               ".*_thumb_intermediate",
-    # #                                                               ".*_index_intermediate",
-    # #                                                               ".*_middle_intermediate",
-    # #                                                               ".*_pinky_intermediate",
-    # #                                                               ".*_ring_intermediate",
-    # #                                                               ]), "threshold": 20.0},
-    # # )
-    # object_dropping = DoneTerm(
-    #     func=mdp.root_height_below_minimum, params={"minimum_height": 0.5, "asset_cfg": SceneEntityCfg("object")}
-    # )
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
     )
@@ -858,15 +492,6 @@ class CurriculumCfg:
 
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
 
-# @configclass
-# class DevicesCfg:
-#     """Device configurations for the MDP."""
-#     keyboard = Se2Keyboard(Se2KeyboardCfg(
-#             v_x_sensitivity=0.7,
-#             v_y_sensitivity=0.5,
-#             omega_z_sensitivity=1.0
-#         )
-#     )
 
 ##
 # Environment configuration

@@ -51,7 +51,7 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
 )
 """Rough terrains configuration."""
 
-REPEATED_OBJECTS_TERRAINS_CFG = TerrainGeneratorCfg(
+RANDOM_ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
     size=(8.0, 8.0),
     border_width=20.0,
     num_rows=10,
@@ -61,41 +61,10 @@ REPEATED_OBJECTS_TERRAINS_CFG = TerrainGeneratorCfg(
     slope_threshold=0.75,
     use_cache=False,
     sub_terrains={
-        "random_rough": terrain_gen.HfDiscreteObstaclesTerrainCfg(
-            # proportion=0.2,
-            size=(8.0, 8.0),
-            horizontal_scale=0.1,
-            vertical_scale=0.005,
-            border_width=0.0,
-            num_obstacles=100,
-            obstacle_height_mode="choice",
-            obstacle_width_range=(0.34, 0.6),
-            obstacle_height_range=(0.0, 0.08),
-            platform_width=1.0,
+        "random_rough": terrain_gen.HfRandomUniformTerrainCfg(
+            proportion=0.2, noise_range=(0.02, 0.06), noise_step=0.02, border_width=0.25
         ),
-        # "random_rough2": terrain_gen.HfDiscreteObstaclesTerrainCfg(
-        #     proportion=0.2,
-        #     size=(8.0, 8.0),
-        #     horizontal_scale=0.1,
-        #     vertical_scale=0.005,
-        #     border_width=0.0,
-        #     num_obstacles=50,
-        #     obstacle_height_mode="fixed",
-        #     obstacle_width_range=(0.25, 0.75),
-        #     obstacle_height_range=(1.0, 2.0),
-        #     platform_width=1.5,
-        # ),
 
-
-        # "repeated_pyramids": terrain_gen.MeshRepeatedPyramidsTerrainCfg(
-        #     proportion=0.2,
-        #     object_params_start=terrain_gen.MeshRepeatedPyramidsTerrainCfg.ObjectCfg(
-        #         num_objects=40, height=0.01, radius=0.1, max_yx_angle=0.0, degrees=True
-        #     ),
-        #     object_params_end=terrain_gen.MeshRepeatedPyramidsTerrainCfg.ObjectCfg(
-        #         num_objects=60, height=0.02, radius=0.2, max_yx_angle=0.0, degrees=True
-        #     ),
-        # ),
     },
 )
 """Repeated objects terrain configuration."""
