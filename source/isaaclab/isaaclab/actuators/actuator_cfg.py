@@ -193,7 +193,7 @@ class IdealPDActuatorCfg(ActuatorBaseCfg):
 
 @configclass
 class RFI_PDActuatorCfg(ActuatorBaseCfg):
-    """Configuration for an ideal PD actuator."""
+    """Action delay와 random torque offset 부여"""
 
     class_type: type = actuator_pd.RFI_PDActuator
 

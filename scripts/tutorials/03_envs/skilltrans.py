@@ -71,8 +71,6 @@ def main():
             action = policy_run(obs["Run"])
             obs, _, _, _, _ = env.step(action)
 
-
-
 if __name__ == "__main__":
     main()
     simulation_app.update()

@@ -148,7 +148,11 @@ Explicit Actuator Models.
 class RFI_PDActuator(ActuatorBase):
 
     cfg: RFI_PDActuatorCfg
-    """The configuration for the actuator model."""
+    """
+    DelayBuffer를 사용해 Action delay를 구현하고, 
+    최종 torque에 rfi를 부여하는 것으로 torque offset 구현
+    (DelayBuffer 함수는 기존에 있는 함수-isaac lab tutorial에서 참고)
+    """
 
     """
     Operations.
