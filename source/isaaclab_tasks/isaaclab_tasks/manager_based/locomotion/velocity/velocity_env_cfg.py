@@ -30,6 +30,11 @@ import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 ##
 from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG, RANDOM_ROUGH_TERRAINS_CFG  # isort: skip
 
+#########################################################
+# 기본적으로 unitree_SDK에서 지정하는 모터 순서를 사용하며 
+# 스케일 조정은 unitree_rl_gym과 동일하게 이루어지도록 설정
+#########################################################
+
 
 ##
 # Scene definition
@@ -94,12 +99,12 @@ class CommandsCfg:
     base_velocity = mdp.UniformVelocityCommandCfg(
             asset_name="robot",
             resampling_time_range=(5.0, 10.0),
-            rel_standing_envs=0.2,
-            rel_heading_envs=0.8,
+            rel_standing_envs=0.2, # 속도 명령을 0으로 설정하는 확률
+            rel_heading_envs=0.8, # 헤딩 명령을 사용하는 확률
             heading_command=True,
-            heading_control_stiffness=2.0,
-            debug_vis=True,
-            ranges=mdp.UniformVelocityCommandCfg.Ranges(
+            heading_control_stiffness=2.0, # 헤딩 명령을 사용할 때 헤딩 오차를 얼마나 빠르게 보정할지
+            debug_vis=True, # 디버그 시각화 활성화
+            ranges=mdp.UniformVelocityCommandCfg.Ranges( # 속도 명령의 범위
                 lin_vel_x=(-1.0, 2.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
             ),
         )
@@ -110,6 +115,7 @@ class ActionsCfg:
     """Action specifications for the MDP."""
     joint_pos = mdp.JointPositionActionCfg(
         asset_name="robot", 
+        # deploy code와 같은 순서로 joint_names를 설정
         joint_names=[
                      'left_hip_pitch_joint', 
                      'left_hip_roll_joint', 
@@ -142,9 +148,9 @@ class ActionsCfg:
                     "right_wrist_pitch_joint",
                     "right_wrist_yaw_joint",
                      ], 
-        scale=0.25, 
-        use_default_offset=False,
-        preserve_order=True,
+        scale=0.25, # deploy code와 같은 순서로 scale을 설정
+        use_default_offset=False, # deploy code와 같이 offset 제거
+        preserve_order=True, # 위의 명시된 순서를 고정시키는 옵션
     )
 
 
@@ -157,11 +163,14 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
+        # 기본 각속도 관측
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2),scale=0.25)
+        # 중력 관측
         projected_gravity = ObsTerm(
             func=mdp.projected_gravity,
             noise=Unoise(n_min=-0.05, n_max=0.05),
         )
+        # 관절 위치 관측 (원본 코드는 joint_pos_rel을 사용하지만, 이 코드는 joint_pos를 사용)
         joint_pos = ObsTerm(func=mdp.joint_pos, 
                             params={"asset_cfg": SceneEntityCfg("robot",
                                     joint_names=[
@@ -199,7 +208,8 @@ class ObservationsCfg:
                                     preserve_order=True,
                                     )},
                             noise=Unoise(n_min=-0.01, n_max=0.01),scale=1.0)
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, 
+        # 관절 속도 관측 (원본 코드는 joint_vel_rel을 사용하지만, 이 코드는 joint_vel을 사용)
+        joint_vel = ObsTerm(func=mdp.joint_vel, 
                             params={"asset_cfg": SceneEntityCfg("robot",
                                     joint_names=[
                                                 'left_hip_pitch_joint', 
@@ -236,17 +246,10 @@ class ObservationsCfg:
                                     preserve_order=True,
                                     )},
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
-        actions = ObsTerm(func=mdp.last_action)
+        actions = ObsTerm(func=mdp.last_action) # 마지막 행동 관측
         #########################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))# 3
-        # left_ee_pose_command = ObsTerm(
-        #     func=mdp.generated_commands,
-        #     params={"command_name": "left_ee_pose"},
-        # )
-        # right_ee_pose_command = ObsTerm(
-        #     func=mdp.generated_commands,
-        #     params={"command_name": "right_ee_pose"},
-        # )
+        # 속도 명령 관측
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -255,7 +258,9 @@ class ObservationsCfg:
     @configclass
     class CriticCfg(ObsGroup):
         # observation terms (order preserved)
-        base_lin_vel = ObsTerm(func=mdp.base_lin_vel, noise=Unoise(n_min=-0.1, n_max=0.1),scale=2.0)
+        # policy group과 critic group이 나뉘어진 것은 현실에서 쉽게 얻을 수 없고, 
+        # 시뮬레이션에서 쉽게 얻을 수 있는 데이터를 사용해 학습 퀄리티를 높이기 위함임
+        base_lin_vel = ObsTerm(func=mdp.base_lin_vel, noise=Unoise(n_min=-0.1, n_max=0.1),scale=2.0) # 변화점: 기본 직선 속도 관측 추가
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2),scale=0.25)
         projected_gravity = ObsTerm(
             func=mdp.projected_gravity,
@@ -337,34 +342,28 @@ class ObservationsCfg:
                             noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #########################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))# 3
-        # left_ee_pose_command = ObsTerm(
-        #     func=mdp.generated_commands,
-        #     params={"command_name": "left_ee_pose"},
-        # )
-        # right_ee_pose_command = ObsTerm(
-        #     func=mdp.generated_commands,
-        #     params={"command_name": "right_ee_pose"},
-        # )
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"},scale=(2.0,2.0,0.25))
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
     critic: CriticCfg = CriticCfg()
 
 
+# 대부분의 randomization을 담당하는 부분
+# notion의 "[정리] 휴머노이드 걷기 학습" 참조
 @configclass
 class EventCfg:
     """Configuration for events."""
 
     # interval
-    push_robot = EventTerm(
+    push_robot = EventTerm( # 랜덤한 시간에 랜덤 속도로 로봇을 미는 이벤트
         func=mdp.push_by_setting_velocity,
         mode="interval",
         interval_range_s=(5.0, 10.0),
         params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
     )
 
-    reset_base = EventTerm(
+    reset_base = EventTerm( # 로봇의 초기 상태를 초기화하는 이벤트
         func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
@@ -381,7 +380,7 @@ class EventCfg:
     )
 
     # startup
-    randomize_friction = EventTerm(
+    randomize_friction = EventTerm( # epoch마다 로봇의 링크에 랜덤 마찰력을 부여하는 이벤트
         func=mdp.randomize_rigid_body_material,
         mode="startup",
         params={
@@ -423,7 +422,7 @@ class EventCfg:
         },
     )
 
-    randomize_joint_param = EventTerm(
+    randomize_joint_param = EventTerm( # 로봇이 재생성될때마다 관절 마찰력, 점성, 관절 질량을 랜덤하게 변경하는 이벤트
         func=mdp.randomize_joint_parameters,
         min_step_count_between_reset=720,
         mode="reset",
@@ -437,7 +436,7 @@ class EventCfg:
         },
     )
 
-    randomize_link_mass = EventTerm(
+    randomize_link_mass = EventTerm( # epoch마다 로봇의 링크 질량을 랜덤하게 변경하는 이벤트
         func=mdp.randomize_rigid_body_mass,
         mode="startup",
         params={
@@ -473,7 +472,7 @@ class EventCfg:
         },
     )
 
-    randomize_base_mass = EventTerm(
+    randomize_base_mass = EventTerm( # epoch마다 로봇의 기반 질량을 랜덤하게 변경하는 이벤트
         func=mdp.randomize_rigid_body_mass,
         mode="startup",
         params={
@@ -483,7 +482,7 @@ class EventCfg:
         },
     )
 
-    randomize_base_com = EventTerm(
+    randomize_base_com = EventTerm( # epoch마다 로봇의 기반 질량 중심을 랜덤하게 변경하는 이벤트
         func=mdp.randomize_rigid_body_com,
         mode="startup",
         params={
@@ -492,7 +491,7 @@ class EventCfg:
         },
     )
 
-    randomize_pd_gains = EventTerm(
+    randomize_pd_gains = EventTerm( # 로봇이 재생성될때마다 PD 게인을 랜덤하게 변경하는 이벤트
         func=mdp.randomize_actuator_gains,
         min_step_count_between_reset=720,
         mode="reset",
@@ -506,7 +505,7 @@ class EventCfg:
     )
 
 
-    randomize_motor_zero_offset = EventTerm(
+    randomize_motor_zero_offset = EventTerm( # 로봇이 재생성될때마다 초기 모터 오프셋을 랜덤하게 변경하는 이벤트
         func=mdp.reset_joints_by_offset,
         mode="reset",
         params={
@@ -523,35 +522,34 @@ class RewardsCfg:
     """Reward terms for the MDP."""
 
     # -- task
-    track_lin_vel_xy_exp = RewTerm(
+    track_lin_vel_xy_exp = RewTerm( # xy축 속도 추적 보상
         func=mdp.track_lin_vel_xy_exp, weight=1.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
-    track_ang_vel_z_exp = RewTerm(
+    track_ang_vel_z_exp = RewTerm( # 각속도 추적 보상
         func=mdp.track_ang_vel_z_exp, weight=0.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     # -- penalties
-    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.2)
-    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.5e-7)
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.25e-7)
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-1.0e-5)
-    # action_rate_arm = RewTerm(func=mdp.action_rate_arm, weight=-0.1)
-    undesired_contacts = RewTerm(
+    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.2) # z축 속도 제곱 패널티
+    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05) # xy축 각속도 제곱 패널티
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.5e-7) # 관절 토크 제곱 패널티
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.25e-7) # 관절 가속도 제곱 패널티
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-1.0e-5) # 행동 속도 제곱 패널티
+    undesired_contacts = RewTerm( # 원하지 않는 접촉 패널티
         func=mdp.undesired_contacts,
         weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
     )
     # -- optional penalties
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0) # 평형 어긋남에 대한 패널티
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
 
 
 @configclass
-class TerminationsCfg:
+class TerminationsCfg:  # 로봇 종료 및 재생성 조건 설정
     """Termination terms for the MDP."""
 
-    time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    robot_dropping = DoneTerm(
+    time_out = DoneTerm(func=mdp.time_out, time_out=True) # 시간 초과
+    robot_dropping = DoneTerm( # 로봇이 지정 높이 아래로 떨어지면 종료
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.55, "asset_cfg": SceneEntityCfg("robot")}
     )
 
@@ -560,7 +558,7 @@ class TerminationsCfg:
 class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
-    terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
+    terrain_levels = CurrTerm(func=mdp.terrain_levels_vel) # 지형 난이도 조절
 
 
 ##
@@ -573,7 +571,7 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the locomotion velocity-tracking environment."""
 
     # Scene settings
-    scene: MySceneCfg = MySceneCfg(num_envs=4096, env_spacing=2.5)
+    scene: MySceneCfg = MySceneCfg(num_envs=4096, env_spacing=2.5) # 로봇 갯수와 간격 설정 
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
@@ -587,11 +585,11 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self):
         """Post initialization."""
         # general settings
-        self.decimation = 4
-        self.episode_length_s = 20.0
+        self.decimation = 4 # 물리 업데이트 주기 설정 -> 200/4 = 50Hz
+        self.episode_length_s = 20.0 # 에피소드 길이 설정
         # simulation settings
-        self.sim.dt = 0.005
-        self.sim.render_interval = self.decimation
+        self.sim.dt = 0.005 # 시뮬레이션 업데이트 주기 설정 -> 0.005s = 200Hz
+        self.sim.render_interval = self.decimation # 렌더링 주기 설정 -> 50Hz
         self.sim.physics_material = self.scene.terrain.physics_material
         self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
         # update sensor update periods

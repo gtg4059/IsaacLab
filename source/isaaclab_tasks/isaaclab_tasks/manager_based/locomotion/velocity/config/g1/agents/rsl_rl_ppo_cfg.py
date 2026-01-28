@@ -17,12 +17,8 @@ class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     empirical_normalization = False
     clip_actions = 50.0
     max_iterations = 9000000
-    # policy = RslRlPpoActorCriticCfg(
-    #     init_noise_std=1.0,
-    #     actor_hidden_dims=[512, 256, 128],
-    #     critic_hidden_dims=[512, 256, 128],
-    #     activation="elu",
-    # )
+    # LSTM + MLP 아키텍처 사용
+    # notion의 "[정리] 휴머노이드 걷기 학습" 참조
     policy = RslRlPpoActorCriticRecurrentCfg(
         init_noise_std=0.8,
         actor_hidden_dims=[32],
@@ -52,8 +48,4 @@ class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
 class G1FlatPPORunnerCfg(G1RoughPPORunnerCfg):
     def __post_init__(self):
         super().__post_init__()
-        # self.clip_actions = 50.0
-        # self.max_iterations = 9000000
         self.experiment_name = "g1_flat"
-        # self.policy.actor_hidden_dims = [512, 256, 128]
-        # self.policy.critic_hidden_dims = [512, 256, 128]
