@@ -300,16 +300,20 @@ def modify_arm_joint_targets_position_range(
     num_steps: int,
     max_range: float,
 ) -> dict[str, float]:
-    """학습 step에 따라 상체 arm joint target 이벤트의 position_range를 0에서 max_range까지 점진적으로 늘린다.
+    """학습 step 형식으로 상체 arm joint target 이벤트의 position_range를 0.0 → max_range로 한 번에 올린다.
 
-    event_term_name(예: set_arm_joint_targets_interval) 이벤트의 params["position_range"]를
-    (-max_range * progress, max_range * progress)로 갱신한다. progress = min(1, common_step_counter / num_steps).
+    common_step_counter < num_steps 이면 position_range = (0.0, 0.0),
+    num_steps 이상이면 position_range = (-max_range, max_range)로 설정한다.
 
     Returns:
-        로깅용 dict: progress, position_range_max
+        로깅용 dict: progress (0 또는 1), position_range_max
     """
-    progress = min(1.0, float(env.common_step_counter) / float(num_steps))
-    half = max_range * progress
+    if env.common_step_counter < num_steps:
+        half = 0.0
+        progress = 0.0
+    else:
+        half = max_range
+        progress = 1.0
     term_cfg = env.event_manager.get_term_cfg(event_term_name)
     term_cfg.params["position_range"] = (-half, half)
 
