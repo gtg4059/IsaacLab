@@ -162,15 +162,15 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     )
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.0005, "num_steps": 150000}
+        params={"term_name": "action_rate_l2", "weight": -0.005, "num_steps": 150000}
     )
     dof_acc_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_acc_l2", "weight": -1.0e-7, "num_steps": 150000}
+        params={"term_name": "dof_acc_l2", "weight": -1.0e-6, "num_steps": 150000}
     )
     dof_torques_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_torques_l2", "weight": -1.0e-7, "num_steps": 150000}
+        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 150000}
     )
     joint_deviation_hip_yaw_weight = CurrTerm(
         func=mdp.modify_reward_weight,
