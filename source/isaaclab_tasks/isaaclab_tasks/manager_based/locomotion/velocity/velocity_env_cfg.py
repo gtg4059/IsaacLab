@@ -125,15 +125,15 @@ class CommandsCfg:
         asset_name="robot",
         body_name="torso_link",
         resampling_time_range=(10.0, 10.0), #(10.0, 10.0),
-        apply_probability=0.3,#0.6,
-        force_z_scale=0.2,#0.5,
+        apply_probability=0.7,#0.6,
+        force_z_scale=0.5,#0.5,
         debug_vis_height_offset=0.02,
         debug_vis=True,
         ranges=mdp.UniformForceCommandCfg.Ranges(
             # force_range=(-20.0, 20.0), duration_range_s=(0.5, 2.0), interval_range_s=(2.0, 5.0) # isaacgym 설정
             # force_range=(-0.1, 0.1), duration_range_s=(12.0, 15.0), interval_range_s=(0.0, 11.0) # 1st-walk 학습 resample=20
             # force_range=(-1.0, 1.0), duration_range_s=(7.0, 10.0), interval_range_s=(0.0, 6.0) # 2st-walk-stand 학습 resample=15
-            force_range=(-1.0, 1.0), duration_range_s=(5.0, 7.0), interval_range_s=(0.0, 4.0) # 3rd-force, robot 학습 resample=10
+            force_range=(-10.0, 10.0), duration_range_s=(5.0, 7.0), interval_range_s=(0.0, 4.0) # 3rd-force, robot 학습 resample=10
             # force_range=(-20.0, 20.0), duration_range_s=(3.0, 8.0), interval_range_s=(0.0, 1.0) # 4th-force, 학습 resample=10
             # force_range=(-30.0, 30.0), duration_range_s=(1.0, 9.0), interval_range_s=(0.0, 0.5) # 5th-force, 학습 resample=10
         ),
@@ -648,11 +648,11 @@ class RewardsCfg:
         func=mdp.track_ang_vel_z_exp, weight=0.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     # -- penalties
-    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.2) # -2.0
+    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0) # -2.0, 0.2
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-8)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-8)
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.08)
     # feet_air_time = RewTerm(
     #     func=mdp.feet_air_time,
     #     weight=0.0, #0.125,
@@ -684,6 +684,22 @@ class TerminationsCfg:
     robot_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": 0.50, "asset_cfg": SceneEntityCfg("robot")}
     )
+
+    base_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_hip_roll_link"), "threshold": 1.0},
+    )
+
+    # shoulder_roll_termination = DoneTerm(
+    #     func=mdp.shoulder_roll_termination,
+    #     params={
+    #         "threshold": 0.01,
+    #         "asset_cfg": SceneEntityCfg(
+    #             "robot",
+    #             joint_names=["left_shoulder_roll_joint", "right_shoulder_roll_joint"]
+    #         )
+    #     }
+    # )
 
 @configclass
 class CurriculumCfg:

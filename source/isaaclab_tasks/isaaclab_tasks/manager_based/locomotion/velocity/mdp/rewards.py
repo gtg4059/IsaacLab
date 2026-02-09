@@ -64,7 +64,7 @@ def feet_air_time_positive_biped(env, command_name: str, threshold: float, senso
     double_stance = torch.sum(in_contact.int(), dim=1) == 2
     single_stance = torch.sum(in_contact.int(), dim=1) == 1
 
-    reward = torch.min(torch.where(single_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
+    reward = torch.min(torch.where(double_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
     reward = torch.where(torch.norm(env.command_manager.get_command(command_name)[:, :3], dim=1) < 0.05,torch.clamp(reward, max=threshold),0)
     return reward
 
@@ -515,3 +515,132 @@ def tracking_lin_vel_force_reward(
     # 수식: exp(- ||v_act - v_target||^2 / sigma) 
     error_sq = torch.sum(torch.square(vel_actual - target_vel), dim=1) 
     return torch.exp(-error_sq / sigma)
+
+
+def compliance_with_external_force_reward(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg,
+    sigma: float,                 # (선택) 속도 크기 정규화 용도로 쓸 수 있음
+    force_threshold: float = 20.0, # 이 이상일 때만 “순응” 보상 활성화
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces", body_names="torso_link"),
+) -> torch.Tensor:
+    """외력 방향에 순응해서 살짝 이동하도록 하는 보상 함수.
+
+    - 외력이 충분히 클 때만 활성화됨.
+    - 외력 방향과 실제 base 속도 방향이 같을수록 보상이 커짐.
+    - 힘과 속도가 정확히 반대면(=힘에 저항) 보상이 0에 가까움.
+    """
+
+    asset: Articulation = env.scene[asset_cfg.name]
+
+    # 1. 실제 base 선속도 (base frame XY)
+    vel_actual = asset.data.root_lin_vel_b[:, :2]  # [N, 2]
+    vel_norm = torch.norm(vel_actual, dim=1)       # [N]
+
+    # 2. 센서에서 측정한 외력 (world frame) → base yaw frame 으로 변환
+    forces_local_base = torch.zeros((env.num_envs, 3), device=vel_actual.device)
+
+    contact_sensor = None
+    if hasattr(env.scene, "sensors"):
+        contact_sensor = env.scene.sensors.get(sensor_cfg.name)
+    if contact_sensor is not None:
+        try:
+            net_forces = contact_sensor.data.net_forces_w  # [N, H, B, 3] 또는 [N, B, 3]
+            if net_forces is not None:
+                # history 차원이 있으면 마지막 스텝 사용
+                if net_forces.dim() == 4:
+                    net = net_forces[:, -1, :, :]  # [N, B, 3]
+                else:
+                    net = net_forces               # [N, B, 3]
+
+                # sensor_cfg.body_ids 가 있으면 그 바디들만 합산
+                try:
+                    ids = sensor_cfg.body_ids
+                except Exception:
+                    ids = None
+
+                if ids is None or len(ids) == 0:
+                    base_forces_w = net[:, 0, :]          # 첫 바디만
+                else:
+                    base_forces_w = torch.sum(net[:, ids, :], dim=1)  # [N, 3]
+
+                # world → base-yaw frame
+                base_yaw_q = yaw_quat(asset.data.root_quat_w)
+                forces_local_base = quat_apply_inverse(base_yaw_q, base_forces_w)
+        except Exception:
+            forces_local_base = torch.zeros((env.num_envs, 3), device=vel_actual.device)
+
+    # 3. XY 평면에서의 외력 및 크기
+    force_xy = forces_local_base[:, :2]            # [N, 2]
+    force_norm = torch.norm(force_xy, dim=1)       # [N]
+
+    # 4. 외력이 충분히 클 때만 순응 보상 활성화
+    big_force = force_norm > force_threshold       # [N]
+
+    # 외력이 거의 없으면 보상 0
+    if not torch.any(big_force):
+        return torch.zeros(env.num_envs, device=vel_actual.device)
+
+    eps = 1e-6
+
+    # 5. 외력 방향 단위벡터
+    force_dir = torch.zeros_like(force_xy)         # [N, 2]
+    force_dir[big_force] = (
+        force_xy[big_force] /
+        (force_norm[big_force].unsqueeze(1) + eps)
+    )
+
+    # 6. 속도를 외력 방향으로 project → 방향 정렬 정도 (코사인 유사도)
+    # cos(theta) = (v · f) / (||v|| ||f||)
+    cos_sim = torch.zeros(env.num_envs, device=vel_actual.device)
+    denom = (vel_norm * force_norm + eps)
+    cos_sim = torch.sum(vel_actual * force_xy, dim=1) / denom
+    cos_sim = torch.clamp(cos_sim, -1.0, 1.0)      # 수치 안정화
+
+    # 7. cos_sim ∈ [-1, 1] → [0, 1] 로 매핑
+    # -1 : 완전 반대 (힘에 저항)  → 0
+    #  0 : 직교                   → 0.5
+    #  1 : 완전 같은 방향 (힘에 완전히 순응) → 1
+    align_score = 0.5 * (cos_sim + 1.0)
+
+    # 8. 너무 큰 속도는 살짝 억제 (힘에 “살짝” 끌려가도록)
+    #    목표 속도 크기를 force_norm과 비례하도록 약하게 설정
+    target_speed = 0.1 * torch.tanh(force_norm / (sigma + eps))  # [N]
+    speed_error = (vel_norm - target_speed) ** 2                 # [N]
+    speed_term = torch.exp(-speed_error / (sigma + eps))
+
+    # 9. 최종 보상: 외력 방향 정렬 * 적당한 속도 크기, 외력이 큰 경우에만
+    reward = align_score * speed_term
+    reward = torch.where(big_force, reward, torch.zeros_like(reward))
+
+    return reward
+
+def shoulder_roll_limit(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot", joint_names=[".*_shoulder_roll_joint"]),
+) -> torch.Tensor:
+    """
+    Penalize if specified shoulder roll joints are out of custom limits.
+    asset_cfg.joint_names로 관절을 지정할 수 있음.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    
+    # joint_deviation_l1 함수처럼 joint_ids를 사용
+    joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]
+    
+    # 관절별로 패널티 계산
+    penalties = torch.zeros(env.num_envs, device=asset.data.joint_pos.device)
+    
+    # joint_names가 있으면 이름으로 분기 처리
+    if asset_cfg.joint_names:
+        for i, name in enumerate(asset_cfg.joint_names):
+            if i < joint_pos.shape[1]:  # 인덱스 범위 확인
+                joint = joint_pos[:, i]
+                # 왼쪽은 0.1 미만, 오른쪽은 -0.1 초과일 때 패널티 (이름에 따라 분기)
+                if "left" in name:
+                    penalties -= (joint < 0.1).float()
+                elif "right" in name:
+                    penalties -= (joint > -0.1).float()
+    
+    return penalties
