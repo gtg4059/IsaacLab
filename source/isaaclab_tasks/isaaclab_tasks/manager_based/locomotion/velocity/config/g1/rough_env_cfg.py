@@ -154,7 +154,7 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     )
     feet_land_time_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "feet_land_time", "weight": 1.2, "num_steps": 1}
+        params={"term_name": "feet_land_time", "weight": 4.0, "num_steps": 1}
     )
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
