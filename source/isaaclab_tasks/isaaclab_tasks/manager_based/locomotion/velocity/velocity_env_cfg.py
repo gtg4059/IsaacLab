@@ -364,6 +364,35 @@ class EventCfg:
         params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
     )
 
+    # startup 시 상체 arm joint target을 unitree.py default(asset default_joint_pos)로 설정
+    set_arm_joint_targets_startup = EventTerm(
+        func=mdp.set_arm_joint_targets_random,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg(
+                "robot",
+                joint_names=[
+                    "left_shoulder_pitch_joint",
+                    "left_shoulder_roll_joint",
+                    "left_shoulder_yaw_joint",
+                    "left_elbow_joint",
+                    "left_wrist_roll_joint",
+                    "left_wrist_pitch_joint",
+                    "left_wrist_yaw_joint",
+                    "right_shoulder_pitch_joint",
+                    "right_shoulder_roll_joint",
+                    "right_shoulder_yaw_joint",
+                    "right_elbow_joint",
+                    "right_wrist_roll_joint",
+                    "right_wrist_pitch_joint",
+                    "right_wrist_yaw_joint",
+                ],
+                preserve_order=True,
+            ),
+            "position_range": (0.0, 0.0),  # unitree.py default 그대로 (offset 0)
+        },
+    )
+
     # 학습 중 일정 간격으로 상체 arm joint target을 무작위로 설정 (하체·허리만 제어 시)
     set_arm_joint_targets_interval = EventTerm(
         func=mdp.set_arm_joint_targets_random,
@@ -390,7 +419,7 @@ class EventCfg:
                 ],
                 preserve_order=True,
             ),
-            "position_range": (-0.4, 0.4),  # default 기준 ±0.4 rad 범위
+            "position_range": (-0.6, 0.6),  # default 기준 ±0.4 rad 범위
         },
     )
 

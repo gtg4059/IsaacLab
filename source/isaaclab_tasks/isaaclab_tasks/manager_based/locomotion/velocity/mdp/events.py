@@ -21,11 +21,14 @@ if TYPE_CHECKING:
 
 def set_arm_joint_targets_random(
     env: ManagerBasedEnv,
-    env_ids: torch.Tensor,
+    env_ids: torch.Tensor | None,
     position_range: tuple[float, float],
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ):
     """지정된 관절에 default position 기준 offset 범위 내의 무작위 joint position target을 설정한다.
+
+    default position은 로봇 asset(예: isaaclab_assets unitree.py)에 정의된 default joint 값
+    (asset.data.default_joint_pos)을 의미한다.
 
     interval 이벤트와 함께 사용하면, 학습 중 일정 간격으로 상체 arm 등 지정 관절의
     PD 타겟만 무작위로 바꿔 움직이게 할 수 있다. (관절 상태를 직접 덮어쓰지 않음)
@@ -37,8 +40,10 @@ def set_arm_joint_targets_random(
         asset_cfg: 로봇 asset 및 적용할 joint_names (또는 joint_ids) 설정.
     """
     asset: Articulation = env.scene[asset_cfg.name]
+    if env_ids is None:
+        env_ids = torch.arange(env.scene.num_envs, device=asset.device)
 
-    # default position 기준으로 offset 샘플링 (2차원 인덱싱 시 env_ids, joint_ids 분리)
+    # asset default (unitree.py 등에 정의된 값) 기준으로 offset 샘플링
     joint_pos = asset.data.default_joint_pos[env_ids][:, asset_cfg.joint_ids].clone()
     joint_pos += math_utils.sample_uniform(
         *position_range, joint_pos.shape, joint_pos.device
