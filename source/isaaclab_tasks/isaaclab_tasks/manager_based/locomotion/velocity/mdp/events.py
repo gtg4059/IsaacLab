@@ -38,14 +38,14 @@ def set_arm_joint_targets_random(
     """
     asset: Articulation = env.scene[asset_cfg.name]
 
-    # default position 기준으로 offset 샘플링
-    joint_pos = asset.data.default_joint_pos[env_ids, asset_cfg.joint_ids].clone()
+    # default position 기준으로 offset 샘플링 (2차원 인덱싱 시 env_ids, joint_ids 분리)
+    joint_pos = asset.data.default_joint_pos[env_ids][:, asset_cfg.joint_ids].clone()
     joint_pos += math_utils.sample_uniform(
         *position_range, joint_pos.shape, joint_pos.device
     )
 
     # soft limit 내로 clamp
-    joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids, asset_cfg.joint_ids]
+    joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids][:, asset_cfg.joint_ids]
     joint_pos = joint_pos.clamp_(
         joint_pos_limits[..., 0], joint_pos_limits[..., 1]
     )
