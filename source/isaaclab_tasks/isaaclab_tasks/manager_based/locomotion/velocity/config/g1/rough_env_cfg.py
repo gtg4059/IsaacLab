@@ -177,6 +177,16 @@ class G1RoughCurriculumCfg(CurriculumCfg):
         params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 200000}
     )
 
+    # 상체 arm joint target position_range를 0 → ±0.6 rad로 점진 증가
+    arm_joint_targets_position_range = CurrTerm(
+        func=mdp.modify_arm_joint_targets_position_range,
+        params={
+            "event_term_name": "set_arm_joint_targets_interval",
+            "num_steps": 200000,
+            "max_range": 0.4,
+        },
+    )
+
 @configclass
 class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
     rewards: G1Rewards = G1Rewards()

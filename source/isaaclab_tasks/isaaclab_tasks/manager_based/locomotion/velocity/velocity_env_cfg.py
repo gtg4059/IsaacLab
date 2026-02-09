@@ -419,7 +419,7 @@ class EventCfg:
                 ],
                 preserve_order=True,
             ),
-            "position_range": (-0.6, 0.6),  # default 기준 ±0.4 rad 범위
+            "position_range": (0.0, 0.0),  # 커리큘럼으로 0 → ±0.6 rad 점진 증가
         },
     )
 
