@@ -133,20 +133,21 @@ class ActionsCfg:
                     "waist_yaw_joint",
                     "waist_roll_joint",
                     "waist_pitch_joint",
-                    "left_shoulder_pitch_joint",
-                    "left_shoulder_roll_joint",
-                    "left_shoulder_yaw_joint",
-                    "left_elbow_joint",
-                    "left_wrist_roll_joint",
-                    "left_wrist_pitch_joint",
-                    "left_wrist_yaw_joint",
-                    "right_shoulder_pitch_joint",
-                    "right_shoulder_roll_joint",
-                    "right_shoulder_yaw_joint",
-                    "right_elbow_joint",
-                    "right_wrist_roll_joint",
-                    "right_wrist_pitch_joint",
-                    "right_wrist_yaw_joint",
+                    # G1 상체 arm: 하체·허리만 제어 시 주석 처리 (상체는 interval 이벤트로 랜덤 타겟)
+                    # "left_shoulder_pitch_joint",
+                    # "left_shoulder_roll_joint",
+                    # "left_shoulder_yaw_joint",
+                    # "left_elbow_joint",
+                    # "left_wrist_roll_joint",
+                    # "left_wrist_pitch_joint",
+                    # "left_wrist_yaw_joint",
+                    # "right_shoulder_pitch_joint",
+                    # "right_shoulder_roll_joint",
+                    # "right_shoulder_yaw_joint",
+                    # "right_elbow_joint",
+                    # "right_wrist_roll_joint",
+                    # "right_wrist_pitch_joint",
+                    # "right_wrist_yaw_joint",
                      ], 
         scale=0.25, # deploy code와 같은 순서로 scale을 설정
         use_default_offset=False, # deploy code와 같이 offset 제거
@@ -361,6 +362,36 @@ class EventCfg:
         mode="interval",
         interval_range_s=(5.0, 10.0),
         params={"velocity_range": {"x": (-1.5, 1.5), "y": (-1.5, 1.5)}},
+    )
+
+    # 학습 중 일정 간격으로 상체 arm joint target을 무작위로 설정 (하체·허리만 제어 시)
+    set_arm_joint_targets_interval = EventTerm(
+        func=mdp.set_arm_joint_targets_random,
+        mode="interval",
+        interval_range_s=(5.0, 10.0),
+        params={
+            "asset_cfg": SceneEntityCfg(
+                "robot",
+                joint_names=[
+                    "left_shoulder_pitch_joint",
+                    "left_shoulder_roll_joint",
+                    "left_shoulder_yaw_joint",
+                    "left_elbow_joint",
+                    "left_wrist_roll_joint",
+                    "left_wrist_pitch_joint",
+                    "left_wrist_yaw_joint",
+                    "right_shoulder_pitch_joint",
+                    "right_shoulder_roll_joint",
+                    "right_shoulder_yaw_joint",
+                    "right_elbow_joint",
+                    "right_wrist_roll_joint",
+                    "right_wrist_pitch_joint",
+                    "right_wrist_yaw_joint",
+                ],
+                preserve_order=True,
+            ),
+            "position_range": (-0.4, 0.4),  # default 기준 ±0.4 rad 범위
+        },
     )
 
     reset_base = EventTerm( # 로봇의 초기 상태를 초기화하는 이벤트
