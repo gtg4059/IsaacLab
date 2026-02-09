@@ -150,31 +150,31 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     
     foot_clearance_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 150000}
+        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 200000}
     )
     feet_land_time_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "feet_land_time", "weight": 2.0, "num_steps": 150000}
+        params={"term_name": "feet_land_time", "weight": 2.0, "num_steps": 200000}
     )
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 150000}
+        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 200000}
     )
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.005, "num_steps": 150000}
+        params={"term_name": "action_rate_l2", "weight": -0.05, "num_steps": 200000}
     )
     dof_acc_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_acc_l2", "weight": -1.0e-6, "num_steps": 150000}
+        params={"term_name": "dof_acc_l2", "weight": -1.0e-6, "num_steps": 200000}
     )
     dof_torques_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 150000}
+        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 200000}
     )
     joint_deviation_hip_yaw_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 150000}
+        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 200000}
     )
 
 @configclass
