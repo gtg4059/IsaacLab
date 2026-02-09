@@ -18,9 +18,12 @@ class Indy7ReachPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
-        # [1024, 512, 512, 256, 128] [1024,1024,1024]
+        # new
         actor_hidden_dims=[1024,512, 256, 128,64],
         critic_hidden_dims=[1024,512, 256, 128,64],
+        # old
+        # actor_hidden_dims=[1024, 512, 256, 128],
+        # critic_hidden_dims=[1024, 512, 256, 128],
         activation="elu",
     )
     algorithm = RslRlPpoAlgorithmCfg(
