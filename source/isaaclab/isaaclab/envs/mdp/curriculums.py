@@ -297,23 +297,29 @@ def modify_arm_joint_targets_position_range(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],
     event_term_name: str,
-    num_steps: int,
+    start_step: int,
+    end_step: int,
     max_range: float,
 ) -> dict[str, float]:
-    """학습 step 형식으로 상체 arm joint target 이벤트의 position_range를 0.0 → max_range로 한 번에 올린다.
+    """상체 arm joint target 이벤트의 position_range를 start_step~end_step 구간에서 0 → max_range로 점진 증가시킨다.
 
-    common_step_counter < num_steps 이면 position_range = (0.0, 0.0),
-    num_steps 이상이면 position_range = (-max_range, max_range)로 설정한다.
+    common_step_counter < start_step: position_range = (0.0, 0.0)
+    start_step <= common_step_counter < end_step: 선형 보간으로 0 → max_range
+    common_step_counter >= end_step: position_range = (-max_range, max_range)
 
     Returns:
-        로깅용 dict: progress (0 또는 1), position_range_max
+        로깅용 dict: progress (0~1), position_range_max
     """
-    if env.common_step_counter < num_steps:
-        half = 0.0
+    step = env.common_step_counter
+    if step < start_step:
         progress = 0.0
+        half = 0.0
+    elif step < end_step:
+        progress = float(step - start_step) / float(end_step - start_step)
+        half = max_range * progress
     else:
-        half = max_range
         progress = 1.0
+        half = max_range
     term_cfg = env.event_manager.get_term_cfg(event_term_name)
     term_cfg.params["position_range"] = (-half, half)
 
