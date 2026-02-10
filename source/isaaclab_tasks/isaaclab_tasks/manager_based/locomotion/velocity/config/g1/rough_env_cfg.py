@@ -34,7 +34,7 @@ class G1Rewards(RewardsCfg):
 
     foot_clearance = RewTerm(
         func=mdp.foot_clearance_reward,
-        weight=0.75,
+        weight=0.0,
         params={
             "std": 0.05,
             "target_height": 0.08,
@@ -45,7 +45,7 @@ class G1Rewards(RewardsCfg):
 
     feet_land_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
-        weight=0.0,
+        weight=2.0,
         params={
             "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
@@ -82,7 +82,7 @@ class G1Rewards(RewardsCfg):
 
     joint_deviation_hip_yaw = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-1.0,
+        weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint"])},
     )
 
@@ -137,7 +137,7 @@ class G1Rewards(RewardsCfg):
 
     contact_forces = RewTerm(
         func=mdp.contact_forces_minimize,
-        weight=-0.0,
+        weight=-0.0000005,
         params={
             "threshold": 0.0,
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
@@ -145,42 +145,8 @@ class G1Rewards(RewardsCfg):
     )
 
 @configclass
-class G1RoughCurriculumCfg(CurriculumCfg):
-    """Curriculum configuration for G1 flat environment."""
-    
-    foot_clearance_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 200000}
-    )
-    feet_land_time_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "feet_land_time", "weight": 2.0, "num_steps": 200000}
-    )
-    contact_forces_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 200000}
-    )
-    action_rate_l2_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.05, "num_steps": 200000}
-    )
-    dof_acc_l2_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "dof_acc_l2", "weight": -1.0e-6, "num_steps": 200000}
-    )
-    dof_torques_l2_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 200000}
-    )
-    joint_deviation_hip_yaw_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 200000}
-    )
-
-@configclass
 class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
     rewards: G1Rewards = G1Rewards()
-    curriculum: G1RoughCurriculumCfg = G1RoughCurriculumCfg()
     def __post_init__(self):
         # post init of parent
         super().__post_init__()

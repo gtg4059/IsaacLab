@@ -11,7 +11,6 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
 @configclass
 class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 8
-    max_iterations = 3000
     save_interval = 500
     experiment_name = "g1_rough"
     empirical_normalization = False
@@ -48,4 +47,5 @@ class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
 class G1FlatPPORunnerCfg(G1RoughPPORunnerCfg):
     def __post_init__(self):
         super().__post_init__()
+        self.max_iterations = 30000
         self.experiment_name = "g1_flat"
