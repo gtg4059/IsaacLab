@@ -28,7 +28,7 @@ class G1FlatCurriculumCfg(CurriculumCfg):
     
 @configclass
 class G1FlatEnvCfg(G1RoughEnvCfg):
-    curriculum: G1FlatCurriculumCfg = G1FlatCurriculumCfg()
+    # curriculum: G1FlatCurriculumCfg = G1FlatCurriculumCfg()
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
