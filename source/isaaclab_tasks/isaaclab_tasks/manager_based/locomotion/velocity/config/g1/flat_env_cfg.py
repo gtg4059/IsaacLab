@@ -20,15 +20,15 @@ class G1FlatCurriculumCfg(CurriculumCfg):
         func=mdp.modify_arm_joint_targets_position_range,
         params={
             "event_term_name": "set_arm_joint_targets_interval",
-            "start_step": 200000,
-            "end_step": 400000,
+            "start_step": 100000,
+            "end_step": 500000,
             "max_range": 0.6,
         },
     )
     
 @configclass
 class G1FlatEnvCfg(G1RoughEnvCfg):
-    # curriculum: G1FlatCurriculumCfg = G1FlatCurriculumCfg()
+    curriculum: G1FlatCurriculumCfg = G1FlatCurriculumCfg()
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
@@ -40,13 +40,13 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # no height scan
         self.scene.height_scanner = None
         # reward for init model file
-        self.rewards.foot_clearance.weight = 0.75
-        self.rewards.feet_land_time.weight = 0.0
-        self.rewards.contact_forces.weight = 0.0
-        self.rewards.action_rate_l2.weight = -0.001
-        self.rewards.dof_acc_l2.weight = 0.0
-        self.rewards.dof_torques_l2.weight = 0.0
-        self.rewards.joint_deviation_hip_yaw.weight = -1.0
+        # self.rewards.foot_clearance.weight = 0.75
+        # self.rewards.feet_land_time.weight = 0.0
+        # self.rewards.contact_forces.weight = 0.0
+        # self.rewards.action_rate_l2.weight = -0.001
+        # self.rewards.dof_acc_l2.weight = 0.0
+        # self.rewards.dof_torques_l2.weight = 0.0
+        # self.rewards.joint_deviation_hip_yaw.weight = -1.0
 
 class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
     def __post_init__(self) -> None:
