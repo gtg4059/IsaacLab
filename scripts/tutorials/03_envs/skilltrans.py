@@ -47,15 +47,13 @@ from isaaclab.envs import ManagerBasedRLEnv
 
 from isaaclab_tasks.manager_based.locomotion.velocity.config.g1.flat_env_cfg import G1FlatEnvCfg_PLAY
 import torch
-
+CLIP_ACTIONS = 50.0
 
 def main():
     """Main function."""
     # load the trained jit policy
-    policy_path1 = "./logs/rsl_rl/ptcontainer/policy.pt"
-    file_content1 = omni.client.read_file(policy_path1)[2]
-    file1 = io.BytesIO(memoryview(file_content1).tobytes())
-    policy_run = torch.jit.load(file1)
+    policy_path = "./logs/rsl_rl/ptcontainer/policy.pt"
+    policy_run = torch.jit.load(policy_path, map_location="cpu")
     # env
     env_cfg = G1FlatEnvCfg_PLAY()
     
@@ -65,10 +63,10 @@ def main():
 
     env = ManagerBasedRLEnv(cfg=env_cfg)
     obs, _ = env.reset()
-    
     while simulation_app.is_running():
         with torch.inference_mode():
             action = policy_run(obs["Run"])
+            action = torch.clamp(action, -CLIP_ACTIONS, CLIP_ACTIONS)
             obs, _, _, _, _ = env.step(action)
 
 
