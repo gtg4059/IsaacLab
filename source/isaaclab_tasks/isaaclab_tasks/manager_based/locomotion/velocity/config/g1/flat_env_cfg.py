@@ -15,13 +15,42 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Re
 @configclass
 class G1FlatCurriculumCfg(CurriculumCfg):
     """Curriculum configuration for G1 flat environment."""
+    foot_clearance_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 20000*8}
+    )
+    feet_land_time_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "feet_land_time", "weight": 1.0, "num_steps": 20000*8}
+    )
+    contact_forces_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 20000*8}
+    )
+    action_rate_l2_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "action_rate_l2", "weight": -0.01, "num_steps": 20000*8}
+    )
+    dof_acc_l2_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "dof_acc_l2", "weight": -1.0e-6, "num_steps": 20000*8}
+    )
+    dof_torques_l2_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 20000*8}
+    )
+    joint_deviation_hip_yaw_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 20000*8}
+    )
+
     # 상체 arm joint target position_range를 0 → ±0.6 rad로 점진 증가
     arm_joint_targets_position_range = CurrTerm(
         func=mdp.modify_arm_joint_targets_position_range,
         params={
             "event_term_name": "set_arm_joint_targets_interval",
-            "start_step": 100000,
-            "end_step": 500000,
+            "start_step": 40000*8,
+            "end_step": 60000*8,
             "max_range": 0.6,
         },
     )
@@ -40,13 +69,13 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # no height scan
         self.scene.height_scanner = None
         # reward for init model file
-        # self.rewards.foot_clearance.weight = 0.75
-        # self.rewards.feet_land_time.weight = 0.0
-        # self.rewards.contact_forces.weight = 0.0
-        # self.rewards.action_rate_l2.weight = -0.001
-        # self.rewards.dof_acc_l2.weight = 0.0
-        # self.rewards.dof_torques_l2.weight = 0.0
-        # self.rewards.joint_deviation_hip_yaw.weight = -1.0
+        self.rewards.foot_clearance.weight = 0.75
+        self.rewards.feet_land_time.weight = 0.0
+        self.rewards.contact_forces.weight = 0.0
+        self.rewards.action_rate_l2.weight = -0.001
+        self.rewards.dof_acc_l2.weight = 0.0
+        self.rewards.dof_torques_l2.weight = 0.0
+        self.rewards.joint_deviation_hip_yaw.weight = -1.0
 
 class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
     def __post_init__(self) -> None:

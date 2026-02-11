@@ -61,22 +61,18 @@ RANDOM_ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
     slope_threshold=0.75,
     use_cache=False,
     sub_terrains={
-        # "random_rough": terrain_gen.HfDiscreteObstaclesTerrainCfg(
-        #     # proportion=0.2,
-        #     size=(8.0, 8.0),
-        #     horizontal_scale=0.1,
-        #     vertical_scale=0.005,
-        #     border_width=0.0,
-        #     num_obstacles=100,
-        #     obstacle_height_mode="choice",
-        #     obstacle_width_range=(0.34, 0.6),
-        #     obstacle_height_range=(0.0, 0.08),
-        #     platform_width=1.0,
-        # ),
-        "random_rough": terrain_gen.HfRandomUniformTerrainCfg(
-            proportion=0.2, noise_range=(0.02, 0.06), noise_step=0.02, border_width=0.25
+        "boxes": terrain_gen.MeshRandomGridTerrainCfg(
+            proportion=0.25, grid_width=0.9, grid_height_range=(0.06, 0.1), platform_width=2.0
         ),
-
+        "random_rough": terrain_gen.HfRandomUniformTerrainCfg(
+            proportion=0.25, noise_range=(0.02, 0.06), noise_step=0.02, border_width=0.25
+        ),
+        "hf_pyramid_slope": terrain_gen.HfPyramidSlopedTerrainCfg(
+            proportion=0.25, slope_range=(0.0, 0.6), platform_width=2.0, border_width=0.25
+        ),
+        "hf_pyramid_slope_inv": terrain_gen.HfInvertedPyramidSlopedTerrainCfg(
+            proportion=0.25, slope_range=(0.0, 0.6), platform_width=2.0, border_width=0.25
+        ),
     },
 )
 """Repeated objects terrain configuration."""
