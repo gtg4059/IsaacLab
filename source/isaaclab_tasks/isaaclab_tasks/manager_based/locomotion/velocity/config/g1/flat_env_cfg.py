@@ -50,8 +50,8 @@ class G1FlatCurriculumCfg(CurriculumCfg):
         params={
             "event_term_name": "set_arm_joint_targets_interval",
             "start_step": 40000*8,
-            "end_step": 60000*8,
-            "max_range": 0.6,
+            "end_step": 80000*8,
+            "max_range": 1.6,
         },
     )
     
@@ -86,6 +86,8 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         # make a smaller scene for play
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
+        self.curriculum.arm_joint_targets_position_range = None
+        self.events.set_arm_joint_targets_interval.params["position_range"] = (-0.8, 0.8)
         # disable randomization for play
         # self.observations.policy.enable_corruption = False
         # remove random pushing
