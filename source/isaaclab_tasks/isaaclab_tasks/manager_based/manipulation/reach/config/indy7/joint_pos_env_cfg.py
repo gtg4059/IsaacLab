@@ -42,7 +42,7 @@ class Indy7ReachEnvCfg(ReachEnvCfg):
         # self.commands.ee_pose.ranges.pitch = (0,0)#y
         # self.commands.ee_pose.ranges.yaw = (-math.pi/2,-math.pi/2)
 
-        self.events.reset_robot_joints.params["position_range"] = (-math.pi, math.pi)
+        self.events.reset_robot_joints.params["position_range"] = (-math.pi/6,-math.pi/6)#(-math.pi, math.pi)
         self.commands.ee_pose.ranges.pos_th = (-math.pi, math.pi)
         self.commands.ee_pose.ranges.roll = (-math.pi, math.pi)
         self.commands.ee_pose.ranges.pitch = (-math.pi, math.pi)

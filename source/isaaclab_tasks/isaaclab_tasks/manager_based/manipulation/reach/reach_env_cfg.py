@@ -47,8 +47,12 @@ class ReachSceneCfg(InteractiveSceneCfg):
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Table",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_instanceable.usd", scale=(2.0, 2.0, 2.0)
+            # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_instanceable.usd", scale=(2.0, 2.0, 2.0)
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Robots/Carter/nova_carter_base_only.usd",
+            scale=(2.0, 2.0, 2.0),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),  # fixed base (고정)
         ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.3, 0.0, -0.48)),  # (x, y, z) 월드 좌표
     )
 
     # robots
@@ -162,8 +166,8 @@ class RewardsCfg:
 class TerminationsCfg:
     """Termination terms for the MDP."""
 
-    time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    OVF = DoneTerm(func=mdp.CRI_OVF)
+    # time_out = DoneTerm(func=mdp.time_out, time_out=True)
+    # OVF = DoneTerm(func=mdp.CRI_OVF)
     # reach = DoneTerm(func=mdp.CRI_reach,
     #                  params={"asset_cfg": SceneEntityCfg("robot", body_names=["ee_link"]), "std": 0.1, "command_name": "ee_pose"})
 
