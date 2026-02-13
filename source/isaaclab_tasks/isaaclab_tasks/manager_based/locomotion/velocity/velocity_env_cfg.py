@@ -72,7 +72,8 @@ class MySceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/base",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         ray_alignment="yaw",
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.2, size=[0.8, 0.5]),
+        max_distance=100.0,
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
@@ -549,8 +550,9 @@ class TerminationsCfg:  # 로봇 종료 및 재생성 조건 설정
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True) # 시간 초과
-    robot_dropping = DoneTerm( # 로봇이 지정 높이 아래로 떨어지면 종료
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.55, "asset_cfg": SceneEntityCfg("robot")}
+    base_contact = DoneTerm(
+        func=mdp.bad_orientation,
+        params={"limit_angle": 0.9},
     )
 
 
@@ -558,7 +560,10 @@ class TerminationsCfg:  # 로봇 종료 및 재생성 조건 설정
 class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
-    terrain_levels = CurrTerm(func=mdp.terrain_levels_vel) # 지형 난이도 조절
+    terrain_levels = CurrTerm(
+        func=mdp.terrain_levels_vel_after_steps,
+        params={"min_steps": 20000*8},
+    ) 
 
 
 ##

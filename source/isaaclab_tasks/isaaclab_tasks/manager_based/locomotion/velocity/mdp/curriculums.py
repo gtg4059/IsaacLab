@@ -53,3 +53,24 @@ def terrain_levels_vel(
     terrain.update_env_origins(env_ids, move_up, move_down)
     # return the mean terrain level
     return torch.mean(terrain.terrain_levels.float())
+
+
+def terrain_levels_vel_after_steps(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    min_steps: int = 20000,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Terrain level curriculum that activates only after ``min_steps`` environment steps.
+
+    Before ``min_steps``, terrain levels are not updated (stays at initial difficulty).
+    After ``min_steps``, behaves identically to :func:`terrain_levels_vel`.
+
+    Returns:
+        The mean terrain level for the given environment ids.
+    """
+    terrain = env.scene.terrain
+    assert terrain is not None, "Terrain curriculum requires scene.terrain."
+    if env.common_step_counter < min_steps:
+        return torch.mean(terrain.terrain_levels.float())
+    return terrain_levels_vel(env, env_ids, asset_cfg)
