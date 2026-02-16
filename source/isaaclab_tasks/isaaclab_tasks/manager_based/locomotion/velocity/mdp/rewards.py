@@ -520,6 +520,7 @@ def tracking_lin_vel_force_reward(
 def compliance_with_external_force_reward(
     env: ManagerBasedRLEnv,
     asset_cfg: SceneEntityCfg,
+    force_command_name: str,
     sigma: float,                 # (선택) 속도 크기 정규화 용도로 쓸 수 있음
     force_threshold: float = 20.0, # 이 이상일 때만 “순응” 보상 활성화
     sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces", body_names="torso_link"),
@@ -537,38 +538,34 @@ def compliance_with_external_force_reward(
     vel_actual = asset.data.root_lin_vel_b[:, :2]  # [N, 2]
     vel_norm = torch.norm(vel_actual, dim=1)       # [N]
 
-    # 2. 센서에서 측정한 외력 (world frame) → base yaw frame 으로 변환
-    forces_local_base = torch.zeros((env.num_envs, 3), device=vel_actual.device)
-
-    contact_sensor = None
-    if hasattr(env.scene, "sensors"):
-        contact_sensor = env.scene.sensors.get(sensor_cfg.name)
-    if contact_sensor is not None:
-        try:
-            net_forces = contact_sensor.data.net_forces_w  # [N, H, B, 3] 또는 [N, B, 3]
-            if net_forces is not None:
-                # history 차원이 있으면 마지막 스텝 사용
-                if net_forces.dim() == 4:
-                    net = net_forces[:, -1, :, :]  # [N, B, 3]
-                else:
-                    net = net_forces               # [N, B, 3]
-
-                # sensor_cfg.body_ids 가 있으면 그 바디들만 합산
-                try:
-                    ids = sensor_cfg.body_ids
-                except Exception:
-                    ids = None
-
-                if ids is None or len(ids) == 0:
-                    base_forces_w = net[:, 0, :]          # 첫 바디만
-                else:
-                    base_forces_w = torch.sum(net[:, ids, :], dim=1)  # [N, 3]
-
-                # world → base-yaw frame
-                base_yaw_q = yaw_quat(asset.data.root_quat_w)
-                forces_local_base = quat_apply_inverse(base_yaw_q, base_forces_w)
-        except Exception:
-            forces_local_base = torch.zeros((env.num_envs, 3), device=vel_actual.device)
+    # 2. 외력: 커맨드 사용(권장) 또는 contact 센서
+    if force_command_name is not None:
+        forces_local_base = env.command_manager.get_command(force_command_name)  # [N, 3] base frame
+    else:
+        forces_local_base = torch.zeros((env.num_envs, 3), device=vel_actual.device)
+        contact_sensor = None
+        if hasattr(env.scene, "sensors"):
+            contact_sensor = env.scene.sensors.get(sensor_cfg.name)
+        if contact_sensor is not None:
+            try:
+                net_forces = contact_sensor.data.net_forces_w
+                if net_forces is not None:
+                    if net_forces.dim() == 4:
+                        net = net_forces[:, -1, :, :]
+                    else:
+                        net = net_forces
+                    try:
+                        ids = sensor_cfg.body_ids
+                    except Exception:
+                        ids = None
+                    if ids is None or len(ids) == 0:
+                        base_forces_w = net[:, 0, :]
+                    else:
+                        base_forces_w = torch.sum(net[:, ids, :], dim=1)
+                    base_yaw_q = yaw_quat(asset.data.root_quat_w)
+                    forces_local_base = quat_apply_inverse(base_yaw_q, base_forces_w)
+            except Exception:
+                pass
 
     # 3. XY 평면에서의 외력 및 크기
     force_xy = forces_local_base[:, :2]            # [N, 2]

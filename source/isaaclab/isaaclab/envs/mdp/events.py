@@ -34,7 +34,30 @@ from isaaclab.terrains import TerrainImporter
 from isaaclab.utils.version import compare_versions
 
 if TYPE_CHECKING:
-    from isaaclab.envs import ManagerBasedEnv
+    from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
+
+def apply_base_force_command(
+    env: ManagerBasedRLEnv,
+    env_ids: torch.Tensor | None,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    command_name: str = "base_force",
+    body_name: str = "torso_link",
+):
+    """Apply the current base_force command to the robot as external force on the given body.
+
+    This should be used as an interval event (e.g. interval_range_s=(0.0, 0.0)) so that
+    each step the command is written into the robot's external force buffer and then
+    applied in the next physics step via write_data_to_sim().
+
+    The command is in base frame; it is applied to body_name (e.g. torso_link).
+    """
+    asset = env.scene[asset_cfg.name]
+    force_cmd = env.command_manager.get_command(command_name)  # (N, 3)
+    body_ids = asset.find_bodies(body_name)[0]
+    body_id = body_ids[0] if isinstance(body_ids, (list, tuple)) else body_ids
+    forces = force_cmd.unsqueeze(1)  # (N, 1, 3)
+    torques = torch.zeros_like(forces, device=forces.device)
+    asset.set_external_force_and_torque(forces, torques, env_ids=env_ids, body_ids=[body_id])
 
 
 def randomize_rigid_body_scale(

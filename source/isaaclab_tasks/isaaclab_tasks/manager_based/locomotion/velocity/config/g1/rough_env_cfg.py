@@ -26,16 +26,16 @@ class G1Rewards(RewardsCfg):
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=5.0,
-        params={"command_name": "base_velocity", "std": 0.5},
+        weight=3.0,
+        params={"command_name": "base_velocity", "std": 0.3},
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=3.0, params={"command_name": "base_velocity", "std": 0.5}
+        func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "base_velocity", "std": 0.4}
     )
 
     foot_clearance = RewTerm(
         func=mdp.foot_clearance_reward,
-        weight=0.75, #0.75,
+        weight=0.0, #0.75,
         params={
             "std": 0.05,
             "target_height": 0.08,
@@ -46,7 +46,7 @@ class G1Rewards(RewardsCfg):
 
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
-        weight=0.0,
+        weight=1.2, #0.0,
         params={
             "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
@@ -86,13 +86,13 @@ class G1Rewards(RewardsCfg):
     # Penalize deviation from default of the joints that are not essential for locomotion
     joint_deviation_hip_roll = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-1.0,
+        weight=-1.5,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_roll_joint"])},
     )
 
     joint_deviation_hip_yaw = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-1.0,
+        weight=0.1, #-1.5,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint"])},
     )
 
@@ -117,7 +117,7 @@ class G1Rewards(RewardsCfg):
     
     joint_deviation_shoulders = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-2.0,
+        weight=-0.75,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -137,7 +137,7 @@ class G1Rewards(RewardsCfg):
     # G1_29_no_hand
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.5,
+        weight=-1.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
             "waist_roll_joint",
             "waist_pitch_joint",
@@ -159,7 +159,7 @@ class G1Rewards(RewardsCfg):
     # )
     contact_forces = RewTerm(
         func=mdp.contact_forces_minimize,
-        weight=-0.0,
+        weight=-0.0000005,
         params={
             "threshold": 0.0,
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
@@ -181,7 +181,7 @@ class G1Rewards(RewardsCfg):
 
     tracking_lin_vel_force = RewTerm(
         func=mdp.tracking_lin_vel_force_reward,
-        weight=0.1,
+        weight=0.01,
         params={
             "asset_cfg": SceneEntityCfg("robot"),
             "force_command_name": "base_force", 
@@ -193,10 +193,11 @@ class G1Rewards(RewardsCfg):
 
     force_compliance_reward = RewTerm(
         func=mdp.compliance_with_external_force_reward,
-        weight=2.0,
-        params={"sigma": 0.25,
+        weight=10.0,
+        params={"sigma": 1.0,
                 "force_threshold": 30.0,
                 "sensor_cfg": SceneEntityCfg("contact_forces", body_names="torso_link"),
+                "force_command_name": "base_force", 
                 "asset_cfg": SceneEntityCfg("robot"),
         },
     )
@@ -242,31 +243,31 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     
     foot_clearance_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 300000}
+        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 1}
     )
     feet_air_time_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "feet_air_time", "weight": 1.2, "num_steps": 300000}
+        params={"term_name": "feet_air_time", "weight": 1.2, "num_steps": 1}
     )
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 300000}
+        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 1}
     )
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.05, "num_steps": 300000}
+        params={"term_name": "action_rate_l2", "weight": -0.1, "num_steps": 1}
     )
     dof_acc_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_acc_l2", "weight": -1.0e-6, "num_steps": 300000}
+        params={"term_name": "dof_acc_l2", "weight": -1.0e-6, "num_steps": 1}
     )
     dof_torques_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 300000}
+        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 1}
     )
     joint_deviation_hip_yaw_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 300000}
+        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 1}
     )
 
 

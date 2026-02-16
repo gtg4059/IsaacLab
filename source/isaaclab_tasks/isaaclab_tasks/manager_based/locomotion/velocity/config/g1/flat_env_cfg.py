@@ -42,7 +42,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # self.commands.base_velocity.ranges.lin_vel_y = (-1.0, 1.0)
         # self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
 
-        # self.commands.base_force.ranges.force_range = (-10.0, 10.0)
+        # self.commands.base_force.ranges.force_range = (40.0, 40.0)
 
         # self.commands.base_velocity.ranges.lin_vel_x = (1.0, 1.0)
         # self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
@@ -67,7 +67,8 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         # self.observations.policy.enable_corruption = False
         # remove random pushing
         # self.events.randomize_friction = None
-        
+        self.events.push_robot = None
+
         # self.events.randomize_base_mass = None
         # self.events.randomize_base_com = None
         # self.events.randomize_pd_gains = None
