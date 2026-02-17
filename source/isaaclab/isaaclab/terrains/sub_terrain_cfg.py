@@ -86,6 +86,10 @@ class SubTerrainBaseCfg:
     :attr:`isaaclab.scene.TerrainImporterCfg.size` attribute.
     """
 
+    use_curriculum: bool = True
+    """If True, this sub-terrain's difficulty is scaled by the curriculum level (row). If False,
+    difficulty is fixed at 0 so the terrain does not change with level. Defaults to True."""
+
     flat_patch_sampling: dict[str, FlatPatchSamplingCfg] | None = None
     """Dictionary of configurations for sampling flat patches on the sub-terrain. Defaults to None,
     in which case no flat patch sampling is performed.

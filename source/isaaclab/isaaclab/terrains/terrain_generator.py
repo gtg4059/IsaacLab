@@ -245,20 +245,20 @@ class TerrainGenerator:
 
         # curriculum-based sub-terrains
         for sub_col in range(self.cfg.num_cols):
+            sub_terrain_cfg = sub_terrains_cfgs[sub_indices[sub_col]]
             for sub_row in range(self.cfg.num_rows):
-                # vary the difficulty parameter linearly over the number of rows
-                # note: based on the proportion, multiple columns can have the same sub-terrain type.
-                #  Thus to increase the diversity along the rows, we add a small random value to the difficulty.
-                #  This ensures that the terrains are not exactly the same. For example, if the
-                #  the row index is 2 and the number of rows is 10, the nominal difficulty is 0.2.
-                #  We add a small random value to the difficulty to make it between 0.2 and 0.3.
-                lower, upper = self.cfg.difficulty_range
-                difficulty = (sub_row + self.np_rng.uniform()) / self.cfg.num_rows
-                difficulty = lower + (upper - lower) * difficulty
+                # vary the difficulty parameter linearly over the number of rows (only if use_curriculum)
+                # sub-terrains with use_curriculum=False keep fixed difficulty (e.g. slope-only curriculum)
+                if getattr(sub_terrain_cfg, "use_curriculum", True):
+                    lower, upper = self.cfg.difficulty_range
+                    difficulty = (sub_row + self.np_rng.uniform()) / self.cfg.num_rows
+                    difficulty = lower + (upper - lower) * difficulty
+                else:
+                    difficulty = self.cfg.difficulty_range[0]
                 # generate terrain
-                mesh, origin = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_indices[sub_col]])
+                mesh, origin = self._get_terrain_mesh(difficulty, sub_terrain_cfg)
                 # add to sub-terrains
-                self._add_sub_terrain(mesh, origin, sub_row, sub_col, sub_terrains_cfgs[sub_indices[sub_col]])
+                self._add_sub_terrain(mesh, origin, sub_row, sub_col, sub_terrain_cfg)
 
     """
     Internal helper functions.
