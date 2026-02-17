@@ -46,6 +46,7 @@ import omni
 from isaaclab.envs import ManagerBasedRLEnv
 
 from isaaclab_tasks.manager_based.locomotion.velocity.config.g1.flat_env_cfg import G1FlatEnvCfg_PLAY
+from isaaclab_tasks.manager_based.locomotion.velocity.config.g1.rough_env_cfg import G1RoughEnvCfg_PLAY
 import torch
 CLIP_ACTIONS = 50.0
 
@@ -55,7 +56,7 @@ def main():
     policy_path = "./logs/rsl_rl/ptcontainer/policy.pt"
     policy_run = torch.jit.load(policy_path, map_location="cpu")
     # env
-    env_cfg = G1FlatEnvCfg_PLAY()
+    env_cfg = G1RoughEnvCfg_PLAY()
     
     env_cfg.scene.num_envs = 1
     env_cfg.curriculum = None

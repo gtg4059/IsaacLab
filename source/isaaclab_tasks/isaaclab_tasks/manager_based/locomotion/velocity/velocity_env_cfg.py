@@ -446,10 +446,10 @@ class RewardsCfg:
 @configclass
 class TerminationsCfg:
     """Termination terms for the MDP."""
-
-    time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    robot_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": 0.60, "asset_cfg": SceneEntityCfg("robot")}
+    time_out = DoneTerm(func=mdp.time_out, time_out=True) # 시간 초과
+    base_contact = DoneTerm(
+        func=mdp.bad_orientation,
+        params={"limit_angle": 0.9},
     )
 
 
