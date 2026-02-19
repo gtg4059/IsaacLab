@@ -86,7 +86,7 @@ from isaaclab.envs import (
 from isaaclab.utils.dict import print_dict
 from isaaclab.utils.io import dump_pickle, dump_yaml
 
-from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
+from isaaclab_rl.rsl_rl import RslRlObsPaddingWrapper, RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import get_checkpoint_path
@@ -162,6 +162,16 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
     # wrap around environment for rsl-rl
     env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
+    # teacher obs dim > student: pad obs so policy is built with teacher dim and checkpoint loads
+    if (
+        agent_cfg.algorithm.class_name == "Distillation"
+        and getattr(agent_cfg.policy, "num_obs_teacher", None) is not None
+        and agent_cfg.policy.num_obs_teacher > env.num_obs
+    ):
+        env = RslRlObsPaddingWrapper(env, agent_cfg.policy.num_obs_teacher)
+        print(
+            f"[INFO]: Obs padding enabled: env num_obs {env.env.num_obs} -> {env.num_obs_teacher} (teacher)"
+        )
 
     # create runner from rsl-rl
     runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)

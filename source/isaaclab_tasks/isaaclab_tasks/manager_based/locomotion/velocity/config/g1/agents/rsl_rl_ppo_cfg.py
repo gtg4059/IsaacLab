@@ -122,6 +122,7 @@ class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         init_noise_std=1.0,
         student_hidden_dims=[512, 256, 128],
         teacher_hidden_dims=[512, 256, 128],
+        num_obs_teacher=278,  # teacher 체크포인트가 278차원 obs로 학습됐을 때 설정 (현재 env 269와 다르면 필수)
         activation="elu",
     )
     # Distillation 전용 알고리즘 (PPO와 필드가 다름: gradient_length 등)
@@ -138,7 +139,7 @@ class G1FlatPPORunnerCfg(G1RoughPPORunnerCfg):
     def __post_init__(self):
         super().__post_init__()
         self.clip_actions = 50
-        self.max_iterations = 25000
+        self.max_iterations = 100000
         self.experiment_name = "g1_flat"
         self.policy.teacher_hidden_dims = [512, 256, 128]
         self.policy.student_hidden_dims = [512, 256, 128]

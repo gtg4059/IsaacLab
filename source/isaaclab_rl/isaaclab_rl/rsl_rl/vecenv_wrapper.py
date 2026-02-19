@@ -207,3 +207,65 @@ class RslRlVecEnvWrapper(VecEnv):
         self.env.unwrapped.action_space = gym.vector.utils.batch_space(
             self.env.unwrapped.single_action_space, self.num_envs
         )
+
+
+class RslRlObsPaddingWrapper(VecEnv):
+    """Wraps RSL-RL vec env to pad observations for teacher-student distillation.
+
+    When loading a teacher checkpoint trained with obs dim N (e.g. 278) while the
+    current env has obs dim M < N (e.g. 269), the policy is built with N. This
+    wrapper reports num_obs=N and pads each observation with zeros so the runner
+    builds the policy correctly and the teacher receives N-dim input.
+    """
+
+    def __init__(self, env: RslRlVecEnvWrapper, num_obs_teacher: int):
+        if env.num_obs >= num_obs_teacher:
+            raise ValueError(
+                f"num_obs_teacher ({num_obs_teacher}) must be greater than env.num_obs ({env.num_obs})."
+            )
+        self.env = env
+        self.num_obs_teacher = num_obs_teacher
+        self._pad_dim = num_obs_teacher - env.num_obs
+
+        self.num_envs = env.num_envs
+        self.device = env.device
+        self.num_obs = num_obs_teacher
+        self.num_actions = env.num_actions
+        self.num_privileged_obs = env.num_privileged_obs
+        self.max_episode_length = env.max_episode_length
+
+    @property
+    def unwrapped(self):
+        return self.env.unwrapped
+
+    @property
+    def episode_length_buf(self) -> torch.Tensor:
+        return self.env.episode_length_buf
+
+    @episode_length_buf.setter
+    def episode_length_buf(self, value: torch.Tensor):
+        self.env.episode_length_buf = value
+
+    def _pad_obs(self, obs: torch.Tensor) -> torch.Tensor:
+        if obs.shape[1] == self.num_obs_teacher:
+            return obs
+        pad = torch.zeros(obs.shape[0], self._pad_dim, device=obs.device, dtype=obs.dtype)
+        return torch.cat([obs, pad], dim=1)
+
+    def get_observations(self) -> tuple[torch.Tensor, dict]:
+        obs, extras = self.env.get_observations()
+        return self._pad_obs(obs), extras
+
+    def reset(self) -> tuple[torch.Tensor, dict]:
+        obs, extras = self.env.reset()
+        return self._pad_obs(obs), extras
+
+    def step(self, actions: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
+        obs, rew, dones, extras = self.env.step(actions)
+        return self._pad_obs(obs), rew, dones, extras
+
+    def seed(self, seed: int = -1) -> int:
+        return self.env.seed(seed)
+
+    def close(self):
+        return self.env.close()
