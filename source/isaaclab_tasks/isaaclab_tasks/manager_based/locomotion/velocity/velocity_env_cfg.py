@@ -125,17 +125,17 @@ class CommandsCfg:
         asset_name="robot",
         body_name="torso_link",
         resampling_time_range=(10.0, 10.0), #(10.0, 10.0),
-        apply_probability=0.8,#0.6,
-        force_z_scale=0.5,#0.5,
+        apply_probability=0.5,#0.6,
+        # force_z_scale=0.5,#0.5,
         debug_vis_height_offset=0.02,
         debug_vis=True,
         ranges=mdp.UniformForceCommandCfg.Ranges(
-            # force_range=(-20.0, 20.0), duration_range_s=(0.5, 2.0), interval_range_s=(2.0, 5.0) # isaacgym 설정
-            # force_range=(-0.1, 0.1), duration_range_s=(12.0, 15.0), interval_range_s=(0.0, 11.0) # 1st-walk 학습 resample=20
-            # force_range=(-1.0, 1.0), duration_range_s=(7.0, 10.0), interval_range_s=(0.0, 6.0) # 2st-walk-stand 학습 resample=15
-            force_range=(-60.0, 60.0), duration_range_s=(5.0, 7.0), interval_range_s=(0.0, 4.0) # 3rd-force, robot 학습 resample=10
-            # force_range=(-20.0, 20.0), duration_range_s=(3.0, 8.0), interval_range_s=(0.0, 1.0) # 4th-force, 학습 resample=10
-            # force_range=(-30.0, 30.0), duration_range_s=(1.0, 9.0), interval_range_s=(0.0, 0.5) # 5th-force, 학습 resample=10
+            # fx, fy, fz in base frame (like vx, vy for velocity) — direction and magnitude per axis
+            force_range_fx=(-60.0, 60.0),
+            force_range_fy=(-60.0, 60.0),
+            force_range_fz=(-20.0, 20.0),
+            duration_range_s=(5.0, 7.0),
+            interval_range_s=(0.0, 4.0),
         ),
     )
 
@@ -218,8 +218,8 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for policy group."""
 
-        # obs pred histoy_length =3
-        base_force_local = ObsTerm(func=mdp.force_local, params={"asset_cfg": SceneEntityCfg("robot", body_names="torso_link")},history_length=3)
+        ### obs pred histoy_length =3
+        ## base_force_local = ObsTerm(func=mdp.force_local, params={"asset_cfg": SceneEntityCfg("robot", body_names="torso_link")},history_length=3)
         base_orientation = ObsTerm(func=mdp.body_ori_w, 
                                 noise=Unoise(n_min=-0.01, n_max=0.01), history_length=3)  # 3
                                 # history_length=3)
@@ -317,9 +317,9 @@ class ObservationsCfg:
     class CriticCfg(ObsGroup):
         """Observations for critic group (privileged observations)."""
 
-        ## privileged_obs_buf
-        base_force_local = ObsTerm(func=mdp.force_local, params={"asset_cfg": SceneEntityCfg("robot", body_names="torso_link")},history_length=3)  # Placeholder 3
-        # motor_strength = ObsTerm(func=mdp.motor_output,history_length=3)  # 29
+        ### privileged_obs_buf
+        # base_force_local = ObsTerm(func=mdp.force_local, params={"asset_cfg": SceneEntityCfg("robot", body_names="torso_link")},history_length=3)  # Placeholder 3
+        ## motor_strength = ObsTerm(func=mdp.motor_output,history_length=3)  # 29
         base_orientation = ObsTerm(func=mdp.body_ori_w, 
                         noise=Unoise(n_min=-0.01, n_max=0.01), history_length=3)
 

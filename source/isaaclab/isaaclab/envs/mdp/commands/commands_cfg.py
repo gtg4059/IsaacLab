@@ -334,8 +334,8 @@ class UniformForceCommandCfg(CommandTermCfg):
     apply_probability: float = 0.5
     """Probability of applying force."""
 
-    force_z_scale: float = 0.1
-    """Scale factor for z-force. falling inducement etc."""
+    # force_z_scale: float = 0.1
+    # """Scale factor for z-force. falling inducement etc."""
 
     debug_vis: bool = True
     """Whether to visualize the force command."""
@@ -347,15 +347,21 @@ class UniformForceCommandCfg(CommandTermCfg):
 
     @configclass
     class Ranges:
-        force_range: tuple[float, float] = MISSING
-        """Range for the force magnitude (in Newtons)."""
+        force_range_fx: tuple[float, float] = MISSING
+        """Range for force x-component in base frame (in Newtons). Like lin_vel_x for velocity."""
 
-        duration_range_s: tuple[float, float] = MISSING # (0.5, 2.0)
+        force_range_fy: tuple[float, float] = MISSING
+        """Range for force y-component in base frame (in Newtons). Like lin_vel_y for velocity."""
+
+        force_range_fz: tuple[float, float] = MISSING
+        """Range for force z-component in base frame (in Newtons). Like vertical component."""
+
+        duration_range_s: tuple[float, float] = MISSING
         """Range for the duration of force application (in seconds)."""
 
-        interval_range_s: tuple[float, float] = MISSING # (2.5, 5.0)
+        interval_range_s: tuple[float, float] = MISSING
         """Range for the interval between force applications (in seconds).
-        resampling time_range>interval_range_s"""
+        resampling time_range > interval_range_s."""
 
     ranges: Ranges = MISSING
     """Distribution ranges for the force commands."""    

@@ -81,7 +81,7 @@ class UniformForceCommand(CommandTerm):
         msg = "UniformForceCommand:\n"
         msg += "\tCommand dimension: N/A\n"
         msg += f"\tResampling time range: {self.cfg.resampling_time_range}"
-        msg += f"\tForce Range: {self.cfg.ranges.force_range}\n"
+        msg += f"\tForce Range fx: {self.cfg.ranges.force_range_fx}, fy: {self.cfg.ranges.force_range_fy}, fz: {self.cfg.ranges.force_range_fz}\n"
         msg += f"\tDuration Range: {self.cfg.ranges.duration_range_s}\n"
         msg += f"\tActive Envs: {self.is_force_active.sum().item()}/{self.num_envs}"
         return msg
@@ -132,17 +132,13 @@ class UniformForceCommand(CommandTerm):
         apply_envs = ready_envs[apply_mask]
 
         if apply_envs.numel() > 0:
-            ## force magnitude
-            mag = torch.empty(len(apply_envs), device=self.device)
-            mag.uniform_(*self.cfg.ranges.force_range)
-
-            ## random direction
-            dir = torch.randn(len(apply_envs), 3, device=self.device)
-            dir[:, 2] *= self.cfg.force_z_scale
-            dir = dir / torch.norm(dir, dim=1, keepdim=True)
-
-            ## command activate
-            self.force_command[apply_envs] = mag.unsqueeze(1) * dir
+            ## force components (base frame): fx, fy, fz — like vx, vy, vz for velocity
+            fx = torch.empty(len(apply_envs), device=self.device).uniform_(*self.cfg.ranges.force_range_fx)
+            fy = torch.empty(len(apply_envs), device=self.device).uniform_(*self.cfg.ranges.force_range_fy)
+            fz = torch.empty(len(apply_envs), device=self.device).uniform_(*self.cfg.ranges.force_range_fz)
+            self.force_command[apply_envs, 0] = fx
+            self.force_command[apply_envs, 1] = fy
+            self.force_command[apply_envs, 2] = fz
             self.force_current[apply_envs].zero_()
             self.is_force_active[apply_envs] = True
 
