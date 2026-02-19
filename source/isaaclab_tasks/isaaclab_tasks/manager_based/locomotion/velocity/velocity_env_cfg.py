@@ -222,7 +222,6 @@ class ObservationsCfg:
         ## base_force_local = ObsTerm(func=mdp.force_local, params={"asset_cfg": SceneEntityCfg("robot", body_names="torso_link")},history_length=3)
         base_orientation = ObsTerm(func=mdp.body_ori_w, 
                                 noise=Unoise(n_min=-0.01, n_max=0.01), history_length=3)  # 3
-                                # history_length=3)
                                 
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, 
                                 noise=Unoise(n_min=-0.2, n_max=0.2), scale=0.25, history_length=3) 
@@ -660,8 +659,8 @@ class RewardsCfg:
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0) # -2.0, 0.2
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6)# -1.0e-8
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-6)# -1.0e-8
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-8)# -1.0e-6
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-8)# -1.0e-6
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.1)
     # feet_air_time = RewTerm(
     #     func=mdp.feet_air_time,

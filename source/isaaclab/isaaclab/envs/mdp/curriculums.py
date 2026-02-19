@@ -290,3 +290,36 @@ class modify_term_cfg(modify_env_param):
         super().__init__(cfg, env)
         # overwrite the simplified address with the full manager path
         self._address = self._address.replace("s.", "_manager.cfg.", 1)
+
+
+def modify_arm_joint_targets_position_range(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    event_term_name: str,
+    start_step: int,
+    end_step: int,
+    max_range: float,
+) -> dict[str, float]:
+    """상체 arm joint target 이벤트의 position_range를 start_step~end_step 구간에서 0 → max_range로 점진 증가시킨다.
+
+    common_step_counter < start_step: position_range = (0.0, 0.0)
+    start_step <= common_step_counter < end_step: 선형 보간으로 0 → max_range
+    common_step_counter >= end_step: position_range = (-max_range, max_range)
+
+    Returns:
+        로깅용 dict: progress (0~1), position_range_max
+    """
+    step = env.common_step_counter
+    if step < start_step:
+        progress = 0.0
+        half = 0.0
+    elif step < end_step:
+        progress = float(step - start_step) / float(end_step - start_step)
+        half = max_range * progress
+    else:
+        progress = 1.0
+        half = max_range
+    term_cfg = env.event_manager.get_term_cfg(event_term_name)
+    term_cfg.params["position_range"] = (-half, half)
+
+    return {"progress": progress, "position_range_max": half}
