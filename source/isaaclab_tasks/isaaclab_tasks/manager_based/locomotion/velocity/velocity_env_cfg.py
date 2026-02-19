@@ -130,12 +130,12 @@ class CommandsCfg:
         debug_vis_height_offset=0.02,
         debug_vis=True,
         ranges=mdp.UniformForceCommandCfg.Ranges(
-            # fx, fy, fz in base frame (like vx, vy for velocity) — direction and magnitude per axis
-            force_range_fx=(-60.0, 60.0),
-            force_range_fy=(-60.0, 60.0),
-            force_range_fz=(-20.0, 20.0),
-            duration_range_s=(5.0, 7.0),
-            interval_range_s=(0.0, 4.0),
+            # fx, fy, fz in base frame. 초기 0 → 커리큘럼(rough_env_cfg)에서 목표(~60)까지 증가
+            force_range_fx=(0.0, 0.0),
+            force_range_fy=(0.0, 0.0),
+            force_range_fz=(0.0, 0.0),
+            duration_range_s=(2.0, 3.0),
+            interval_range_s=(0.0, 2.0),
         ),
     )
 
