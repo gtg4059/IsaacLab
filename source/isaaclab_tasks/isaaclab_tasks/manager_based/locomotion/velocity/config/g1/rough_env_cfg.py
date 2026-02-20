@@ -41,6 +41,7 @@ class G1Rewards(RewardsCfg):
         params={
             "std": 0.05,
             "target_height": 0.2,
+            "target_height": 0.2,
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
         },
@@ -151,7 +152,14 @@ class G1Rewards(RewardsCfg):
 class G1RoughCurriculumCfg(CurriculumCfg):
     """Curriculum configuration for G1 flat environment."""
     # 10000 step마다 최대 난이도의 10%씩 증가 (거리 기반 아님)
+    # 10000 step마다 최대 난이도의 10%씩 증가 (거리 기반 아님)
     terrain_levels = CurrTerm(
+        func=mdp.terrain_levels_step_schedule,
+        params={
+            "step_interval": 20000*8,
+            "percent_per_interval": 0.1,
+            "min_steps": 0,
+        },
         func=mdp.terrain_levels_step_schedule,
         params={
             "step_interval": 20000*8,
@@ -169,23 +177,23 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     )
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 20000*8}
+        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 120000*8}
     )
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.01, "num_steps": 20000*8}
+        params={"term_name": "action_rate_l2", "weight": -0.01, "num_steps": 120000*8}
     )
     dof_acc_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_acc_l2", "weight": -1.0e-6, "num_steps": 20000*8}
+        params={"term_name": "dof_acc_l2", "weight": -1.0e-6, "num_steps": 120000*8}
     )
     dof_torques_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 20000*8}
+        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 120000*8}
     )
     joint_deviation_hip_yaw_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 20000*8}
+        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 120000*8}
     )
 
 @configclass
@@ -200,6 +208,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
         # start at minimum terrain difficulty (curriculum increases after min_steps)
         self.scene.terrain.max_init_terrain_level = 0
+        # self.curriculum.terrain_levels = None
         # self.curriculum.terrain_levels = None
         # Randomization
         self.events.reset_base.params = {
