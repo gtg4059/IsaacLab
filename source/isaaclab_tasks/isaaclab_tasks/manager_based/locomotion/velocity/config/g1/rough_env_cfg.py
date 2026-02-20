@@ -41,7 +41,6 @@ class G1Rewards(RewardsCfg):
         params={
             "std": 0.05,
             "target_height": 0.2,
-            "target_height": 0.2,
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
         },
@@ -152,14 +151,7 @@ class G1Rewards(RewardsCfg):
 class G1RoughCurriculumCfg(CurriculumCfg):
     """Curriculum configuration for G1 flat environment."""
     # 10000 step마다 최대 난이도의 10%씩 증가 (거리 기반 아님)
-    # 10000 step마다 최대 난이도의 10%씩 증가 (거리 기반 아님)
     terrain_levels = CurrTerm(
-        func=mdp.terrain_levels_step_schedule,
-        params={
-            "step_interval": 20000*8,
-            "percent_per_interval": 0.1,
-            "min_steps": 0,
-        },
         func=mdp.terrain_levels_step_schedule,
         params={
             "step_interval": 20000*8,
