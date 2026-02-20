@@ -220,7 +220,7 @@ class G1Rewards(RewardsCfg):
 
     force_compliance_reward = RewTerm(
         func=mdp.compliance_with_external_force_reward,
-        weight=10.0,
+        weight=1.0,
         params={"sigma": 1.0,
                 "force_threshold": 30.0,
                 "sensor_cfg": SceneEntityCfg("contact_forces", body_names="torso_link"),
@@ -297,20 +297,20 @@ class G1RoughCurriculumCfg(CurriculumCfg):
         params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 50000*24}
     )
 
-    # base_force 커리큘럼: 외력 크기를 0 → 약 60 N(합)으로 단계적 증가
-    base_force_ranges = CurrTerm(
-        func=mdp.modify_env_param,
-        params={
-            "address": "command_manager.cfg.base_force.ranges",
-            "modify_fn": _curriculum_base_force_ranges,
-            "modify_params": {
-                "num_steps_start": 10000*24,
-                "num_steps_end": 40000*24,
-                "max_force_xy": 40.0,
-                "max_force_z": 10.0,
-            },
-        },
-    )
+    # # base_force 커리큘럼: 외력 크기를 0 → 약 60 N(합)으로 단계적 증가
+    # base_force_ranges = CurrTerm(
+    #     func=mdp.modify_env_param,
+    #     params={
+    #         "address": "command_manager.cfg.base_force.ranges",
+    #         "modify_fn": _curriculum_base_force_ranges,
+    #         "modify_params": {
+    #             "num_steps_start": 10000*24,
+    #             "num_steps_end": 40000*24,
+    #             "max_force_xy": 40.0,
+    #             "max_force_z": 10.0,
+    #         },
+    #     },
+    # )
 
 
 @configclass

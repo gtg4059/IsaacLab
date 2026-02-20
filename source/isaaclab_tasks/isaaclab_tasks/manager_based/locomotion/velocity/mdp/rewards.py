@@ -487,34 +487,41 @@ def motion_equality_cons(
     
 #     return torch.exp(-lin_vel_error / tracking_sigma)
 
-def tracking_lin_vel_force_reward( 
-    env: ManagerBasedRLEnv, 
-    asset_cfg: SceneEntityCfg, 
-    force_command_name: str, 
-    vel_command_name: str, 
-    damping: float, 
-    sigma: float, 
-    vel_clip: float = 0.01 
-    # 정지 상태 판정 임계값 
-    ) -> torch.Tensor: 
-    asset: Articulation = env.scene[asset_cfg.name] 
-    # 1. 실제 속도 (Base XY frame) 
-    vel_actual = asset.data.root_lin_vel_b[:, :2] 
-    # 2. 명령 속도 (v_cmd) 
-    vel_cmd = env.command_manager.get_command(vel_command_name)[:, :2] 
-    # 3. 외력 보상 (F_ext / D) 
-    # UniformForceCommand에서 가져온 힘 (이미 Base Frame) 
-    force_cmd = env.command_manager.get_command(force_command_name)[:, :2] 
-    force_offset = force_cmd / damping 
-    # 4. 최종 목표 속도 계산 
-    target_vel = vel_cmd + force_offset #
-    # 5. Stop Gating: 명령이 거의 0이면 타겟도 0으로 간주 
-    is_moving = torch.norm(target_vel, dim=1) > vel_clip 
-    target_vel *= is_moving.unsqueeze(1) 
-    # 6. 오차 제곱 및 보상 계산 
-    # 수식: exp(- ||v_act - v_target||^2 / sigma) 
-    error_sq = torch.sum(torch.square(vel_actual - target_vel), dim=1) 
-    return torch.exp(-error_sq / sigma)
+def tracking_lin_vel_force_reward(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg,
+    force_command_name: str,
+    vel_command_name: str,
+    damping: float,
+    sigma: float,
+    vel_clip: float = 0.01,
+    force_min_threshold: float = 0.5,
+) -> torch.Tensor:
+    """속도 명령 + 외력 보상(v = v_cmd + F/damping)을 추적하는 보상. 외력 크기를 반영함."""
+    asset: Articulation = env.scene[asset_cfg.name]
+    # 1. 외력 커맨드 (Base frame, fx fy fz) 및 크기
+    force_cmd_full = env.command_manager.get_command(force_command_name)  # [N, 3]
+    force_norm = torch.norm(force_cmd_full, dim=1)  # [N]
+    # 2. 외력이 거의 없으면 중립 보상(1.0) — 커리큘럼 초반/외력 0일 때 추적 패널티 없음
+    if force_min_threshold > 0:
+        no_force = force_norm < force_min_threshold
+        if torch.all(no_force):
+            return torch.ones(env.num_envs, device=asset.device)
+    # 3. 실제 속도 (Base XY)
+    vel_actual = asset.data.root_lin_vel_b[:, :2]
+    vel_cmd = env.command_manager.get_command(vel_command_name)[:, :2]
+    force_cmd_xy = force_cmd_full[:, :2]
+    force_offset = force_cmd_xy / (damping + 1e-8)
+    target_vel = vel_cmd + force_offset
+    is_moving = torch.norm(target_vel, dim=1) > vel_clip
+    target_vel = target_vel * is_moving.unsqueeze(1)
+    error_sq = torch.sum(torch.square(vel_actual - target_vel), dim=1)
+    reward = torch.exp(-error_sq / sigma)
+    # 4. 외력 크기 비례 가중: 외력이 클수록 추적 보상 비중 유지, 작을수록 1에 가깝게
+    if force_min_threshold > 0 and not torch.all(no_force):
+        force_scale = torch.clamp(force_norm / force_min_threshold, 0.0, 1.0)
+        reward = torch.where(no_force, torch.ones_like(reward), reward * force_scale + (1.0 - force_scale))
+    return reward
 
 
 def compliance_with_external_force_reward(
@@ -567,12 +574,13 @@ def compliance_with_external_force_reward(
             except Exception:
                 pass
 
-    # 3. XY 평면에서의 외력 및 크기
-    force_xy = forces_local_base[:, :2]            # [N, 2]
-    force_norm = torch.norm(force_xy, dim=1)       # [N]
+    # 3. 외력 크기: 3D norm 사용 (fx,fy,fz 범위 설정 반영)
+    force_norm_3d = torch.norm(forces_local_base, dim=1)   # [N]
+    force_xy = forces_local_base[:, :2]                    # [N, 2]
+    force_norm_xy = torch.norm(force_xy, dim=1)             # [N] — 방향/코사인용
 
-    # 4. 외력이 충분히 클 때만 순응 보상 활성화
-    big_force = force_norm > force_threshold       # [N]
+    # 4. 외력이 충분히 클 때만 순응 보상 활성화 (크기 기준)
+    big_force = force_norm_3d > force_threshold              # [N]
 
     # 외력이 거의 없으면 보상 0
     if not torch.any(big_force):
@@ -580,17 +588,15 @@ def compliance_with_external_force_reward(
 
     eps = 1e-6
 
-    # 5. 외력 방향 단위벡터
-    force_dir = torch.zeros_like(force_xy)         # [N, 2]
+    # 5. 외력 방향 단위벡터 (XY)
+    force_dir = torch.zeros_like(force_xy)
     force_dir[big_force] = (
-        force_xy[big_force] /
-        (force_norm[big_force].unsqueeze(1) + eps)
+        force_xy[big_force] / (force_norm_xy[big_force].unsqueeze(1) + eps)
     )
 
-    # 6. 속도를 외력 방향으로 project → 방향 정렬 정도 (코사인 유사도)
-    # cos(theta) = (v · f) / (||v|| ||f||)
+    # 6. 속도·외력 방향 정렬 (코사인 유사도), 크기 반영
     cos_sim = torch.zeros(env.num_envs, device=vel_actual.device)
-    denom = (vel_norm * force_norm + eps)
+    denom = vel_norm * force_norm_xy + eps
     cos_sim = torch.sum(vel_actual * force_xy, dim=1) / denom
     cos_sim = torch.clamp(cos_sim, -1.0, 1.0)      # 수치 안정화
 
@@ -601,14 +607,17 @@ def compliance_with_external_force_reward(
     align_score = 0.5 * (cos_sim + 1.0)
 
     # 8. 너무 큰 속도는 살짝 억제 (힘에 “살짝” 끌려가도록)
-    #    목표 속도 크기를 force_norm과 비례하도록 약하게 설정
-    target_speed = 0.1 * torch.tanh(force_norm / (sigma + eps))  # [N]
+    # 7. 목표 속도 크기: 외력 크기(3D norm)에 비례
+    target_speed = 0.1 * torch.tanh(force_norm_3d / (sigma + eps))
     speed_error = (vel_norm - target_speed) ** 2                 # [N]
     speed_term = torch.exp(-speed_error / (sigma + eps))
 
-    # 9. 최종 보상: 외력 방향 정렬 * 적당한 속도 크기, 외력이 큰 경우에만
+    # 8. 최종 보상: 정렬 * 속도항, 외력 크기로 가중 (큰 외력에 더 순응할수록 보상 증가)
     reward = align_score * speed_term
     reward = torch.where(big_force, reward, torch.zeros_like(reward))
+    # 외력 크기 가중: force_norm_3d가 클수록 보상 스케일 유지 (커리큘럼 단계 반영)
+    force_weight = torch.tanh(force_norm_3d / (force_threshold + eps))
+    reward = reward * force_weight
 
     return reward
 
