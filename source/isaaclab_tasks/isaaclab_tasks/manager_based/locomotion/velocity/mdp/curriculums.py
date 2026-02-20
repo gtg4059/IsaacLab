@@ -74,3 +74,35 @@ def terrain_levels_vel_after_steps(
     if env.common_step_counter < min_steps:
         return torch.mean(terrain.terrain_levels.float())
     return terrain_levels_vel(env, env_ids, asset_cfg)
+
+
+def terrain_levels_step_schedule(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    step_interval: int = 10000,
+    percent_per_interval: float = 0.1,
+    min_steps: int = 0,
+) -> torch.Tensor:
+    """Terrain level curriculum that increases difficulty by a fixed percent of max every N steps.
+
+    Ignores robot distance; every ``step_interval`` steps the target level increases by
+    ``percent_per_interval * max_terrain_level`` (e.g. 10% every 10000 steps).
+    All envs are set to the same target level.
+
+    Returns:
+        The mean terrain level (for logging).
+    """
+    t = env.scene.terrain
+    assert t is not None, "Terrain curriculum requires scene.terrain."
+    max_level = t.max_terrain_level
+    if env.common_step_counter < min_steps:
+        return torch.mean(t.terrain_levels.float())
+    # target level: every step_interval add (percent_per_interval * max_level) levels, capped at max_level-1
+    steps_effective = env.common_step_counter - min_steps
+    num_intervals = steps_effective // step_interval
+    levels_per_interval = max(1, round(percent_per_interval * max_level))
+    target_level = min(max_level - 1, num_intervals * levels_per_interval)
+    # set all envs to same target level and sync origins (global schedule)
+    t.terrain_levels[:] = target_level
+    t.env_origins[:] = t.terrain_origins[t.terrain_levels.long(), t.terrain_types]
+    return torch.mean(t.terrain_levels.float())
