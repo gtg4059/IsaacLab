@@ -154,12 +154,12 @@ class RewardsCfg:
     # task terms
     end_effector_position_tracking = RewTerm(
         func=mdp.position_command_error,
-        weight=0.2,#0.002,
+        weight=0.5,#0.002,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
     command_error_tanh = RewTerm(
         func=mdp.command_error_tanh,
-        weight=1000,
+        weight=200,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "std": 0.1, "command_name": "ee_pose"},
     )
     CRI_OVF = RewTerm(
@@ -168,12 +168,14 @@ class RewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot")},
     )
     # action penalty
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-20)
-    joint_vel = RewTerm(
-        func=mdp.joint_vel_limits,
-        weight=1e-20,
-        params={"soft_ratio":10,"asset_cfg": SceneEntityCfg("robot")},
-    )
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
+    # joint_vel = RewTerm(
+    #     func=mdp.joint_vel_limits,
+    #     weight=1e-20,
+    #     params={"soft_ratio":10,"asset_cfg": SceneEntityCfg("robot")},
+    # )
     # alive = RewTerm(
     #     func=mdp.is_alive,
     #     weight=10,
@@ -195,11 +197,11 @@ class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
     action_rate = CurrTerm(
-        func=mdp.modify_reward_weight, params={"term_name": "action_rate", "weight": -0.005, "num_steps": 4500}
+        func=mdp.modify_reward_weight, params={"term_name": "action_rate", "weight": -0.005, "num_steps": 2000*24}
     )
 
     joint_vel = CurrTerm(
-        func=mdp.modify_reward_weight, params={"term_name": "joint_vel", "weight": -0.001, "num_steps": 4500}
+        func=mdp.modify_reward_weight, params={"term_name": "joint_vel", "weight": -0.001, "num_steps": 2000*24}
     )
 
 
@@ -227,7 +229,8 @@ class ReachEnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self):
         """Post initialization."""
         # general settings
-        self.decimation = 2
+        self.decimation = 4
+        self.sim.dt = 0.005
         self.sim.render_interval = self.decimation
         self.episode_length_s = 12.0
         self.viewer.eye = (3.5, 3.5, 3.5)
