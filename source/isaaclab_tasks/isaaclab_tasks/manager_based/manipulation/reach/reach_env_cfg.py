@@ -98,17 +98,39 @@ class ObservationsCfg:
 
         # observation terms (order preserved)
         CRI = ObsTerm(func=mdp.collision_risk_index)
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.00001, n_max=0.00001))
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.00001, n_max=0.00001))
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.0001, n_max=0.0001))
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.0001, n_max=0.0001))
         pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "ee_pose"})
         actions = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
+            self.history_length = 5
+            
+    @configclass
+    class CriticCfg(ObsGroup):
+        """Observations for critic group."""
+
+        # observation terms (order preserved)
+        CRI = ObsTerm(func=mdp.collision_risk_index)
+        ee_pose_b = ObsTerm(
+            func=mdp.ee_pose_in_base_frame,
+            params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING)},
+        )
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel)
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel)
+        pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "ee_pose"})
+        actions = ObsTerm(func=mdp.last_action)
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+            self.history_length = 5
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
+    critic: CriticCfg = CriticCfg()
 
 
 @configclass
