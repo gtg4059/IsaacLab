@@ -120,7 +120,7 @@ def base_height_l2(
         adjusted_target_height = target_height
     # Compute the L2 squared penalty with log scaling
     sq = torch.square(asset.data.root_pos_w[:, 2] - adjusted_target_height)
-    return torch.clip(torch.log1p(5*sq), max=1.0)
+    return torch.clip(torch.log1p(5*sq)/2, max=0.3)
 
 
 def body_lin_acc_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
