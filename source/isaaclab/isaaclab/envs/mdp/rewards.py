@@ -58,7 +58,28 @@ def command_error_tanh(env: ManagerBasedRLEnv, std: float,command_name: str, ass
     # print(result.item())
     # return (torch.where(torch.norm(curr_pos_w - des_pos_w, dim=1)<0.5,1 - torch.tanh(quat_error_magnitude(curr_quat_w, des_quat_w)*2),0))*(1 - torch.tanh(distance/std))#std:0.1
     return result#std:0.1
-    
+
+def position_orientation_command_error(env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Penalize tracking position and orientation error.
+
+    The function computes the position and orientation error between the desired position and orientation (from the command) and the
+    current position and orientation of the asset's body (in world frame). The position and orientation error is computed as the L2-norm
+    of the difference between the desired and current positions and orientations.
+    """
+    # extract the asset (to enable type hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+
+    des_pos_b = command[:, :3]
+    des_pos_w, _ = combine_frame_transforms(asset.data.root_state_w[:, :3], asset.data.root_state_w[:, 3:7], des_pos_b)
+    curr_pos_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]  # type: ignore
+    distance = torch.norm(curr_pos_w - des_pos_w, dim=1)
+
+    # obtain the desired and current orientations
+    des_quat_b = command[:, 3:7]
+    des_quat_w = quat_mul(asset.data.root_quat_w, des_quat_b)
+    curr_quat_w = asset.data.body_quat_w[:, asset_cfg.body_ids[0]]  # type: ignore
+    return 2*torch.exp(-2*distance)*torch.exp(-1*quat_error_magnitude(curr_quat_w, des_quat_w))
 
 """
 General.

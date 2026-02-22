@@ -11,8 +11,8 @@ from isaaclab.utils import configclass
 @configclass
 class UR10ReachPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
-    max_iterations = 3000
-    save_interval = 50
+    max_iterations = 100000
+    save_interval = 500
     experiment_name = "reach_UR10"
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(

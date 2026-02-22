@@ -30,11 +30,11 @@ class UR10ReachEnvCfg(ReachEnvCfg):
         # switch robot to Indy7
         self.scene.robot = UR10_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.rewards.end_effector_position_tracking.params["asset_cfg"].body_names = ["ee_link"]
-        self.rewards.command_error_tanh.params["asset_cfg"].body_names = ["ee_link"]
+        # self.rewards.command_error_tanh.params["asset_cfg"].body_names = ["ee_link"]
+        self.rewards.position_orientation_command_error.params["asset_cfg"].body_names = ["ee_link"]
         self.observations.critic.ee_pose_b.params["asset_cfg"].body_names = ["ee_link"]
         self.commands.ee_pose.body_name = "ee_link"
-        self.commands.ee_pose.resampling_time_range=(70,80)
-        self.actions.arm_action = mdp.JointVelocityActionCfg(asset_name="robot", joint_names=[".*"],scale=0.2)
+        self.actions.arm_action = mdp.JointVelocityActionCfg(asset_name="robot", joint_names=[".*"],scale=0.1)
 
         self.events.reset_robot_joints.params["position_range"] = (-math.pi, math.pi)
         self.commands.ee_pose.ranges.pos_th = (-math.pi, math.pi)

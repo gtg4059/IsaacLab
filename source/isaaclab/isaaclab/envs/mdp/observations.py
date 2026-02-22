@@ -61,7 +61,7 @@ def CRI_OVF(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("
     asset: Articulation = env.scene[asset_cfg.name]
     result,_ = torch.max(asset.data.CRI,dim=1)
     # print("result: ",asset.data.CRI)
-    #print("result: ",result)
+    # print("result: ",result)
     return result>1
 
 def CRI_reach(env: ManagerBasedRLEnv, std: float,command_name: str, asset_cfg: SceneEntityCfg) -> torch.Tensor:
