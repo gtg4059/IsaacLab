@@ -67,7 +67,7 @@ class CommandsCfg:
         asset_name="robot",
         body_name=MISSING,
         debug_vis=True,
-        resampling_time_range=(12,18),
+        resampling_time_range=(40,60),
         ranges=mdp.UniformPoseTrigCommandCfg.PolarRanges(
             pos_r=(0.4,0.9),
             pos_th=MISSING,
@@ -113,12 +113,12 @@ class ObservationsCfg:
     class CriticCfg(ObsGroup):
         """Observations for critic group."""
 
-        # observation terms (order preserved)
-        CRI = ObsTerm(func=mdp.collision_risk_index)
         ee_pose_b = ObsTerm(
             func=mdp.ee_pose_in_base_frame,
             params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING)},
         )
+        # observation terms (order preserved)
+        CRI = ObsTerm(func=mdp.collision_risk_index)
         joint_pos = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
         pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "ee_pose"})
@@ -165,7 +165,7 @@ class RewardsCfg:
     # )
     position_orientation_command_error = RewTerm(
         func=mdp.position_orientation_command_error,
-        weight=1.0,
+        weight=2.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
@@ -223,7 +223,7 @@ class ReachEnvCfg(ManagerBasedRLEnvCfg):
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
     events: EventCfg = EventCfg()
-    curriculum: CurriculumCfg = CurriculumCfg()
+    # curriculum: CurriculumCfg = CurriculumCfg()
 
     def __post_init__(self):
         """Post initialization."""
@@ -231,7 +231,7 @@ class ReachEnvCfg(ManagerBasedRLEnvCfg):
         self.decimation = 4
         self.sim.dt = 0.005
         self.sim.render_interval = self.decimation
-        self.episode_length_s = 12.0
+        self.episode_length_s = 120.0
         self.viewer.eye = (3.5, 3.5, 3.5)
         # simulation settings
         self.sim.dt = 1.0 / 60.0
