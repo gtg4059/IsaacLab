@@ -155,7 +155,7 @@ class G1RoughCurriculumCfg(CurriculumCfg):
         func=mdp.terrain_levels_step_schedule,
         params={
             "step_interval": 20000*8,
-            "percent_per_interval": 0.1,
+            "percent_per_interval": 0.2,
             "min_steps": 0,
         },
     ) 
@@ -165,11 +165,11 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     )
     feet_land_time_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "feet_land_time", "weight": 1.2, "num_steps": 20000*8}
+        params={"term_name": "feet_land_time", "weight": 2.0, "num_steps": 20000*8}
     )
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 120000*8}
+        params={"term_name": "contact_forces", "weight": -0.0000002, "num_steps": 120000*8}
     )
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
@@ -177,7 +177,7 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     )
     dof_acc_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_acc_l2", "weight": -1.0e-6, "num_steps": 120000*8}
+        params={"term_name": "dof_acc_l2", "weight": -1.0e-7, "num_steps": 120000*8}
     )
     dof_torques_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,

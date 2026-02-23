@@ -533,7 +533,7 @@ class RewardsCfg:
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.2) # z축 속도 제곱 패널티
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05) # xy축 각속도 제곱 패널티
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6) # 관절 토크 제곱 패널티
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-6) # 관절 가속도 제곱 패널티
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-7) # 관절 가속도 제곱 패널티
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.05) # 행동 속도 제곱 패널티
     undesired_contacts = RewTerm( # 원하지 않는 접촉 패널티
         func=mdp.undesired_contacts,
