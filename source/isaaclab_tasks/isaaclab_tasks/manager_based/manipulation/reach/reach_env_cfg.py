@@ -67,11 +67,11 @@ class CommandsCfg:
         asset_name="robot",
         body_name=MISSING,
         debug_vis=True,
-        resampling_time_range=(40,60),
+        resampling_time_range=(60,60),
         ranges=mdp.UniformPoseTrigCommandCfg.PolarRanges(
-            pos_r=(0.4,0.9),
+            pos_r=(0.4,0.8),
             pos_th=MISSING,
-            pos_z=(0.4, 0.9),
+            pos_z=(0.4, 0.8),
             # pos_r=(0.5657,0.5657),
             # pos_th=(-0.7854, -0.7854),
             # pos_z=(0.7, 0.7),
@@ -155,7 +155,7 @@ class RewardsCfg:
     # task terms
     end_effector_position_tracking = RewTerm(
         func=mdp.position_command_error,
-        weight=2,#0.002,
+        weight=3,#0.002,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
     # command_error_tanh = RewTerm(
@@ -165,14 +165,14 @@ class RewardsCfg:
     # )
     position_orientation_command_error = RewTerm(
         func=mdp.position_orientation_command_error,
-        weight=2.0,
+        weight=4.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
-    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-100.0)
     # action penalty
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6)
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-8)
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.0001)
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-7)
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-9)
     # joint_vel = RewTerm(
     #     func=mdp.joint_vel_limits,
     #     weight=1e-20,
@@ -231,7 +231,7 @@ class ReachEnvCfg(ManagerBasedRLEnvCfg):
         self.decimation = 4
         self.sim.dt = 0.005
         self.sim.render_interval = self.decimation
-        self.episode_length_s = 120.0
+        self.episode_length_s = 60.0
         self.viewer.eye = (3.5, 3.5, 3.5)
         # simulation settings
         self.sim.dt = 1.0 / 60.0

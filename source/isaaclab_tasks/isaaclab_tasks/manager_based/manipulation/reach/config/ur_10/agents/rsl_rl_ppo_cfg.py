@@ -10,7 +10,7 @@ from isaaclab.utils import configclass
 
 @configclass
 class UR10ReachPPORunnerCfg(RslRlOnPolicyRunnerCfg):
-    num_steps_per_env = 120
+    num_steps_per_env = 60
     max_iterations = 100000
     save_interval = 50
     experiment_name = "reach_UR10"

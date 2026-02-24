@@ -476,7 +476,7 @@ class ArticulationData:
             # print(self._root_physx_view.get_dof_velocities()[0])
             # print(self._CRI.data[0])
             self._CRI.timestamp = self._sim_timestamp
-        return self._CRI.data
+        return torch.clamp_(self._CRI.data, min=0.0, max=2.0)
 
     ##
     # Derived properties.

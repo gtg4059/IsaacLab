@@ -19,6 +19,9 @@ class RslRlPpoActorCriticCfg:
     init_noise_std: float = MISSING
     """The initial noise standard deviation for the policy."""
 
+    noise_std_type: Literal["scalar", "log"] = "log"
+    """Parameterization of action std: 'scalar' (learned directly, can become negative) or 'log' (exp(log_std), always positive). Use 'log' to avoid 'normal expects std >= 0' errors."""
+
     actor_hidden_dims: list[int] = MISSING
     """The hidden dimensions of the actor network."""
 
