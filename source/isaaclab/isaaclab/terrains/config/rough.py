@@ -57,6 +57,7 @@ RANDOM_ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
     num_rows=10,
     num_cols=20,
     horizontal_scale=0.1,
+    difficulty_range=(1.0, 1.0),
     vertical_scale=0.005,
     slope_threshold=0.75,
     use_cache=False,
