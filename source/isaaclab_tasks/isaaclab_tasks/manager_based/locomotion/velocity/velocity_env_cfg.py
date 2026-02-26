@@ -167,10 +167,10 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
-        base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2),scale=0.25)
+        base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.02, n_max=0.02),scale=0.25)
         projected_gravity = ObsTerm(
             func=mdp.projected_gravity,
-            noise=Unoise(n_min=-0.05, n_max=0.05),
+            noise=Unoise(n_min=-0.005, n_max=0.005),
         )
         joint_pos = ObsTerm(func=mdp.joint_pos, 
                             params={"asset_cfg": SceneEntityCfg("robot",
@@ -208,7 +208,7 @@ class ObservationsCfg:
                                                 ],
                                     preserve_order=True,
                                     )},
-                            noise=Unoise(n_min=-0.01, n_max=0.01),scale=1.0)
+                            noise=Unoise(n_min=-0.001, n_max=0.001),scale=1.0)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, 
                             params={"asset_cfg": SceneEntityCfg("robot",
                                     joint_names=[
@@ -245,7 +245,7 @@ class ObservationsCfg:
                                                 ],
                                     preserve_order=True,
                                     )},
-                            noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05)
+                            noise=Unoise(n_min=-0.15, n_max=0.15),scale=0.05)
         actions = ObsTerm(func=mdp.last_action)
         #####################################################################################
         velocity_commands = ObsTerm(func=keyboard_commands,scale=(2.0,2.0,0.25))
