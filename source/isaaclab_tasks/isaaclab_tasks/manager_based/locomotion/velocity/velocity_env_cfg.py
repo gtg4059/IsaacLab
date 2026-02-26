@@ -124,18 +124,18 @@ class CommandsCfg:
     base_force = mdp.UniformForceCommandCfg(
         asset_name="robot",
         body_name="torso_link",
-        resampling_time_range=(10.0, 10.0), #(10.0, 10.0),
+        resampling_time_range=(5.0, 5.0), #(10.0, 10.0),
         apply_probability=0.5,#0.6,
         # force_z_scale=0.5,#0.5,
         debug_vis_height_offset=0.02,
         debug_vis=True,
         ranges=mdp.UniformForceCommandCfg.Ranges(
             # fx, fy, fz in base frame. 초기 0 → 커리큘럼(rough_env_cfg)에서 목표(~60)까지 증가
-            force_range_fx=(-1.0, 1.0),
-            force_range_fy=(-1.0, 1.0),
-            force_range_fz=(-1.0, 1.0),
-            duration_range_s=(5.0, 7.0),
-            interval_range_s=(0.0, 4.0),
+            force_range_fx=(-50.0, 50.0),
+            force_range_fy=(-50.0, 50.0),
+            force_range_fz=(-10.0, 10.0),
+            duration_range_s=(2.5, 3.5),
+            interval_range_s=(0.0, 2.0),
         ),
     )
 
@@ -659,8 +659,8 @@ class RewardsCfg:
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0) # -2.0, 0.2
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-8)# -1.0e-6
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-8)# -1.0e-6
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6)# -1.0e-8, -1.0e-6
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-6)# -1.0e-8,-1.0e-6
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.1)
     # feet_air_time = RewTerm(
     #     func=mdp.feet_air_time,
