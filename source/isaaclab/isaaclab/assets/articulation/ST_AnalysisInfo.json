@@ -1,0 +1,201 @@
+{
+  "SafeticsAnalysisInfo": {
+    "Version": {
+      "AnalysisInfo": "1.2.4",
+      "SafetyCore": "1.3.15",
+      "Plot_CRI": "1.4.8",
+      "AutoReport": "1.0.4"
+    },
+    "AutoReport": {},
+    "BasicInfo": {
+      "StepTime": 1,
+      "SaveVideo": 1,
+      "ColliPointImageDivision": 10,
+      "VelocityMaximumMultiple": 2,
+      "VelocityConvergenceValue": 1,
+      "OptimizeMotionCRIThreshold": 0,
+      "EffectiveMassLimit": "0.5 250",
+      "BodyProperty": "KHU",
+      "DrawingPosition": "0 0",
+      "DrawingScale": 0,
+      "LayoutOption": 2,
+      "OvershootLimit": -1
+    },
+    "EquipmentInfo": [],
+    "BaseInfo": [],
+    "RobotInfo": {
+      "Manufacturer": "UNIVERSAL ROBOTS",
+      "RobotModel": "UR10",
+      "Position": "0 0 0",
+      "Rotation": "0 0 0",
+      "MotionName": "ST_MotionInfo.txt"
+    },
+    "EndEffectorInfo": {
+      "Position": "0 0 0",
+      "Rotation": "0 0 0",
+      "Mass": 1.16,
+      "CenterOfMass": "0.1529563932002794 -0.0708425720620828 74.62871396895801",
+      "I": "2695.4290652432073 -0.22060008095664507 64.82422500577661 -0.22060008095664507 3026.6267061039216 -6.727056682448265 64.82422500577661 -6.727056682448265 1390.6618721952052",
+      "Variable": "1 1",
+      "STLName": "2FG7.stl",
+      "Name": "2FG7",
+      "AutoCOM": 1,
+      "TCP": "0 0 0"
+    },
+    "WorkObjectInfo": [],
+    "ColliPointInfo": {
+      "Base": [],
+      "Robot": [
+        {
+          "Index": 1,
+          "ColliJoint": 1,
+          "ColliPos": "0 70 0",
+          "ColliShape": 5,
+          "ColliRadi": 75,
+          "ColliFillet": 18,
+          "ExposureDir": "0 1 0",
+          "ColliRotation": "0 0 0",
+          "CoverInfo": 0,
+          "Color": "#00FFB2",
+          "Opacity": 0.9,
+          "Name": "RobotColliPoint1",
+          "RecommendCover": false
+        },
+        {
+          "Index": 2,
+          "ColliJoint": 2,
+          "ColliPos": "612 0 250",
+          "ColliShape": 5,
+          "ColliRadi": 75,
+          "ColliFillet": 18,
+          "ExposureDir": "0 0 1",
+          "ColliRotation": "0 0 0",
+          "CoverInfo": 0,
+          "Color": "#C2FF74",
+          "Opacity": 0.9,
+          "Name": "RobotColliPoint2",
+          "RecommendCover": false
+        },
+        {
+          "Index": 3,
+          "ColliJoint": 2,
+          "ColliPos": "0 0 240",
+          "ColliShape": 5,
+          "ColliRadi": 58,
+          "ColliFillet": 18,
+          "ExposureDir": "0 0 1",
+          "ColliRotation": "0 0 0",
+          "CoverInfo": 0,
+          "Color": "#CD0062",
+          "Opacity": 0.9,
+          "Name": "RobotColliPoint3",
+          "RecommendCover": false
+        },
+        {
+          "Index": 4,
+          "ColliJoint": 3,
+          "ColliPos": "572.3 0 -10",
+          "ColliShape": 5,
+          "ColliRadi": 58,
+          "ColliFillet": 18,
+          "ExposureDir": "0 0 -1",
+          "ColliRotation": "0 0 0",
+          "CoverInfo": 0,
+          "Color": "#FFF067",
+          "Opacity": 0.9,
+          "Name": "RobotColliPoint4",
+          "RecommendCover": false
+        },
+        {
+          "Index": 5,
+          "ColliJoint": 3,
+          "ColliPos": "0 0 0",
+          "ColliShape": 5,
+          "ColliRadi": 45,
+          "ColliFillet": 18,
+          "ExposureDir": "0 0 -1",
+          "ColliRotation": "0 0 0",
+          "CoverInfo": 0,
+          "Color": "#88E2FF",
+          "Opacity": 0.9,
+          "Name": "RobotColliPoint5",
+          "RecommendCover": false
+        },
+        {
+          "Index": 6,
+          "ColliJoint": 4,
+          "ColliPos": "0 0 -50",
+          "ColliShape": 5,
+          "ColliRadi": 45,
+          "ColliFillet": 18,
+          "ExposureDir": "0 0 -1",
+          "ColliRotation": "0 0 0",
+          "CoverInfo": 0,
+          "Color": "#FF5D5C",
+          "Opacity": 0.9,
+          "Name": "RobotColliPoint6",
+          "RecommendCover": false
+        },
+        {
+          "Index": 7,
+          "ColliJoint": 5,
+          "ColliPos": "0 0 -50",
+          "ColliShape": 5,
+          "ColliRadi": 45,
+          "ColliFillet": 18,
+          "ExposureDir": "0 0 -1",
+          "ColliRotation": "0 0 0",
+          "CoverInfo": 0,
+          "Color": "#FF8E2B",
+          "Opacity": 0.9,
+          "Name": "RobotColliPoint7",
+          "RecommendCover": false
+        }
+      ],
+      "EndEffector": [
+        {
+          "Index": 1,
+          "ColliJoint": 1,
+          "ColliPos": "0 0 160",
+          "ColliShape": 5,
+          "ColliRadi": 10,
+          "ColliFillet": 2,
+          "ExposureDir": "-4.531142929634924e-14 7.814596798843623e-14 50",
+          "ColliRotation": "0 0 0",
+          "CoverInfo": 0,
+          "Color": "#022b69",
+          "Opacity": 0.2,
+          "Name": "Collision point1",
+          "RecommendCover": true
+        }
+      ],
+      "WorkObject": []
+    },
+    "RiskSpaceInfo": [
+      {
+        "Index": 1,
+        "ColliBodyCloth": 2,
+        "ColliBody": 8,
+        "Hspace": "-500 477.5 1725 1115",
+        "BackMotion": "0 0",
+        "ZaxisDirection": 0,
+        "Color": "#9F4C99",
+        "Opacity": 0.4,
+        "Name": "Co-workspace1"
+      }
+    ],
+    "MotionDivisionInfo": [
+      {
+        "Index": 1,
+        "StartTime": 0,
+        "EndTime": 3,
+        "SelectBaseColliPoint": "",
+        "SelectRobotColliPoint": "2 3 4 5 6",
+        "SelectEndEffectorColliPoint": "0",
+        "SelectWorkObjectColliPoint": "",
+        "WorkObject": 0,
+        "Name": "Motion block1"
+      }
+    ]
+  }
+}
