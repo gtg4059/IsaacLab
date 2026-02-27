@@ -32,7 +32,7 @@ class UR10ReachEnvCfg(ReachEnvCfg):
         self.rewards.end_effector_position_tracking.params["asset_cfg"].body_names = ["ee_link"]
         # self.rewards.command_error_tanh.params["asset_cfg"].body_names = ["ee_link"]
         self.rewards.position_orientation_command_error.params["asset_cfg"].body_names = ["ee_link"]
-        self.observations.critic.ee_pose_b.params["asset_cfg"].body_names = ["ee_link"]
+        self.observations.policy.ee_pose_error.params["asset_cfg"].body_names = ["ee_link"]
         self.commands.ee_pose.body_name = "ee_link"
         self.actions.arm_action = mdp.JointVelocityActionCfg(asset_name="robot", joint_names=[".*"],scale=0.1)
 

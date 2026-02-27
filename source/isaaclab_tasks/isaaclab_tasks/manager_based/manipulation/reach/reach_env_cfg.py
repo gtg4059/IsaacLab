@@ -98,6 +98,10 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
+        ee_pose_error = ObsTerm(
+            func=mdp.ee_pose_error_to_command,
+            params={"command_name": "ee_pose", "asset_cfg": SceneEntityCfg("robot", body_names=MISSING)},
+        )
         CRI = ObsTerm(func=mdp.collision_risk_index)
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.0001, n_max=0.0001))
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.0001, n_max=0.0001))
@@ -108,30 +112,9 @@ class ObservationsCfg:
             self.enable_corruption = True
             self.concatenate_terms = True
             self.history_length = 5
-            
-    @configclass
-    class CriticCfg(ObsGroup):
-        """Observations for critic group."""
-
-        ee_pose_b = ObsTerm(
-            func=mdp.ee_pose_in_base_frame,
-            params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING)},
-        )
-        # observation terms (order preserved)
-        CRI = ObsTerm(func=mdp.collision_risk_index)
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel)
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel)
-        pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "ee_pose"})
-        actions = ObsTerm(func=mdp.last_action)
-
-        def __post_init__(self):
-            self.enable_corruption = True
-            self.concatenate_terms = True
-            self.history_length = 5
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
-    critic: CriticCfg = CriticCfg()
 
 
 @configclass
@@ -155,7 +138,7 @@ class RewardsCfg:
     # task terms
     end_effector_position_tracking = RewTerm(
         func=mdp.position_command_error,
-        weight=3,#0.002,
+        weight=2.4,#0.002,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
     # command_error_tanh = RewTerm(
@@ -165,7 +148,7 @@ class RewardsCfg:
     # )
     position_orientation_command_error = RewTerm(
         func=mdp.position_orientation_command_error,
-        weight=4.0,
+        weight=3.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-100.0)
