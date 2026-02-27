@@ -53,7 +53,7 @@ CLIP_ACTIONS = 50.0
 def main():
     """Main function."""
     # load the trained jit policy
-    policy_path = "./logs/rsl_rl/ptcontainer/policy.pt"
+    policy_path = "./logs/rsl_rl/g1_rough/2026-02-23_10-41-29/exported/policy.pt"
     policy_run = torch.jit.load(policy_path, map_location="cpu")
     # env
     env_cfg = G1RoughEnvCfg_PLAY()
