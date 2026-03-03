@@ -34,10 +34,10 @@ class RslRlDistillationStudentTeacherCfg:
     teacher_hidden_dims: list[int] = MISSING
     """The hidden dimensions of the teacher network."""
 
-    num_obs_teacher: int | None = None
-    """Observation dimension for the teacher network. If None, teacher uses same as env (num_obs).
-    Set this when loading a teacher checkpoint trained with a different obs dim (e.g. 278) than
-    the current env (e.g. 269) so that the teacher network is built with the correct input size."""
+    # num_obs_teacher: int | None = None
+    # """Observation dimension for the teacher network. If None, teacher uses same as env (num_obs).
+    # Set this when loading a teacher checkpoint trained with a different obs dim (e.g. 278) than
+    # the current env (e.g. 269) so that the teacher network is built with the correct input size."""
 
     activation: str = MISSING
     """The activation function for the student and teacher networks."""

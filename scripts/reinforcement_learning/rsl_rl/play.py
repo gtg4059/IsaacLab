@@ -69,7 +69,7 @@ from isaaclab.utils.dict import print_dict
 from isaaclab.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
 
 from isaaclab_rl.rsl_rl import (
-    RslRlObsPaddingWrapper,
+    # RslRlObsPaddingWrapper,
     RslRlOnPolicyRunnerCfg,
     RslRlVecEnvWrapper,
     export_policy_as_jit,
@@ -137,33 +137,33 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # wrap around environment for rsl-rl
     env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
-    # If checkpoint has different obs dim (e.g. distillation 278 vs env 269), pad obs so load succeeds
-    try:
-        ckpt = torch.load(resume_path, map_location="cpu", weights_only=True)
-    except TypeError:
-        ckpt = torch.load(resume_path, map_location="cpu")
-    state_dict = ckpt.get("model_state_dict", ckpt)
-    if isinstance(state_dict, dict):
-        if "student.0.weight" in state_dict:
-            ckpt_obs_dim = state_dict["student.0.weight"].shape[1]
-        elif "actor.0.weight" in state_dict:
-            ckpt_obs_dim = state_dict["actor.0.weight"].shape[1]
-        else:
-            ckpt_obs_dim = None
-        if ckpt_obs_dim is not None and ckpt_obs_dim > env.num_obs:
-            env = RslRlObsPaddingWrapper(env, ckpt_obs_dim)
-            print(f"[INFO]: Obs padding for checkpoint: env num_obs {env.env.num_obs} -> {ckpt_obs_dim}")
-    del ckpt
+    # # If checkpoint has different obs dim (e.g. distillation 278 vs env 269), pad obs so load succeeds
+    # try:
+    #     ckpt = torch.load(resume_path, map_location="cpu", weights_only=True)
+    # except TypeError:
+    #     ckpt = torch.load(resume_path, map_location="cpu")
+    # state_dict = ckpt.get("model_state_dict", ckpt)
+    # if isinstance(state_dict, dict):
+    #     if "student.0.weight" in state_dict:
+    #         ckpt_obs_dim = state_dict["student.0.weight"].shape[1]
+    #     elif "actor.0.weight" in state_dict:
+    #         ckpt_obs_dim = state_dict["actor.0.weight"].shape[1]
+    #     else:
+    #         ckpt_obs_dim = None
+    #     if ckpt_obs_dim is not None and ckpt_obs_dim > env.num_obs:
+    #         env = RslRlObsPaddingWrapper(env, ckpt_obs_dim)
+    #         print(f"[INFO]: Obs padding for checkpoint: env num_obs {env.env.num_obs} -> {ckpt_obs_dim}")
+    # del ckpt
 
-    # Fallback: config num_obs_teacher (e.g. when checkpoint format differs)
-    if (
-        getattr(agent_cfg.policy, "num_obs_teacher", None) is not None
-        and agent_cfg.policy.num_obs_teacher > env.num_obs
-    ):
-        env = RslRlObsPaddingWrapper(env, agent_cfg.policy.num_obs_teacher)
-        print(
-            f"[INFO]: Obs padding from config: env num_obs {env.env.num_obs} -> {agent_cfg.policy.num_obs_teacher}"
-        )
+    # # Fallback: config num_obs_teacher (e.g. when checkpoint format differs)
+    # if (
+    #     getattr(agent_cfg.policy, "num_obs_teacher", None) is not None
+    #     and agent_cfg.policy.num_obs_teacher > env.num_obs
+    # ):
+    #     env = RslRlObsPaddingWrapper(env, agent_cfg.policy.num_obs_teacher)
+    #     print(
+    #         f"[INFO]: Obs padding from config: env num_obs {env.env.num_obs} -> {agent_cfg.policy.num_obs_teacher}"
+    #     )
 
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
     # load previously trained model
