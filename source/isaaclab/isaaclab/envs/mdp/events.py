@@ -41,23 +41,32 @@ def apply_base_force_command(
     env_ids: torch.Tensor | None,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     command_name: str = "base_force",
-    body_name: str = "torso_link",
+    body_name: str | None = None,
+    body_names: list[str] | str | None = None,
 ):
-    """Apply the current base_force command to the robot as external force on the given body.
+    """Apply the current base_force command to the robot as external force on the given body/bodies.
 
     This should be used as an interval event (e.g. interval_range_s=(0.0, 0.0)) so that
     each step the command is written into the robot's external force buffer and then
     applied in the next physics step via write_data_to_sim().
 
-    The command is in base frame; it is applied to body_name (e.g. torso_link).
+    The command is in base frame. Apply to one body or multiple:
+    - body_name (str): single body, e.g. "torso_link" or ".*_wrist_yaw_link"
+    - body_names (list[str]): multiple bodies; order is preserved. Same force (fx,fy,fz) is applied
+      to each body. Example: [".*_wrist_yaw_link", ".*_knee_link"]
     """
     asset = env.scene[asset_cfg.name]
     force_cmd = env.command_manager.get_command(command_name)  # (N, 3)
-    body_ids = asset.find_bodies(body_name)[0]
-    body_id = body_ids[0] if isinstance(body_ids, (list, tuple)) else body_ids
-    forces = force_cmd.unsqueeze(1)  # (N, 1, 3)
+    if body_names is not None:
+        keys = body_names if isinstance(body_names, (list, tuple)) else [body_names]
+        body_ids = list(asset.find_bodies(keys, preserve_order=True)[0])
+    else:
+        name = body_name if body_name is not None else "torso_link"
+        body_ids = asset.find_bodies(name)[0]
+        body_ids = [body_ids[0]] if isinstance(body_ids, (list, tuple)) else [body_ids]
+    forces = force_cmd.unsqueeze(1).expand(-1, len(body_ids), -1)  # (N, num_bodies, 3)
     torques = torch.zeros_like(forces, device=forces.device)
-    asset.set_external_force_and_torque(forces, torques, env_ids=env_ids, body_ids=[body_id])
+    asset.set_external_force_and_torque(forces, torques, env_ids=env_ids, body_ids=body_ids)
 
 
 def randomize_rigid_body_scale(

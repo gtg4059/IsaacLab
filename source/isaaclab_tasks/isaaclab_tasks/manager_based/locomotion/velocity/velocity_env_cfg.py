@@ -120,20 +120,21 @@ class CommandsCfg:
     #     ),
     # )
 
-
+    # base_force: body_name(단일) 또는 body_names(복수) 지원.
+    # body_names 사용 시 리스트 순서가 적용 순서(preserve_order=True). 동일 (fx,fy,fz)가 각 body에 적용됨.
     base_force = mdp.UniformForceCommandCfg(
         asset_name="robot",
-        body_name="torso_link",
+        # body_name=".*_wrist_yaw_link",#"torso_link",
+        body_names=["left_wrist_yaw_link", "right_wrist_yaw_link"],
         resampling_time_range=(5.0, 5.0), #(10.0, 10.0),
         apply_probability=0.5,#0.6,
-        # force_z_scale=0.5,#0.5,
         debug_vis_height_offset=0.02,
         debug_vis=True,
         ranges=mdp.UniformForceCommandCfg.Ranges(
             # fx, fy, fz in base frame. 초기 0 → 커리큘럼(rough_env_cfg)에서 목표(~60)까지 증가
-            force_range_fx=(-50.0, 50.0),
-            force_range_fy=(-50.0, 50.0),
-            force_range_fz=(-10.0, 10.0),
+            force_range_fx=(-10.0, 10.0),#(-50.0, 50.0),
+            force_range_fy=(-10.0, 10.0),#(-50.0, 50.0),
+            force_range_fz=(-1.0, 1.0),
             duration_range_s=(2.5, 3.5),
             interval_range_s=(0.0, 2.0),
         ),
@@ -613,7 +614,8 @@ class EventCfg:
         params={
             "asset_cfg": SceneEntityCfg("robot"),
             "command_name": "base_force",
-            "body_name": "torso_link",
+            # "body_name": ".*_wrist_yaw_link",#"torso_link",
+            "body_names": ["left_wrist_yaw_link", "right_wrist_yaw_link"],
         },
     )
 #     # reset_arm_position = EventTerm(
@@ -659,9 +661,9 @@ class RewardsCfg:
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0) # -2.0, 0.2
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6)# -1.0e-8, -1.0e-6
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-6)# -1.0e-8,-1.0e-6
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.1)
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-8)# -1.0e-8, -1.0e-6
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-8)# -1.0e-8,-1.0e-6
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
     # feet_air_time = RewTerm(
     #     func=mdp.feet_air_time,
     #     weight=0.0, #0.125,
@@ -677,7 +679,7 @@ class RewardsCfg:
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
     )
     # -- optional penalties
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0) # -1.0
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-3.0) # -1.0
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
 
 

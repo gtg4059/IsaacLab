@@ -41,10 +41,16 @@ class UniformForceCommand(CommandTerm):
         # check configuration
 
 
-        # obtain the robot asset
-        # -- robot
+        # obtain the robot asset and body indices (single or multiple)
         self.robot: Articulation = env.scene[cfg.asset_name]
-        self.body_idx = self.robot.find_bodies(cfg.body_name)[0][0] # 필요시
+        if cfg.body_names is not None:
+            body_keys = cfg.body_names
+        elif cfg.body_name is not None:
+            body_keys = [cfg.body_name]
+        else:
+            raise ValueError("UniformForceCommandCfg: set either body_name or body_names.")
+        self.body_indices = list(self.robot.find_bodies(body_keys, preserve_order=True)[0])
+        self.body_idx = self.body_indices[0]  # for debug vis / first body
 
         # crete buffers
         # -- commands: (fx, fy, fz)

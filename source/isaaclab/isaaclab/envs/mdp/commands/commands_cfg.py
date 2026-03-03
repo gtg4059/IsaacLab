@@ -328,8 +328,13 @@ class UniformForceCommandCfg(CommandTermCfg):
     asset_name: str = MISSING #"robot"
     """Name of the asset in the environment for which the commands are generated."""
 
-    body_name: str = MISSING #"base"
-    """Name of the body in the asset for which the commands are generated."""
+    body_name: str | None = None
+    """Name of the body (single) when body_names is not set. One of body_name or body_names must be set."""
+
+    body_names: list[str] | None = None
+    """List of body name patterns (regex) to apply force to. Order is preserved (preserve_order=True).
+    If set, force is applied to all matched bodies with the same (fx,fy,fz) each.
+    Example: [".*_wrist_yaw_link", ".*_knee_link"]."""
 
     apply_probability: float = 0.5
     """Probability of applying force."""
