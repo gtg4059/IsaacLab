@@ -253,15 +253,12 @@ class UniformForceCommand(CommandTerm):
                 self.applied_force_visualizer.set_visibility(False)            
 
 
-    def _debug_vis_callback(self, event):     
+    def _debug_vis_callback(self, event):
         # check if robot is initialized
-        # note: this is needed in-case the robot is de-initialized. we can't access the data
         if not self.robot.is_initialized:
             return
-        # body 위치 (world frame)
-        # cfg.body_name = "base" or "torso_link" 등
-        body_idx = self.robot.find_bodies(self.cfg.body_name)[0][0]
-        body_pos_w = self.robot.data.body_pos_w[:, body_idx]
+        # body 위치 (world frame) — __init__에서 이미 계산한 첫 body 인덱스 사용 (body_name/body_names 둘 다 대응)
+        body_pos_w = self.robot.data.body_pos_w[:, self.body_idx]
 
         # 시각화를 위해 약간 위로 띄움 (겹침 방지)
         vis_pos_w = body_pos_w.clone()
