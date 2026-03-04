@@ -51,12 +51,12 @@ def apply_base_force_command(
     applied in the next physics step via write_data_to_sim().
 
     The command is in base frame. Apply to one body or multiple:
-    - body_name (str): single body, e.g. "torso_link" or ".*_wrist_yaw_link"
-    - body_names (list[str]): multiple bodies; order is preserved. Same force (fx,fy,fz) is applied
-      to each body. Example: [".*_wrist_yaw_link", ".*_knee_link"]
+    - body_name (str): single body.
+    - body_names (list[str]): multiple bodies; order preserved. If the command term exposes
+      command_per_body, each body gets its own random force; otherwise the same (fx,fy,fz) is
+      applied to each body.
     """
     asset = env.scene[asset_cfg.name]
-    force_cmd = env.command_manager.get_command(command_name)  # (N, 3)
     if body_names is not None:
         keys = body_names if isinstance(body_names, (list, tuple)) else [body_names]
         body_ids = list(asset.find_bodies(keys, preserve_order=True)[0])
@@ -64,7 +64,12 @@ def apply_base_force_command(
         name = body_name if body_name is not None else "torso_link"
         body_ids = asset.find_bodies(name)[0]
         body_ids = [body_ids[0]] if isinstance(body_ids, (list, tuple)) else [body_ids]
-    forces = force_cmd.unsqueeze(1).expand(-1, len(body_ids), -1)  # (N, num_bodies, 3)
+    cmd_term = env.command_manager.get_term(command_name)
+    if hasattr(cmd_term, "command_per_body"):
+        forces = cmd_term.command_per_body  # (N, num_bodies, 3)
+    else:
+        force_cmd = env.command_manager.get_command(command_name)  # (N, 3)
+        forces = force_cmd.unsqueeze(1).expand(-1, len(body_ids), -1)
     torques = torch.zeros_like(forces, device=forces.device)
     asset.set_external_force_and_torque(forces, torques, env_ids=env_ids, body_ids=body_ids)
 

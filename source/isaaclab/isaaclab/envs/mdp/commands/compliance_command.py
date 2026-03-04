@@ -51,10 +51,11 @@ class UniformForceCommand(CommandTerm):
             raise ValueError("UniformForceCommandCfg: set either body_name or body_names.")
         self.body_indices = list(self.robot.find_bodies(body_keys, preserve_order=True)[0])
         self.body_idx = self.body_indices[0]  # for debug vis / first body
+        self.num_bodies = len(self.body_indices)
 
-        # crete buffers
-        # -- commands: (fx, fy, fz)
-        self.force_command = torch.zeros(self.num_envs, 3, device=self.device)
+        # create buffers: per-body force (각 링크마다 범위 내 랜덤 힘)
+        # -- (num_envs, num_bodies, 3) for fx, fy, fz per link
+        self.force_command = torch.zeros(self.num_envs, self.num_bodies, 3, device=self.device)
         self.force_current = torch.zeros_like(self.force_command)
         
         self.is_force_active = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
@@ -98,7 +99,12 @@ class UniformForceCommand(CommandTerm):
 
     @property
     def command(self) -> torch.Tensor:
-        """Current applied force (base frame). Shape is (num_envs, 3)."""
+        """Net (합력) applied force in base frame. Shape is (num_envs, 3). 보상/관측용."""
+        return self.force_current.sum(dim=1)
+
+    @property
+    def command_per_body(self) -> torch.Tensor:
+        """Per-link force in base frame. Shape is (num_envs, num_bodies, 3). 이벤트 적용용."""
         return self.force_current
 
     """
@@ -112,7 +118,7 @@ class UniformForceCommand(CommandTerm):
         # active = self.is_force_active
         self.metrics["force_active_ratio"] = self.is_force_active.float()
 
-        self.metrics["force_norm"][:] = torch.linalg.norm(self.force_current, dim=1)
+        self.metrics["force_norm"][:] = torch.linalg.norm(self.force_current.sum(dim=1), dim=1)
         # if active.any():
         #     self.metrics["force_norm"] = (
         #         torch.linalg.norm(self.force_current[active], dim=1)
@@ -138,13 +144,15 @@ class UniformForceCommand(CommandTerm):
         apply_envs = ready_envs[apply_mask]
 
         if apply_envs.numel() > 0:
-            ## force components (base frame): fx, fy, fz — like vx, vy, vz for velocity
-            fx = torch.empty(len(apply_envs), device=self.device).uniform_(*self.cfg.ranges.force_range_fx)
-            fy = torch.empty(len(apply_envs), device=self.device).uniform_(*self.cfg.ranges.force_range_fy)
-            fz = torch.empty(len(apply_envs), device=self.device).uniform_(*self.cfg.ranges.force_range_fz)
-            self.force_command[apply_envs, 0] = fx
-            self.force_command[apply_envs, 1] = fy
-            self.force_command[apply_envs, 2] = fz
+            ## 각 링크마다 범위 내 독립 랜덤 힘 (base frame fx, fy, fz)
+            n_apply = len(apply_envs)
+            for b in range(self.num_bodies):
+                fx = torch.empty(n_apply, device=self.device).uniform_(*self.cfg.ranges.force_range_fx)
+                fy = torch.empty(n_apply, device=self.device).uniform_(*self.cfg.ranges.force_range_fy)
+                fz = torch.empty(n_apply, device=self.device).uniform_(*self.cfg.ranges.force_range_fz)
+                self.force_command[apply_envs, b, 0] = fx
+                self.force_command[apply_envs, b, 1] = fy
+                self.force_command[apply_envs, b, 2] = fz
             self.force_current[apply_envs].zero_()
             self.is_force_active[apply_envs] = True
 
@@ -177,9 +185,8 @@ class UniformForceCommand(CommandTerm):
         ramp_mask = (self.phase == PHASE_RAMP) & active_mask
         if ramp_mask.any():
             ratio = torch.clamp(self.force_timer[ramp_mask] / self.ramp_duration[ramp_mask], 0.0, 1.0)
-            # 계단 함수 로직 (제공해주신 방식 유지)
             scale = torch.where(ratio < 0.33, 0.0, torch.where(ratio < 0.66, 0.5, 1.0))
-            self.force_current[ramp_mask] = scale.unsqueeze(1) * self.force_command[ramp_mask]
+            self.force_current[ramp_mask] = scale.unsqueeze(1).unsqueeze(2) * self.force_command[ramp_mask]
             
             # 다음 페이즈로 전환
             done_ramp = self.force_timer[ramp_mask] >= self.ramp_duration[ramp_mask]
@@ -198,11 +205,10 @@ class UniformForceCommand(CommandTerm):
         # 3. SETTLING PHASE
         settling_mask = (self.phase == PHASE_SETTLING) & active_mask
         if settling_mask.any():
-            # Settling 전용 타이머 계산 (Active 종료 시점부터의 시간)
             settling_time = self.force_timer[settling_mask] - (self.force_duration[settling_mask] - self.settling_duration[settling_mask])
             ratio = torch.clamp(settling_time / self.settling_duration[settling_mask], 0.0, 1.0)
             scale = torch.where(ratio < 0.33, 1.0, torch.where(ratio < 0.66, 0.5, 0.0))
-            self.force_current[settling_mask] = scale.unsqueeze(1) * self.force_command[settling_mask]
+            self.force_current[settling_mask] = scale.unsqueeze(1).unsqueeze(2) * self.force_command[settling_mask]
 
             # 종료 처리
             done = settling_time >= self.settling_duration[settling_mask]
@@ -254,27 +260,28 @@ class UniformForceCommand(CommandTerm):
 
 
     def _debug_vis_callback(self, event):
-        # check if robot is initialized
         if not self.robot.is_initialized:
             return
-        # body 위치 (world frame) — __init__에서 이미 계산한 첫 body 인덱스 사용 (body_name/body_names 둘 다 대응)
-        body_pos_w = self.robot.data.body_pos_w[:, self.body_idx]
-
-        # 시각화를 위해 약간 위로 띄움 (겹침 방지)
-        vis_pos_w = body_pos_w.clone()
-        vis_pos_w[:, 2] += getattr(self.cfg, "debug_vis_height_offset", 0.0)
-
-        # force command (base frame)
-        force_b = self.force_current  # (num_envs, 3)
-
-        # arrow scale & orientation 계산
-        arrow_scale, arrow_quat = self._resolve_force_to_arrow(force_b)
-
-        # marker 표시
+        # 링크별로 다른 힘이 적용되므로 각 body 위치에 해당 링크의 힘 크기/방향으로 화살표 표시
+        offset = getattr(self.cfg, "debug_vis_height_offset", 0.0)
+        pos_list = []
+        scale_list = []
+        quat_list = []
+        for b in range(self.num_bodies):
+            force_b = self.force_current[:, b, :]  # (num_envs, 3)
+            arrow_scale, arrow_quat = self._resolve_force_to_arrow(force_b)
+            pos_w = self.robot.data.body_pos_w[:, self.body_indices[b]].clone()
+            pos_w[:, 2] += offset
+            pos_list.append(pos_w)
+            scale_list.append(arrow_scale)
+            quat_list.append(arrow_quat)
+        vis_pos_w = torch.stack(pos_list, dim=0).permute(1, 0, 2).reshape(-1, 3)
+        vis_scale = torch.stack(scale_list, dim=0).permute(1, 0, 2).reshape(-1, 3)
+        vis_quat = torch.stack(quat_list, dim=0).permute(1, 0, 2).reshape(-1, 4)
         self.applied_force_visualizer.visualize(
             translations=vis_pos_w,
-            orientations=arrow_quat,
-            scales=arrow_scale,
+            orientations=vis_quat,
+            scales=vis_scale,
         )
     """
     Internal helpers.

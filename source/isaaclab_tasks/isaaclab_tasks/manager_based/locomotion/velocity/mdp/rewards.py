@@ -497,9 +497,13 @@ def tracking_lin_vel_force_reward(
     vel_clip: float = 0.01,
     force_min_threshold: float = 0.5,
 ) -> torch.Tensor:
-    """속도 명령 + 외력 보상(v = v_cmd + F/damping)을 추적하는 보상. 외력 크기를 반영함."""
+    """속도 명령 + 외력 보상(v = v_cmd + F/damping)을 추적하는 보상.
+
+    여러 링크에 외력이 있을 때는 합력(net force)을 사용하므로 상쇄가 반영됨.
+    force_command는 (N, 3) 합력으로 전달됨.
+    """
     asset: Articulation = env.scene[asset_cfg.name]
-    # 1. 외력 커맨드 (Base frame, fx fy fz) 및 크기
+    # 1. 외력 커맨드: 합력 (Base frame, fx fy fz) — 복수 링크 시 상쇄 반영
     force_cmd_full = env.command_manager.get_command(force_command_name)  # [N, 3]
     force_norm = torch.norm(force_cmd_full, dim=1)  # [N]
     # 2. 외력이 거의 없으면 중립 보상(1.0) — 커리큘럼 초반/외력 0일 때 추적 패널티 없음
@@ -534,20 +538,21 @@ def compliance_with_external_force_reward(
 ) -> torch.Tensor:
     """외력 방향에 순응해서 살짝 이동하도록 하는 보상 함수.
 
+    - 여러 링크에서 여러 외력을 받을 때는 합력(상쇄 고려)을 사용하여, 합력에 따라
+      따라가는 듯이 행동할 때 보상이 커지도록 함.
     - 외력이 충분히 클 때만 활성화됨.
     - 외력 방향과 실제 base 속도 방향이 같을수록 보상이 커짐.
     - 힘과 속도가 정확히 반대면(=힘에 저항) 보상이 0에 가까움.
     """
-
     asset: Articulation = env.scene[asset_cfg.name]
 
     # 1. 실제 base 선속도 (base frame XY)
     vel_actual = asset.data.root_lin_vel_b[:, :2]  # [N, 2]
     vel_norm = torch.norm(vel_actual, dim=1)       # [N]
 
-    # 2. 외력: 커맨드 사용(권장) 또는 contact 센서
+    # 2. 외력: 커맨드 사용 시 합력 [N, 3] (복수 링크 시 상쇄 반영) 또는 contact 센서
     if force_command_name is not None:
-        forces_local_base = env.command_manager.get_command(force_command_name)  # [N, 3] base frame
+        forces_local_base = env.command_manager.get_command(force_command_name)  # [N, 3] net force, base frame
     else:
         forces_local_base = torch.zeros((env.num_envs, 3), device=vel_actual.device)
         contact_sensor = None

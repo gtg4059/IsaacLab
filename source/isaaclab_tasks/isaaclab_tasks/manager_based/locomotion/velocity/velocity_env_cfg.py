@@ -134,7 +134,7 @@ class CommandsCfg:
             # fx, fy, fz in base frame. 초기 0 → 커리큘럼(rough_env_cfg)에서 목표(~60)까지 증가
             force_range_fx=(-10.0, 10.0),#(-50.0, 50.0),
             force_range_fy=(-10.0, 10.0),#(-50.0, 50.0),
-            force_range_fz=(-1.0, 1.0),
+            force_range_fz=(-1.0, 1.0),# (-30.0, 30.0),
             duration_range_s=(2.5, 3.5),
             interval_range_s=(0.0, 2.0),
         ),
@@ -146,27 +146,7 @@ class CommandsCfg:
     #     ranges=mdp.UniformPoseCommandCfg.Ranges(
     #         # pos_x=(-0.1, 0.1), pos_y=(-0.1, 0.1), pos_z=(-0.1, 0.1), roll=(-0.5, 0.5), pitch=(-0.5, 0.5), yaw=(-3.14, 3.14)
     #     ),
-    # )
-
-
-    # base_force = mdp.RbaseForceCommandCfg(
-    #     asset_name="robot",
-    #     body_name="torso_link",
-    #     resampling_time_range=(5.0, 5.0),
-    #     interval_range_s_cmd=(3.5, 9.0),
-    #     duration_range_s_cmd=(1.0, 3.0),
-    #     base_forced_prob_cmd=0.1, #0.8,
-    #     interval_range_s_ext=(6.0, 12.0),
-    #     duration_range_s_ext=(1.0, 3.0),
-    #     base_forced_prob_ext=0.1, #0.8,
-    #     force_range_cmd=(0.0, 0.1), #(-50.0, 50.0),
-    #     force_range_ext=(0.0, 0.1), #(-50.0, 50.0),
-    #     settling_time_force_gripper_s=3.0,
-    #     gripper_force_kp=(200.0, 200.0),
-    #     gripper_force_kd=(200.0, 200.0),
-    #     base_prop_kd=0.1,
-    #     force_z_ext_scale=0.1,
-    # )    
+    # )  
 
 @configclass
 class ActionsCfg:
