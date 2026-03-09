@@ -474,8 +474,8 @@ class EventCfg:
                                                              'right_wrist_pitch_link', 
                                                              'left_wrist_yaw_link', 
                                                              'right_wrist_yaw_link']),
-            "static_friction_range": (0.2, 1.3),
-            "dynamic_friction_range": (0.2, 1.3),
+            "static_friction_range": (0.5, 1.3),
+            "dynamic_friction_range": (0.5, 1.3),
             "restitution_range": (0.0, 0.4),
             "num_buckets": 256,
             "make_consistent": True
