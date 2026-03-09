@@ -10,6 +10,7 @@ from .rough_env_cfg import G1RoughEnvCfg
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
+from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import CurriculumCfg
 import math
 
 @configclass

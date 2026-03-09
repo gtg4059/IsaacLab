@@ -201,7 +201,6 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # start at minimum terrain difficulty (curriculum increases after min_steps)
         self.scene.terrain.max_init_terrain_level = 0
         # self.curriculum.terrain_levels = None
-        # self.curriculum.terrain_levels = None
         # Randomization
         self.events.reset_base.params = {
             "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
@@ -244,10 +243,19 @@ class G1RoughEnvCfg_PLAY(G1RoughEnvCfg):
         # spawn only on easiest terrain (minimum difficulty)
         self.scene.terrain.max_init_terrain_level = 0
         # reduce the number of terrains to save memory
-        if self.scene.terrain.terrain_generator is not None:
-            self.scene.terrain.terrain_generator.num_rows = 5
-            self.scene.terrain.terrain_generator.num_cols = 5
-            self.scene.terrain.terrain_generator.curriculum = False
+        # if self.scene.terrain.terrain_generator is not None:
+        #     self.scene.terrain.terrain_generator.num_rows = 5
+        #     self.scene.terrain.terrain_generator.num_cols = 5
+        #     self.scene.terrain.terrain_generator.curriculum = False
+
+        self.scene.terrain.terrain_type = "plane"
+        self.scene.terrain.terrain_generator = None
+        self.curriculum.terrain_levels = None
+
+        self.commands.base_velocity.ranges.lin_vel_x = (0.0, 0.0)
+        self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
+        self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
+        self.events.push_robot = None
 
         # disable randomization for play
         self.observations.policy.enable_corruption = False
