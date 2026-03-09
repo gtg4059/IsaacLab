@@ -83,6 +83,15 @@ class UniformForceCommand(CommandTerm):
         # -- initial interval sample
         self.interval.uniform_(*cfg.ranges.interval_range_s)
 
+        # 링크별 힘 범위: force_ranges_per_link가 있으면 사용, 없으면 전역 fx/fy/fz 범위를 모든 링크에 적용
+        pr = getattr(cfg.ranges, "force_ranges_per_link", None)
+        if pr is not None and len(pr) == self.num_bodies:
+            self._force_ranges_per_link = list(pr)
+        else:
+            self._force_ranges_per_link = [
+                (cfg.ranges.force_range_fx, cfg.ranges.force_range_fy, cfg.ranges.force_range_fz)
+            ] * self.num_bodies
+
     def __str__(self) -> str:
         """Return a string representation of the command generator."""
         msg = "UniformForceCommand:\n"
@@ -144,12 +153,13 @@ class UniformForceCommand(CommandTerm):
         apply_envs = ready_envs[apply_mask]
 
         if apply_envs.numel() > 0:
-            ## 각 링크마다 범위 내 독립 랜덤 힘 (base frame fx, fy, fz)
+            ## 각 링크마다 설정된 범위(또는 전역 범위) 내 독립 랜덤 힘 (base frame fx, fy, fz)
             n_apply = len(apply_envs)
             for b in range(self.num_bodies):
-                fx = torch.empty(n_apply, device=self.device).uniform_(*self.cfg.ranges.force_range_fx)
-                fy = torch.empty(n_apply, device=self.device).uniform_(*self.cfg.ranges.force_range_fy)
-                fz = torch.empty(n_apply, device=self.device).uniform_(*self.cfg.ranges.force_range_fz)
+                fx_r, fy_r, fz_r = self._force_ranges_per_link[b]
+                fx = torch.empty(n_apply, device=self.device).uniform_(*fx_r)
+                fy = torch.empty(n_apply, device=self.device).uniform_(*fy_r)
+                fz = torch.empty(n_apply, device=self.device).uniform_(*fz_r)
                 self.force_command[apply_envs, b, 0] = fx
                 self.force_command[apply_envs, b, 1] = fy
                 self.force_command[apply_envs, b, 2] = fz

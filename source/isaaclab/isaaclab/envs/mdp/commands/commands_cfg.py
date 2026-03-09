@@ -368,6 +368,11 @@ class UniformForceCommandCfg(CommandTermCfg):
         """Range for the interval between force applications (in seconds).
         resampling time_range > interval_range_s."""
 
+        force_ranges_per_link: list | None = None
+        """Optional. 링크별 힘 크기/방향 범위. 리스트 길이는 body_names(또는 body_name 1개) 개수와 같아야 함.
+        각 원소: ((fx_min, fx_max), (fy_min, fy_max), (fz_min, fz_max)) (base frame, N).
+        None이면 모든 링크에 force_range_fx, force_range_fy, force_range_fz 사용."""
+
     ranges: Ranges = MISSING
     """Distribution ranges for the force commands."""    
 

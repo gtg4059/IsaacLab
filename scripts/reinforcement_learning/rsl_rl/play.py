@@ -8,6 +8,8 @@
 """Launch Isaac Sim Simulator first."""
 
 import argparse
+import csv
+import os
 import sys
 
 from isaaclab.app import AppLauncher
@@ -31,6 +33,12 @@ parser.add_argument(
     help="Use the pre-trained checkpoint from Nucleus.",
 )
 parser.add_argument("--real-time", action="store_true", default=False, help="Run in real-time, if possible.")
+parser.add_argument(
+    "--log_csv",
+    type=str,
+    default=None,
+    help="If set, save robot joint data and command application timing to this CSV path (e.g. play_log.csv).",
+)
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
@@ -190,10 +198,55 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     )
 
     dt = env.unwrapped.step_dt
+    base_env = env.unwrapped
+
+    # Optional CSV logging: env별로 별도 파일 (env_id 0 → name_env0.csv, env_id 1 → name_env1.csv, ...)
+    csv_files = []
+    csv_writers = []
+    if args_cli.log_csv:
+        log_path = os.path.abspath(args_cli.log_csv)
+        log_dir = os.path.dirname(log_path) or "."
+        log_base = os.path.splitext(os.path.basename(log_path))[0]
+        os.makedirs(log_dir, exist_ok=True)
+        robot = base_env.scene["robot"]
+        num_envs = base_env.num_envs
+        jpos = robot.data.joint_pos
+        num_joints = jpos.shape[1]
+        jnames = getattr(robot.data, "joint_names", None)
+        j_prefix = (lambda i: jnames[i] if jnames and i < len(jnames) else f"j{i}")
+        # 링크별 외력 컬럼: base_force에 command_per_body가 있으면 링크 수만큼 x, y, z, norm 추가
+        force_term = base_env.command_manager.get_term("base_force")
+        num_force_links = 0
+        if hasattr(force_term, "command_per_body"):
+            per_body = force_term.command_per_body
+            num_force_links = per_body.shape[1]
+        link_force_cols = []
+        for b in range(num_force_links):
+            link_force_cols += [f"force_link{b}_x", f"force_link{b}_y", f"force_link{b}_z", f"force_link{b}_norm"]
+        header = (
+            ["step", "sim_time"]
+            + [f"joint_pos_{j_prefix(i)}" for i in range(num_joints)]
+            + [f"joint_vel_{j_prefix(i)}" for i in range(num_joints)]
+            + ["root_lin_vel_x", "root_lin_vel_y", "root_lin_vel_z"]
+            + ["root_ang_vel_x", "root_ang_vel_y", "root_ang_vel_z"]
+            + ["vel_cmd_x", "vel_cmd_y", "ang_vel_cmd_z"]
+            + ["force_cmd_x", "force_cmd_y", "force_cmd_z"]
+            + link_force_cols
+            + ["force_active"]
+        )
+        for e in range(num_envs):
+            fpath = os.path.join(log_dir, f"{log_base}_env{e}.csv")
+            f = open(fpath, "w", newline="")
+            w = csv.writer(f)
+            w.writerow(header)
+            csv_files.append(f)
+            csv_writers.append(w)
+        print(f"[INFO] Logging play data to {num_envs} CSV files: {log_dir}/{log_base}_env0.csv ... {log_base}_env{num_envs-1}.csv")
 
     # reset environment
     obs, _ = env.get_observations()
     timestep = 0
+    log_step = 0
     # simulate environment
     while simulation_app.is_running():
         start_time = time.time()
@@ -209,12 +262,59 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             if timestep == args_cli.video_length:
                 break
 
+        # CSV log: 각 env별 파일에 해당 로봇 데이터 + 링크별 외력 한 줄씩 기록
+        if csv_writers:
+            robot = base_env.scene["robot"]
+            cm = base_env.command_manager
+            sim_time = log_step * dt
+            vel_cmd = cm.get_command("base_velocity").detach().cpu().numpy()
+            force_cmd = cm.get_command("base_force").detach().cpu().numpy()
+            force_term = cm.get_term("base_force")
+            force_active = force_term.is_force_active.detach().cpu().numpy()
+            jpos_np = robot.data.joint_pos.detach().cpu().numpy()
+            jvel_np = robot.data.joint_vel.detach().cpu().numpy()
+            root_lin = robot.data.root_lin_vel_b.detach().cpu().numpy()
+            root_ang = robot.data.root_ang_vel_b.detach().cpu().numpy()
+            # 링크별 외력 (num_envs, num_links, 3) → norm 포함해 row에 붙일 리스트
+            if hasattr(force_term, "command_per_body"):
+                per_body = force_term.command_per_body.detach().cpu().numpy()
+                num_links = per_body.shape[1]
+            else:
+                per_body = None
+                num_links = 0
+            for e in range(base_env.num_envs):
+                row = (
+                    [log_step, sim_time]
+                    + jpos_np[e].tolist()
+                    + jvel_np[e].tolist()
+                    + root_lin[e].tolist()
+                    + root_ang[e].tolist()
+                    + vel_cmd[e].tolist()
+                    + force_cmd[e].tolist()
+                )
+                if per_body is not None:
+                    for b in range(num_links):
+                        fx, fy, fz = per_body[e, b, 0], per_body[e, b, 1], per_body[e, b, 2]
+                        norm = (fx * fx + fy * fy + fz * fz) ** 0.5
+                        row += [fx, fy, fz, norm]
+                row += [int(force_active[e])]
+                csv_writers[e].writerow(row)
+            for f in csv_files:
+                f.flush()
+            log_step += 1
+
         # time delay for real-time evaluation
         sleep_time = dt - (time.time() - start_time)
         if args_cli.real_time and sleep_time > 0:
             time.sleep(sleep_time)
 
     # close the simulator
+    if csv_files:
+        for f in csv_files:
+            f.close()
+        log_dir = os.path.dirname(os.path.abspath(args_cli.log_csv)) or "."
+        log_base = os.path.splitext(os.path.basename(args_cli.log_csv))[0]
+        print(f"[INFO] CSV saved (steps={log_step}): {log_dir}/{log_base}_env0.csv ... env{len(csv_files)-1}.csv")
     env.close()
 
 
