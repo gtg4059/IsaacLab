@@ -154,38 +154,38 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     terrain_levels = CurrTerm(
         func=mdp.terrain_levels_step_schedule,
         params={
-            "step_interval": 20000*8,
+            "step_interval": 2000*8,
             "percent_per_interval": 0.2,
             "min_steps": 0,
         },
     ) 
     foot_clearance_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 20000*8}
+        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 4000*8}
     )
     feet_land_time_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "feet_land_time", "weight": 2.0, "num_steps": 20000*8}
+        params={"term_name": "feet_land_time", "weight": 2.0, "num_steps": 4000*8}
     )
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "contact_forces", "weight": -0.0000002, "num_steps": 120000*8}
+        params={"term_name": "contact_forces", "weight": -0.0000002, "num_steps": 12000*8}
     )
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.01, "num_steps": 120000*8}
+        params={"term_name": "action_rate_l2", "weight": -0.01, "num_steps": 12000*8}
     )
     dof_acc_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_acc_l2", "weight": -1.0e-7, "num_steps": 120000*8}
+        params={"term_name": "dof_acc_l2", "weight": -1.0e-7, "num_steps": 12000*8}
     )
     dof_torques_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 120000*8}
+        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 12000*8}
     )
     joint_deviation_hip_yaw_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 120000*8}
+        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 12000*8}
     )
 
 @configclass
@@ -196,7 +196,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # post init of parent
         super().__post_init__()
         # Scene
-        self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot = G1_DEX_EASY.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
         # start at minimum terrain difficulty (curriculum increases after min_steps)
         self.scene.terrain.max_init_terrain_level = 0
@@ -218,8 +218,10 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # no height scan
         # self.scene.height_scanner = None
         # reward for init model file
-        self.commands.base_velocity.ranges.lin_vel_x = (0.0, 2.0)
-        self.commands.base_velocity.ranges.lin_vel_y = (-0.01, 0.01)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, 2.0)
+        # self.commands.base_velocity.ranges.lin_vel_y = (-0.01, 0.01)
+        self.rewards.base_height.weight = -10.0
+        self.rewards.base_height.params["target_height"] = 0.72
         self.rewards.foot_clearance.weight = 0.75
         self.rewards.feet_land_time.weight = 0.0
         self.rewards.contact_forces.weight = 0.0
@@ -227,6 +229,15 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.dof_acc_l2.weight = 0.0
         self.rewards.dof_torques_l2.weight = 0.0
         self.rewards.joint_deviation_hip_yaw.weight = -1.0
+
+        self.events.randomize_friction.params["asset_cfg"].body_names = [".*_ankle_roll_link"]
+        self.events.randomize_joint_param = None
+        self.events.randomize_link_mass = None
+        self.events.randomize_base_mass = None
+        self.events.randomize_base_com = None
+        self.events.randomize_pd_gains = None
+        self.events.randomize_motor_zero_offset = None
+
 
 
 
@@ -248,14 +259,14 @@ class G1RoughEnvCfg_PLAY(G1RoughEnvCfg):
         #     self.scene.terrain.terrain_generator.num_cols = 5
         #     self.scene.terrain.terrain_generator.curriculum = False
 
-        self.scene.terrain.terrain_type = "plane"
-        self.scene.terrain.terrain_generator = None
-        self.curriculum.terrain_levels = None
+        # self.scene.terrain.terrain_type = "plane"
+        # self.scene.terrain.terrain_generator = None
+        # self.curriculum.terrain_levels = None
 
-        self.commands.base_velocity.ranges.lin_vel_x = (0.0, 0.0)
-        self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
-        self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
-        self.events.push_robot = None
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, 0.0)
+        # self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
+        # self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
+        # self.events.push_robot = None
 
         # disable randomization for play
         self.observations.policy.enable_corruption = False
