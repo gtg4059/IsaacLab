@@ -108,12 +108,12 @@ class UniformForceCommand(CommandTerm):
 
     @property
     def command(self) -> torch.Tensor:
-        """Net (합력) applied force in base frame. Shape is (num_envs, 3). 보상/관측용."""
+        """Net (합력) applied force in robot base frame. Shape is (num_envs, 3). 보상/관측용."""
         return self.force_current.sum(dim=1)
 
     @property
     def command_per_body(self) -> torch.Tensor:
-        """Per-link force in base frame. Shape is (num_envs, num_bodies, 3). 이벤트 적용용."""
+        """Per-link force in robot base frame. Shape is (num_envs, num_bodies, 3). 이벤트에서 world로 변환 후 적용."""
         return self.force_current
 
     """
@@ -153,7 +153,7 @@ class UniformForceCommand(CommandTerm):
         apply_envs = ready_envs[apply_mask]
 
         if apply_envs.numel() > 0:
-            ## 각 링크마다 설정된 범위(또는 전역 범위) 내 독립 랜덤 힘 (base frame fx, fy, fz)
+            ## 각 링크마다 설정된 범위(또는 전역 범위) 내 독립 랜덤 힘 (로봇 base 좌표계 fx, fy, fz)
             n_apply = len(apply_envs)
             for b in range(self.num_bodies):
                 fx_r, fy_r, fz_r = self._force_ranges_per_link[b]
@@ -278,8 +278,8 @@ class UniformForceCommand(CommandTerm):
         scale_list = []
         quat_list = []
         for b in range(self.num_bodies):
-            force_b = self.force_current[:, b, :]  # (num_envs, 3)
-            arrow_scale, arrow_quat = self._resolve_force_to_arrow(force_b)
+            force_b = self.force_current[:, b, :]  # (num_envs, 3) base frame
+            arrow_scale, arrow_quat = self._resolve_force_to_arrow(force_b, link_quat_w=None)
             pos_w = self.robot.data.body_pos_w[:, self.body_indices[b]].clone()
             pos_w[:, 2] += offset
             pos_list.append(pos_w)
@@ -298,36 +298,25 @@ class UniformForceCommand(CommandTerm):
     """
 
     def _resolve_force_to_arrow(
-        self, force_b: torch.Tensor
+        self, force_b: torch.Tensor, link_quat_w: torch.Tensor | None = None
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        """Convert force vector (base frame) to arrow scale and quaternion (world frame)."""
-
-        # 기본 marker scale
+        """Convert force vector (base frame) to arrow scale and quaternion (world frame).
+        link_quat_w: None이면 base frame으로 해석하고 root_quat_w로 world 변환."""
         default_scale = self.applied_force_visualizer.cfg.markers["arrow"].scale
         arrow_scale = (
             torch.tensor(default_scale, device=self.device)
             .repeat(force_b.shape[0], 1)
         )
-
-        # arrow size about force magnitude
         force_norm = torch.linalg.norm(force_b, dim=1)
         arrow_scale[:, 0] *= force_norm * self.cfg.force_vis_scale
-
-        # force direction base_frame
         force_dir = force_b / (force_norm.unsqueeze(1) + 1e-6)
-
-        # base frame에서 force 방향을 향하는 quaternion
-        # 기본 arrow가 +X 방향을 보고 있다고 가정
         heading = torch.atan2(force_dir[:, 1], force_dir[:, 0])
         pitch = torch.atan2(
             -force_dir[:, 2],
             torch.linalg.norm(force_dir[:, :2], dim=1),
         )
         zeros = torch.zeros_like(heading)
-
         arrow_quat_b = math_utils.quat_from_euler_xyz(zeros, pitch, heading)
-        # base → world 변환
-        base_quat_w = self.robot.data.root_quat_w
-        arrow_quat_w = math_utils.quat_mul(base_quat_w, arrow_quat_b)
-
+        quat_w = link_quat_w if link_quat_w is not None else self.robot.data.root_quat_w
+        arrow_quat_w = math_utils.quat_mul(quat_w, arrow_quat_b)
         return arrow_scale, arrow_quat_w

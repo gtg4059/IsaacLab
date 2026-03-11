@@ -131,17 +131,17 @@ class CommandsCfg:
         debug_vis_height_offset=0.02,
         debug_vis=True,
         ranges=mdp.UniformForceCommandCfg.Ranges(
-            # fx, fy, fz in base frame. 초기 0 → 커리큘럼(rough_env_cfg)에서 목표(~60)까지 증가
-            force_range_fx=(-50.0, 50.0),#(-50.0, 50.0),
-            force_range_fy=(-50.0, 50.0),#(-50.0, 50.0),
-            force_range_fz=(-40.0, 40.0),# (-30.0, 30.0),
+            # 전역 범위 (force_ranges_per_link 미사용 시 모든 링크에 적용; 검증 필수)
+            force_range_fx=(-50.0, 50.0),
+            force_range_fy=(-50.0, 50.0),
+            force_range_fz=(-40.0, 40.0),
             duration_range_s=(2.5, 3.5),
             interval_range_s=(0.0, 2.0),
-            # 링크별 크기/방향: body_names 순서대로. None이면 위 fx/fy/fz를 모든 링크에 적용
-            # force_ranges_per_link=[
-            #     ((-30.0, 30.0), (0.0, 0.0), (-10.0, 10.0)),   # left_wrist: 주로 x,z
-            #     ((0.0, 0.0), (-30.0, 30.0), (-10.0, 10.0)),  # right_wrist: 주로 y,z
-            # ],
+            # 링크별 크기/방향: body_names 순서대로. 설정 시 위 전역 fx/fy/fz 대신 사용
+            force_ranges_per_link=[
+                ((-5.0, 5.0), (-5.0, 10.0), (-10.0, 10.0)),   # left_wrist (base frame)
+                ((-5.0, 5.0), (-10.0, -5.0), (-10.0, 10.0)),  # right_wrist (fy 범위 수정: 10.0,5.0→-10,-5)
+            ],
         ),
     )
 
@@ -646,9 +646,9 @@ class RewardsCfg:
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0) # -2.0, 0.2
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6)# -1.0e-8, -1.0e-6
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-6)# -1.0e-8,-1.0e-6
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-8)# -1.0e-8, -1.0e-6
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-8)# -1.0e-8,-1.0e-6
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
     # feet_air_time = RewTerm(
     #     func=mdp.feet_air_time,
     #     weight=0.0, #0.125,

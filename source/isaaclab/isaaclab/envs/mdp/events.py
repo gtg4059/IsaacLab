@@ -46,15 +46,8 @@ def apply_base_force_command(
 ):
     """Apply the current base_force command to the robot as external force on the given body/bodies.
 
-    This should be used as an interval event (e.g. interval_range_s=(0.0, 0.0)) so that
-    each step the command is written into the robot's external force buffer and then
-    applied in the next physics step via write_data_to_sim().
-
-    The command is in base frame. Apply to one body or multiple:
-    - body_name (str): single body.
-    - body_names (list[str]): multiple bodies; order preserved. If the command term exposes
-      command_per_body, each body gets its own random force; otherwise the same (fx,fy,fz) is
-      applied to each body.
+    Command (fx, fy, fz) is in robot base frame. Converted to world frame and applied with is_global=True
+    so that the same (fx, fy, fz) always corresponds to base x, y, z direction regardless of link pose.
     """
     asset = env.scene[asset_cfg.name]
     if body_names is not None:
@@ -66,12 +59,16 @@ def apply_base_force_command(
         body_ids = [body_ids[0]] if isinstance(body_ids, (list, tuple)) else [body_ids]
     cmd_term = env.command_manager.get_term(command_name)
     if hasattr(cmd_term, "command_per_body"):
-        forces = cmd_term.command_per_body  # (N, num_bodies, 3)
+        forces_b = cmd_term.command_per_body  # (N, num_bodies, 3) base frame
     else:
         force_cmd = env.command_manager.get_command(command_name)  # (N, 3)
-        forces = force_cmd.unsqueeze(1).expand(-1, len(body_ids), -1)
-    torques = torch.zeros_like(forces, device=forces.device)
-    asset.set_external_force_and_torque(forces, torques, env_ids=env_ids, body_ids=body_ids)
+        forces_b = force_cmd.unsqueeze(1).expand(-1, len(body_ids), -1)
+    # base frame → world frame (로봇 base와 같은 방향 유지)
+    root_quat_w = asset.data.root_quat_w  # (N, 4)
+    quat_expand = root_quat_w.unsqueeze(1).expand(-1, forces_b.shape[1], -1)  # (N, num_bodies, 4)
+    forces_world = math_utils.quat_apply(quat_expand, forces_b)  # (N, num_bodies, 3)
+    torques = torch.zeros_like(forces_world, device=forces_world.device)
+    asset.set_external_force_and_torque(forces_world, torques, env_ids=env_ids, body_ids=body_ids, is_global=True)
 
 
 def randomize_rigid_body_scale(

@@ -353,13 +353,13 @@ class UniformForceCommandCfg(CommandTermCfg):
     @configclass
     class Ranges:
         force_range_fx: tuple[float, float] = MISSING
-        """Range for force x-component in base frame (in Newtons). Like lin_vel_x for velocity."""
+        """Range for force x-component in robot base frame (in Newtons)."""
 
         force_range_fy: tuple[float, float] = MISSING
-        """Range for force y-component in base frame (in Newtons). Like lin_vel_y for velocity."""
+        """Range for force y-component in robot base frame (in Newtons)."""
 
         force_range_fz: tuple[float, float] = MISSING
-        """Range for force z-component in base frame (in Newtons). Like vertical component."""
+        """Range for force z-component in robot base frame (in Newtons)."""
 
         duration_range_s: tuple[float, float] = MISSING
         """Range for the duration of force application (in seconds)."""
@@ -370,7 +370,7 @@ class UniformForceCommandCfg(CommandTermCfg):
 
         force_ranges_per_link: list | None = None
         """Optional. 링크별 힘 크기/방향 범위. 리스트 길이는 body_names(또는 body_name 1개) 개수와 같아야 함.
-        각 원소: ((fx_min, fx_max), (fy_min, fy_max), (fz_min, fz_max)) (base frame, N).
+        각 원소: ((fx_min, fx_max), (fy_min, fy_max), (fz_min, fz_max)) (로봇 base 좌표계, N).
         None이면 모든 링크에 force_range_fx, force_range_fy, force_range_fz 사용."""
 
     ranges: Ranges = MISSING
