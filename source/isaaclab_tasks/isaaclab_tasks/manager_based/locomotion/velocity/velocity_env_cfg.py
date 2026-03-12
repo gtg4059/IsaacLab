@@ -124,8 +124,8 @@ class CommandsCfg:
     # body_names 사용 시 리스트 순서가 적용 순서(preserve_order=True). 동일 (fx,fy,fz)가 각 body에 적용됨.
     base_force = mdp.UniformForceCommandCfg(
         asset_name="robot",
-        # body_name=".*_wrist_yaw_link",#"torso_link",
-        body_names=["left_wrist_yaw_link", "right_wrist_yaw_link"],
+        # body_name="torso_link",
+        body_names=["left_wrist_yaw_link", "right_wrist_yaw_link", "torso_link"],
         resampling_time_range=(5.0, 5.0), #(10.0, 10.0),
         apply_probability=0.5,#0.6,
         debug_vis_height_offset=0.02,
@@ -141,6 +141,7 @@ class CommandsCfg:
             force_ranges_per_link=[
                 ((-5.0, 5.0), (-5.0, 10.0), (-10.0, 10.0)),   # left_wrist (base frame)
                 ((-5.0, 5.0), (-10.0, -5.0), (-10.0, 10.0)),  # right_wrist (fy 범위 수정: 10.0,5.0→-10,-5)
+                ((-10.0, 10.0), (-10.0, 10.0), (-10.0, 10.0)),  # torso (fy 범위 수정: 10.0,5.0→-10,-5)
             ],
         ),
     )
@@ -206,11 +207,14 @@ class ObservationsCfg:
 
         ### obs pred histoy_length =3
         ## base_force_local = ObsTerm(func=mdp.force_local, params={"asset_cfg": SceneEntityCfg("robot", body_names="torso_link")},history_length=3)
-        base_orientation = ObsTerm(func=mdp.body_ori_w, 
-                                noise=Unoise(n_min=-0.01, n_max=0.01), history_length=3)  # 3
+        
+        # base_orientation = ObsTerm(func=mdp.body_ori_w, 
+        #                         noise=Unoise(n_min=-0.01, n_max=0.01), history_length=3)  # 3
                                 
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, 
-                                noise=Unoise(n_min=-0.2, n_max=0.2), scale=0.25, history_length=3) 
+                                noise=Unoise(n_min=-0.2, n_max=0.2), scale=0.25, 
+                                # history_length=3
+                                ) 
         projected_gravity = ObsTerm(func=mdp.projected_gravity, noise=Unoise(n_min=-0.05, n_max=0.05))       
         joint_pos = ObsTerm(func=mdp.joint_pos, 
                             params={"asset_cfg": SceneEntityCfg("robot",
@@ -286,12 +290,20 @@ class ObservationsCfg:
                                                 ],
                                     preserve_order=True,
                                     )},
-                            # noise=Unoise(n_min=-1.5, n_max=1.5),
-                            scale=0.05, history_length=3)
-        actions = ObsTerm(func=mdp.last_action, history_length=3)  # 29
+                            noise=Unoise(n_min=-1.5, n_max=1.5),
+                            scale=0.05, 
+                            # history_length=3
+                            )
+        actions = ObsTerm(func=mdp.last_action, 
+                    # history_length=3
+        )  # 29
 ############################################################################################################################        
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}, scale=(2.0,2.0,0.25), history_length=3)  # 3
-        base_force_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_force"}, history_length=3)  # 3
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}, scale=(2.0,2.0,0.25), 
+        # history_length=3
+        )  # 3
+        base_force_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_force"}, 
+        # history_length=3
+        )  # 3
 
 
         def __post_init__(self):
@@ -305,11 +317,16 @@ class ObservationsCfg:
         ### privileged_obs_buf
         # base_force_local = ObsTerm(func=mdp.force_local, params={"asset_cfg": SceneEntityCfg("robot", body_names="torso_link")},history_length=3)  # Placeholder 3
         ## motor_strength = ObsTerm(func=mdp.motor_output,history_length=3)  # 29
-        base_orientation = ObsTerm(func=mdp.body_ori_w, 
-                        noise=Unoise(n_min=-0.01, n_max=0.01), history_length=3)
 
-        base_ang_vel = ObsTerm(func=mdp.base_ang_vel,noise=Unoise(n_min=-0.2, n_max=0.2),scale=0.25, history_length=3)  # 3
-        base_lin_vel = ObsTerm(func=mdp.base_lin_vel, noise=Unoise(n_min=-0.1, n_max=0.1),scale=2.0, history_length=3)  # 3
+        # base_orientation = ObsTerm(func=mdp.body_ori_w, 
+        #                 noise=Unoise(n_min=-0.01, n_max=0.01), history_length=3)
+
+        base_ang_vel = ObsTerm(func=mdp.base_ang_vel,noise=Unoise(n_min=-0.2, n_max=0.2),scale=0.25, 
+        # history_length=3
+        )  # 3
+        base_lin_vel = ObsTerm(func=mdp.base_lin_vel, noise=Unoise(n_min=-0.1, n_max=0.1),scale=2.0, 
+        # history_length=3
+        )  # 3
         projected_gravity = ObsTerm(func=mdp.projected_gravity, noise=Unoise(n_min=-0.05, n_max=0.05))  # 3
         joint_pos = ObsTerm(func=mdp.joint_pos, 
                             params={"asset_cfg": SceneEntityCfg("robot",
@@ -384,11 +401,19 @@ class ObservationsCfg:
                                                 ],
                                     preserve_order=True,
                                     )},
-                            noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05, history_length=3)  # 29 * 3
-        actions = ObsTerm(func=mdp.last_action, history_length=3)  # 29 * 3
+                            noise=Unoise(n_min=-1.5, n_max=1.5),scale=0.05, 
+                            # history_length=3
+                            )  # 29 * 3
+        actions = ObsTerm(func=mdp.last_action, 
+        # history_length=3
+        )  # 29 * 3
 ############################################################################################################################
-        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}, scale=(2.0,2.0,0.25), history_length=3)  # 3
-        base_force_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_force"}, history_length=3)  # 3 * 3
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}, scale=(2.0,2.0,0.25), 
+        # history_length=3
+        )  # 3
+        base_force_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_force"}, 
+        # history_length=3
+        )  # 3 * 3
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
@@ -600,7 +625,7 @@ class EventCfg:
             "asset_cfg": SceneEntityCfg("robot"),
             "command_name": "base_force",
             # "body_name": ".*_wrist_yaw_link",#"torso_link",
-            "body_names": ["left_wrist_yaw_link", "right_wrist_yaw_link"],
+            "body_names": ["left_wrist_yaw_link", "right_wrist_yaw_link", "torso_link"],
         },
     )
 #     # reset_arm_position = EventTerm(
