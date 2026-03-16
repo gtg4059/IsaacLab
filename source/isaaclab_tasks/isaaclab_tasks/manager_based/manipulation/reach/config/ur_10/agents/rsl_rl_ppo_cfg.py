@@ -12,10 +12,10 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticRecurr
 class UR10ReachPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 60
     max_iterations = 100000
-    save_interval = 50
+    save_interval = 100
     experiment_name = "reach_ur10"
     run_name = ""
-    resume = False
+    resume = True
     empirical_normalization = False
     clip_actions = 10.0
     max_iterations = 9000000

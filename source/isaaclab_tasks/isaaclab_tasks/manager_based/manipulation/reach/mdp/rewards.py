@@ -30,6 +30,7 @@ def position_command_error(env: ManagerBasedRLEnv, command_name: str, asset_cfg:
     des_pos_b = command[:, :3]
     des_pos_w, _ = combine_frame_transforms(asset.data.root_state_w[:, :3], asset.data.root_state_w[:, 3:7], des_pos_b)
     curr_pos_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]  # type: ignore
+    # print("position_command_error: ",1-torch.norm(curr_pos_w - des_pos_w, dim=1))
     return torch.norm(curr_pos_w - des_pos_w, dim=1)
 
 def position_orientation_command_error(env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg) -> torch.Tensor:
@@ -52,7 +53,8 @@ def position_orientation_command_error(env: ManagerBasedRLEnv, command_name: str
     des_quat_b = command[:, 3:7]
     des_quat_w = quat_mul(asset.data.root_quat_w, des_quat_b)
     curr_quat_w = asset.data.body_quat_w[:, asset_cfg.body_ids[0]]  # type: ignore
-    return 2*torch.exp(-2*distance)*torch.exp(-1*quat_error_magnitude(curr_quat_w, des_quat_w))
+    # print("position_orientation_command_error: ",2*torch.exp(-2*distance)*torch.exp(-1*quat_error_magnitude(curr_quat_w, des_quat_w)))
+    return torch.exp(-10*distance)*torch.exp(-10*quat_error_magnitude(curr_quat_w, des_quat_w))
 
 def position_command_error_tanh(
     env: ManagerBasedRLEnv, std: float, command_name: str, asset_cfg: SceneEntityCfg
