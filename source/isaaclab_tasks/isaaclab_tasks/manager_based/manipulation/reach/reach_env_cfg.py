@@ -156,10 +156,10 @@ class RewardsCfg:
     )
     end_effector_orientation_tracking = RewTerm(
         func=mdp.position_orientation_command_error,
-        weight=5.0,
+        weight=2.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
     )
-    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-2000.0)
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     # action penalty
     action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.03)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-7)
