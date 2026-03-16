@@ -139,9 +139,9 @@ class CommandsCfg:
             interval_range_s=(0.0, 2.0),
             # 링크별 크기/방향: body_names 순서대로. 설정 시 위 전역 fx/fy/fz 대신 사용
             force_ranges_per_link=[
-                ((-5.0, 5.0), (-5.0, 10.0), (-10.0, 10.0)),   # left_wrist (base frame)
-                ((-5.0, 5.0), (-10.0, -5.0), (-10.0, 10.0)),  # right_wrist (fy 범위 수정: 10.0,5.0→-10,-5)
-                ((-10.0, 10.0), (-10.0, 10.0), (-10.0, 10.0)),  # torso (fy 범위 수정: 10.0,5.0→-10,-5)
+                ((-30.0, 30.0), (-20.0, 30.0), (-30.0, 30.0)),   # left_wrist
+                ((-30.0, 30.0), (-30.0, 20.0), (-30.0, 30.0)),  # right_wrist 
+                ((-40.0, 40.0), (-40.0, 40.0), (-40.0, 40.0)),  # torso 
             ],
         ),
     )
@@ -415,6 +415,8 @@ class ObservationsCfg:
         # history_length=3
         )  # 3 * 3
 
+# 
+
     # observation groups
     policy: PolicyCfg = PolicyCfg()
     critic: CriticCfg = CriticCfg()
@@ -673,7 +675,7 @@ class RewardsCfg:
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
     dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-8)# -1.0e-8, -1.0e-6
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-8)# -1.0e-8,-1.0e-6
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.005)
     # feet_air_time = RewTerm(
     #     func=mdp.feet_air_time,
     #     weight=0.0, #0.125,
