@@ -17,31 +17,31 @@ class G1FlatCurriculumCfg(CurriculumCfg):
     """Curriculum configuration for G1 flat environment."""
     foot_clearance_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 0*8}
+        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 16000*8}
     )
     feet_land_time_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "feet_land_time", "weight": 0.6, "num_steps": 0*8}
+        params={"term_name": "feet_land_time", "weight": 1.0, "num_steps": 16000*8}
     )
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 0*8}
+        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 16000*8}
     )
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.05, "num_steps": 0*8}
+        params={"term_name": "action_rate_l2", "weight": -0.05, "num_steps": 16000*8}
     )
     dof_acc_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_acc_l2", "weight": -1.0e-6, "num_steps": 0*8}
+        params={"term_name": "dof_acc_l2", "weight": -1.0e-6, "num_steps": 16000*8}
     )
     dof_torques_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 0*8}
+        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 16000*8}
     )
     joint_deviation_hip_yaw_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 0*8}
+        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 16000*8}
     )
 
     # 상체 arm joint target position_range를 0 → ±0.6 rad로 점진 증가
@@ -76,6 +76,14 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.dof_acc_l2.weight = 0.0
         self.rewards.dof_torques_l2.weight = 0.0
         self.rewards.joint_deviation_hip_yaw.weight = -1.0
+
+        self.events.randomize_friction.params["asset_cfg"].body_names = [".*_ankle_roll_link"]
+        # self.events.randomize_joint_param = None
+        self.events.randomize_link_mass = None
+        self.events.randomize_base_mass = None
+        self.events.randomize_base_com = None
+        self.events.randomize_pd_gains = None
+        self.events.randomize_motor_zero_offset = None
 
 class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
     def __post_init__(self) -> None:
