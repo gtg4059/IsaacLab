@@ -39,7 +39,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # )
 
         # # Commands
-        # self.commands.base_velocity.ranges.lin_vel_x = (1.0, 1.0)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, 0.0)
         # self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
         # self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
 
@@ -51,9 +51,9 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # # 링크별 외력: body_names 순서대로 [left_wrist_yaw_link, right_wrist_yaw_link]
         # # 각 원소 = ((fx_min, fx_max), (fy_min, fy_max), (fz_min, fz_max)) (base frame, N)
         # self.commands.base_force.ranges.force_ranges_per_link = [
-        #     ((0.0, 0.0), (35.0, 35.0), (0.0, 0.0)),   # link0 왼쪽 wrist
-        #     ((0.0, 0.0), (0.0, 0.0), (0.0, 0.0)),    # link1 오른쪽 wrist
-        #     ((0.0, 0.0), (0.0, 0.0), (0.0, 0.0)),    # link2 torso
+        #     ((0.0, 0.0), (35.0, 35.0), (0.0, 0.0)),   # link0 left wrist
+        #     ((0.0, 0.0), (-15.0, -15.0), (0.0, 0.0)),    # link1 right wrist
+        #     ((-20.0, -20.0), (0.0, 0.0), (0.0, 0.0)),    # link2 torso
         # ]
 
 
