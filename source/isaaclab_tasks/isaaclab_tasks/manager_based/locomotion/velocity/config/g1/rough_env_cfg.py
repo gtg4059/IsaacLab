@@ -37,6 +37,11 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
         self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
         self.events.push_robot = None
+        self.events.randomize_link_mass = None
+        self.events.randomize_base_mass = None
+        self.events.randomize_base_com = None
+        self.events.randomize_pd_gains = None
+        self.events.randomize_motor_zero_offset = None
 
 
 @configclass
