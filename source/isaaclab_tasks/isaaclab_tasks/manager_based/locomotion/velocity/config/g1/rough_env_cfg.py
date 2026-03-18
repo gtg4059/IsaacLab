@@ -48,11 +48,11 @@ class G1Rewards(RewardsCfg):
 
     feet_land_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
-        weight=20.0,
+        weight=2.0,
         params={
             "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
-            "threshold": 0.4,
+            "threshold": 0.02,
         },
     )
 
@@ -163,9 +163,15 @@ class G1RoughCurriculumCfg(CurriculumCfg):
         func=mdp.modify_reward_weight,
         params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 1*8}
     )
+    # 초기 50.0에서 num_steps 동안 선형 감쇠하여 0으로 수렴
     feet_land_time_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "feet_land_time", "weight": 8.0, "num_steps": 1*8}
+        func=mdp.modify_reward_weight_linear_decay,
+        params={
+            "term_name": "feet_land_time",
+            "initial_weight": 16.0,
+            "final_weight": 16.0,
+            "num_steps": 16000*8,
+        },
     )
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
@@ -173,7 +179,7 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     )
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.01, "num_steps": 1*8}
+        params={"term_name": "action_rate_l2", "weight": -0.02, "num_steps": 1*8}
     )
     dof_acc_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
