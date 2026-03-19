@@ -168,8 +168,8 @@ class G1RoughCurriculumCfg(CurriculumCfg):
         func=mdp.modify_reward_weight_linear_decay,
         params={
             "term_name": "feet_land_time",
-            "initial_weight": 2.0,
-            "final_weight": 2.0,
+            "initial_weight": 1.2,
+            "final_weight": 1.2,
             "num_steps": 16000*8,
         },
     )
