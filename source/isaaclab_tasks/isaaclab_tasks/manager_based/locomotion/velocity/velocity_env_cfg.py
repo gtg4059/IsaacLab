@@ -46,7 +46,7 @@ def keyboard_commands(env: ManagerBasedRLEnv) -> torch.Tensor:
     """키보드로부터 명령을 받아옵니다."""
     if not hasattr(env, "keyboard"):
         env.keyboard = Se2Keyboard(Se2KeyboardCfg(
-            v_x_sensitivity=1.0, v_y_sensitivity=1.0, omega_z_sensitivity=1.0
+            v_x_sensitivity=1.0, v_y_sensitivity=1.0, omega_z_sensitivity=2.0
             )
         )
         env.keyboard.reset()
