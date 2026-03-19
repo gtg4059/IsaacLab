@@ -52,7 +52,7 @@ class G1Rewards(RewardsCfg):
         params={
             "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
-            "threshold": 0.02,
+            "threshold": 0.4,
         },
     )
 
@@ -168,8 +168,8 @@ class G1RoughCurriculumCfg(CurriculumCfg):
         func=mdp.modify_reward_weight_linear_decay,
         params={
             "term_name": "feet_land_time",
-            "initial_weight": 16.0,
-            "final_weight": 16.0,
+            "initial_weight": 2.0,
+            "final_weight": 2.0,
             "num_steps": 16000*8,
         },
     )
