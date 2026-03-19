@@ -239,8 +239,8 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.events.randomize_friction.params["asset_cfg"].body_names = [".*_ankle_roll_link"]
         # self.events.randomize_joint_param = None
         self.events.randomize_link_mass = None
-        self.events.randomize_base_mass = None
-        self.events.randomize_base_com = None
+        # self.events.randomize_base_mass = None
+        # self.events.randomize_base_com = None
         self.events.randomize_pd_gains = None
         self.events.randomize_motor_zero_offset = None
 
