@@ -53,17 +53,17 @@ class G1Rewards(RewardsCfg):
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=5.0, #4.0,
-        params={"command_name": "base_velocity", "std": 0.3},
+        weight=3.0, #4.0,
+        params={"command_name": "base_velocity", "std": 0.5},
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=6.0,#2.0, 
-        params={"command_name": "base_velocity", "std": 0.3}
+        func=mdp.track_ang_vel_z_world_exp, weight=2.0,#2.0, 
+        params={"command_name": "base_velocity", "std": 0.5}
     )
 
     foot_clearance = RewTerm(
         func=mdp.foot_clearance_reward,
-        weight=0.0, #0.75,0.0
+        weight=0.6, #0.75,0.0
         params={
             "std": 0.05,
             "target_height": 0.08,
@@ -74,7 +74,7 @@ class G1Rewards(RewardsCfg):
 
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
-        weight=1.2, #0.0,1.2
+        weight=0.0, #0.0,1.2
         params={
             "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
@@ -120,13 +120,13 @@ class G1Rewards(RewardsCfg):
 
     joint_deviation_hip_yaw = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.1, #-1.5,-0.1
+        weight=-1.5, #-1.5,-0.1
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint"])},
     )
 
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.3,
+        weight=-0.5,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -145,7 +145,7 @@ class G1Rewards(RewardsCfg):
     
     joint_deviation_shoulders = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.3,
+        weight=-0.5,#-0.1?
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -165,7 +165,7 @@ class G1Rewards(RewardsCfg):
     # G1_29_no_hand
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.5,
+        weight=-1.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
             "waist_roll_joint",
             "waist_pitch_joint",
@@ -187,22 +187,12 @@ class G1Rewards(RewardsCfg):
     # )
     contact_forces = RewTerm(
         func=mdp.contact_forces_minimize,
-        weight=-0.0000005,# 0.0,-0.0000005
+        weight=0.0,# 0.0,-0.0000005
         params={
             "threshold": 0.0,
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
         },
     )
-
-    # reward term: name=base_velocity
-    # track_vel_compensated = RewTerm(
-    #     func=mdp.track_force_compensated_vel,
-    #     weight=1,
-    #     params={"std":0.2,
-    #             "damping":2.0,
-    #             # "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),},
-    #             "asset_cfg": SceneEntityCfg("robot"),},
-    # )
 
 
 ##################### force reward terms #####################
@@ -221,22 +211,103 @@ class G1Rewards(RewardsCfg):
 
     force_compliance_reward = RewTerm(
         func=mdp.compliance_with_external_force_reward,
-        weight=8.0,
+        weight=5.0,
         params={"sigma": 1.0,
-                "force_threshold": 20.0,
+                "force_threshold": 20.0, # 링크마다 같은 임계값
+                # base_force.body_names 순서대로
+                # 링크별 임계값을 다르게 적용하고 싶으면 아래 리스트를 수정
+                "force_thresholds_per_link": [15.0, 15.0, 20.0, 30.0, 30.0],
                 "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_wrist_yaw_link"),
                 "force_command_name": "base_force", 
                 "asset_cfg": SceneEntityCfg("robot"),
         },
     )
-    # ang_vel_penalty = RewTerm(
-    #     func=mdp.base_angular_velocity_reward,
-    #     weight=-0.0,
-    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
-    #         "waist_roll_joint",
-    #         "waist_pitch_joint",
-    #         "waist_yaw_joint",
-    #         ])},
+
+    standing_arm_compliance = RewTerm(
+        func=mdp.standing_arm_compliance,
+        weight=0.1,
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "force_command_name": "base_force",
+            "trigger_body_cfg": SceneEntityCfg("robot", body_names=".*_wrist_yaw_link"),
+            "neighbor_body_cfg": SceneEntityCfg(
+                "robot",
+                body_names=[
+                    ".*_shoulder_.*_link",
+                    ".*_elbow_link",
+                    ".*_wrist_.*_link",
+                ],
+            ),
+            "force_threshold": 10.0,
+            "standing_lin_vel_threshold": 0.02,
+            "standing_ang_vel_threshold": 0.02,
+        },
+    )
+
+    # # 다리(발/무릎) 링크가 외력을 받으면, 외력 방향으로 다리 주변 링크들이 같이 움직이도록 유도
+    # # (단, 지면 접촉 상태(contact sensor)를 만족할 때만 reward를 주어 공중 발/한쪽만 튀는 현상을 완화)
+    # left_standing_leg_complianced = RewTerm(
+    #     func=mdp.standing_leg_compliance,
+    #     weight=0.1,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot"),
+    #         "force_command_name": "base_force",
+    #         # 외력을 받는 '트리거' 다리 링크(기본: 발목)
+    #         "trigger_body_cfg": SceneEntityCfg(
+    #             "robot",
+    #             body_names=[
+    #                 "left_ankle_roll_link",
+    #                 "left_ankle_pitch_link",
+    #             ],
+    #         ),
+    #         # 트리거 주변(기본: 발목/무릎)
+    #         "neighbor_body_cfg": SceneEntityCfg(
+    #             "robot",
+    #             body_names=[
+    #                 "left_ankle_roll_link",
+    #                 "left_ankle_pitch_link",
+    #                 "left_knee_link",
+    #             ],
+    #         ),
+    #         "force_threshold": 15.0,
+    #         "standing_lin_vel_threshold": 0.02,
+    #         "standing_ang_vel_threshold": 0.02,
+    #         # 공중 발 방지용 접촉 게이팅
+    #         "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names= ["left_ankle_roll_link", "left_ankle_pitch_link"]),
+    #         "contact_force_threshold": 1.0,
+    #     },
+    # )
+
+    # right_standing_leg_complianced = RewTerm(
+    #     func=mdp.standing_leg_compliance,
+    #     weight=0.1,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot"),
+    #         "force_command_name": "base_force",
+    #         # 외력을 받는 '트리거' 다리 링크(기본: 발목)
+    #         "trigger_body_cfg": SceneEntityCfg(
+    #             "robot",
+    #             body_names=[
+    #                 "right_ankle_roll_link",
+    #                 "right_ankle_pitch_link",
+    #             ],
+    #         ),
+    #         # 트리거 주변(기본: 발목/무릎)
+    #         "neighbor_body_cfg": SceneEntityCfg(
+    #             "robot",
+    #             body_names=[
+    #                 "right_ankle_roll_link",
+    #                 "right_ankle_pitch_link",
+    #                 "right_knee_link",
+    #             ],
+    #         ),
+    #         "force_threshold": 15.0,
+    #         "standing_lin_vel_threshold": 0.02,
+    #         "standing_ang_vel_threshold": 0.02,
+    #         # 공중 발 방지용 접촉 게이팅
+    #         "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=["right_ankle_roll_link", "right_ankle_pitch_link"]),
+    #         "contact_force_threshold": 1.0,
+    #     },
     # )
 
 ########## log data ###########

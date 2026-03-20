@@ -533,7 +533,8 @@ def compliance_with_external_force_reward(
     asset_cfg: SceneEntityCfg,
     force_command_name: str,
     sigma: float,                 # (선택) 속도 크기 정규화 용도로 쓸 수 있음
-    force_threshold: float = 20.0, # 이 이상일 때만 “순응” 보상 활성화
+    force_threshold: float = 20.0, # (기본) 이 이상일 때만 “순응” 보상 활성화 (합력 기준 또는 per-link 미설정 시)
+    force_thresholds_per_link: list[float] | None = None,  # (선택) 링크별 임계값. base_force.body_names 순서와 동일 길이.
     sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces", body_names="torso_link"),
 ) -> torch.Tensor:
     """외력 방향에 순응해서 살짝 이동하도록 하는 보상 함수.
@@ -550,9 +551,21 @@ def compliance_with_external_force_reward(
     vel_actual = asset.data.root_lin_vel_b[:, :2]  # [N, 2]
     vel_norm = torch.norm(vel_actual, dim=1)       # [N]
 
-    # 2. 외력: 커맨드 사용 시 합력 [N, 3] (복수 링크 시 상쇄 반영) 또는 contact 센서
+    # 2. 외력:
+    # - force_command_name이 있으면 기본은 합력 [N, 3]
+    # - base_force가 UniformForceCommand 기반이면 command_per_body [N, B, 3]도 사용할 수 있음
+    forces_local_base = None
+    forces_local_base_per_body = None
     if force_command_name is not None:
-        forces_local_base = env.command_manager.get_command(force_command_name)  # [N, 3] net force, base frame
+        # 합력 (복수 링크 시 상쇄 반영)
+        forces_local_base = env.command_manager.get_command(force_command_name)  # [N, 3]
+        # 링크별 힘이 있으면 함께 가져옴
+        try:
+            force_term = env.command_manager.get_term(force_command_name)
+            if hasattr(force_term, "command_per_body"):
+                forces_local_base_per_body = force_term.command_per_body  # [N, B, 3]
+        except Exception:
+            forces_local_base_per_body = None
     else:
         forces_local_base = torch.zeros((env.num_envs, 3), device=vel_actual.device)
         contact_sensor = None
@@ -579,13 +592,24 @@ def compliance_with_external_force_reward(
             except Exception:
                 pass
 
-    # 3. 외력 크기: 3D norm 사용 (fx,fy,fz 범위 설정 반영)
-    force_norm_3d = torch.norm(forces_local_base, dim=1)   # [N]
-    force_xy = forces_local_base[:, :2]                    # [N, 2]
-    force_norm_xy = torch.norm(force_xy, dim=1)             # [N] — 방향/코사인용
+    # 3. 외력 크기와 big_force 마스크 구성
+    #    - 링크별 임계값을 주면 per-body 힘으로 big_force를 판단하고, reward는 "가장 큰 순응"을 대표로 사용
+    #    - 아니면 합력 기준(force_threshold)으로 판단
+    use_per_link = (
+        forces_local_base_per_body is not None
+        and force_thresholds_per_link is not None
+        and len(force_thresholds_per_link) == forces_local_base_per_body.shape[1]
+    )
 
-    # 4. 외력이 충분히 클 때만 순응 보상 활성화 (크기 기준)
-    big_force = force_norm_3d > force_threshold              # [N]
+    if use_per_link:
+        # [N, B]
+        force_norm_3d_b = torch.linalg.norm(forces_local_base_per_body, dim=2)
+        thr_b = torch.tensor(force_thresholds_per_link, device=force_norm_3d_b.device, dtype=force_norm_3d_b.dtype)
+        big_force_b = force_norm_3d_b > thr_b.unsqueeze(0)
+        big_force = torch.any(big_force_b, dim=1)  # [N]
+    else:
+        force_norm_3d = torch.norm(forces_local_base, dim=1)   # [N]
+        big_force = force_norm_3d > force_threshold            # [N]
 
     # 외력이 거의 없으면 보상 0
     if not torch.any(big_force):
@@ -593,38 +617,260 @@ def compliance_with_external_force_reward(
 
     eps = 1e-6
 
-    # 5. 외력 방향 단위벡터 (XY)
-    force_dir = torch.zeros_like(force_xy)
-    force_dir[big_force] = (
-        force_xy[big_force] / (force_norm_xy[big_force].unsqueeze(1) + eps)
-    )
+    if use_per_link:
+        # [N, B, 2]
+        force_xy_b = forces_local_base_per_body[:, :, :2]
+        force_norm_xy_b = torch.linalg.norm(force_xy_b, dim=2) + eps
+        # cos_sim per body: [N, B]
+        denom_b = (vel_norm.unsqueeze(1) * force_norm_xy_b) + eps
+        cos_sim_b = torch.sum(vel_actual.unsqueeze(1) * force_xy_b, dim=2) / denom_b
+        cos_sim_b = torch.clamp(cos_sim_b, -1.0, 1.0)
+        align_score_b = 0.5 * (cos_sim_b + 1.0)  # [N, B]
 
-    # 6. 속도·외력 방향 정렬 (코사인 유사도), 크기 반영
-    cos_sim = torch.zeros(env.num_envs, device=vel_actual.device)
-    denom = vel_norm * force_norm_xy + eps
-    cos_sim = torch.sum(vel_actual * force_xy, dim=1) / denom
-    cos_sim = torch.clamp(cos_sim, -1.0, 1.0)      # 수치 안정화
+        # target speed per body based on that body's 3D norm
+        force_norm_3d_b = torch.linalg.norm(forces_local_base_per_body, dim=2)
+        target_speed_b = 0.1 * torch.tanh(force_norm_3d_b / (sigma + eps))
+        speed_error_b = (vel_norm.unsqueeze(1) - target_speed_b) ** 2
+        speed_term_b = torch.exp(-speed_error_b / (sigma + eps))
 
-    # 7. cos_sim ∈ [-1, 1] → [0, 1] 로 매핑
-    # -1 : 완전 반대 (힘에 저항)  → 0
-    #  0 : 직교                   → 0.5
-    #  1 : 완전 같은 방향 (힘에 완전히 순응) → 1
-    align_score = 0.5 * (cos_sim + 1.0)
+        reward_b = align_score_b * speed_term_b
+        # big force 조건을 만족하는 링크만 남김
+        reward_b = torch.where(big_force_b, reward_b, torch.zeros_like(reward_b))
+        # 외력 크기 가중(각 링크별 임계값 기반)
+        force_weight_b = torch.tanh(force_norm_3d_b / (thr_b.unsqueeze(0) + eps))
+        reward_b = reward_b * force_weight_b
+        # 링크 중 가장 큰 순응 reward를 대표로 사용
+        reward = torch.max(reward_b, dim=1).values
+        reward = torch.where(big_force, reward, torch.zeros_like(reward))
+    else:
+        # 합력 기반 (기존 동작 유지)
+        force_norm_3d = torch.norm(forces_local_base, dim=1)   # [N]
+        force_xy = forces_local_base[:, :2]                    # [N, 2]
+        force_norm_xy = torch.norm(force_xy, dim=1)             # [N]
 
-    # 8. 너무 큰 속도는 살짝 억제 (힘에 “살짝” 끌려가도록)
-    # 7. 목표 속도 크기: 외력 크기(3D norm)에 비례
-    target_speed = 0.1 * torch.tanh(force_norm_3d / (sigma + eps))
-    speed_error = (vel_norm - target_speed) ** 2                 # [N]
-    speed_term = torch.exp(-speed_error / (sigma + eps))
+        # 속도·외력 방향 정렬 (코사인 유사도)
+        denom = vel_norm * force_norm_xy + eps
+        cos_sim = torch.sum(vel_actual * force_xy, dim=1) / denom
+        cos_sim = torch.clamp(cos_sim, -1.0, 1.0)
+        align_score = 0.5 * (cos_sim + 1.0)
 
-    # 8. 최종 보상: 정렬 * 속도항, 외력 크기로 가중 (큰 외력에 더 순응할수록 보상 증가)
-    reward = align_score * speed_term
-    reward = torch.where(big_force, reward, torch.zeros_like(reward))
-    # 외력 크기 가중: force_norm_3d가 클수록 보상 스케일 유지 (커리큘럼 단계 반영)
-    force_weight = torch.tanh(force_norm_3d / (force_threshold + eps))
-    reward = reward * force_weight
+        # 목표 속도 크기: 합력 크기에 비례
+        target_speed = 0.1 * torch.tanh(force_norm_3d / (sigma + eps))
+        speed_error = (vel_norm - target_speed) ** 2
+        speed_term = torch.exp(-speed_error / (sigma + eps))
+
+        reward = align_score * speed_term
+        reward = torch.where(big_force, reward, torch.zeros_like(reward))
+        force_weight = torch.tanh(force_norm_3d / (force_threshold + eps))
+        reward = reward * force_weight
 
     return reward
+
+
+def standing_arm_compliance(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg,
+    force_command_name: str,
+    trigger_body_cfg: SceneEntityCfg,
+    neighbor_body_cfg: SceneEntityCfg,
+    force_threshold: float = 20.0,
+    standing_lin_vel_threshold: float = 0.02,
+    standing_ang_vel_threshold: float = 0.02,
+    contact_sensor_cfg: SceneEntityCfg | None = None,
+    contact_force_threshold: float = 1.0,
+    eps: float = 1e-6,
+) -> torch.Tensor:
+    """서 있을 때(베이스 속도/각속도 거의 0), 외력을 받는 링크(트리거 링크)의 외력 방향을 기준으로
+    주변 링크들이 그 방향으로 움직이도록 보상하는 함수.
+
+    의도:
+    - 외력(예: base_force)이 특정 링크들에 들어오면
+    - 로봇이 서 있는 상황에서는 해당 외력 방향으로 주변(예: 팔 전체) 링크의 선속도가 따라오도록 유도
+    """
+
+    asset: Articulation = env.scene[asset_cfg.name]
+
+    # --- standing mask (base의 실제 속도/각속도 기준) ---
+    vel_actual_xy = asset.data.root_lin_vel_b[:, :2]
+    lin_speed = torch.linalg.norm(vel_actual_xy, dim=1)  # [N]
+    ang_z_speed = torch.abs(asset.data.root_ang_vel_b[:, 2])  # [N]
+    standing = (lin_speed < standing_lin_vel_threshold) & (ang_z_speed < standing_ang_vel_threshold)  # [N]
+
+    # --- external force per body (UniformForceCommand 기반 가정) ---
+    if force_command_name is None:
+        return torch.zeros(env.num_envs, device=asset.device)
+
+    try:
+        force_term = env.command_manager.get_term(force_command_name)
+    except Exception:
+        return torch.zeros(env.num_envs, device=asset.device)
+
+    if not hasattr(force_term, "command_per_body") or not hasattr(force_term, "body_indices"):
+        return torch.zeros(env.num_envs, device=asset.device)
+
+    forces_per_body_base = force_term.command_per_body  # [N, B, 3] in base frame
+    term_body_indices = list(force_term.body_indices)  # articulation indices order for command_per_body
+
+    def _slice_or_list_to_list(ids, num_all: int) -> list[int]:
+        if isinstance(ids, slice):
+            # slice(None) or others
+            if ids == slice(None):
+                return list(range(num_all))
+            return list(range(num_all))[ids]
+        if ids is None:
+            return []
+        return list(ids)
+
+    trigger_ids = _slice_or_list_to_list(getattr(trigger_body_cfg, "body_ids", None), asset.num_bodies)
+    neighbor_ids = _slice_or_list_to_list(getattr(neighbor_body_cfg, "body_ids", None), asset.num_bodies)
+
+    if len(trigger_ids) == 0 or len(neighbor_ids) == 0:
+        return torch.zeros(env.num_envs, device=asset.device)
+
+    # term에서 trigger 몸체들의 "위치(position)"를 찾아 [N, T, 3]로 슬라이싱
+    trigger_positions: list[int] = []
+    for bid in trigger_ids:
+        if bid in term_body_indices:
+            trigger_positions.append(term_body_indices.index(bid))
+
+    if len(trigger_positions) == 0:
+        return torch.zeros(env.num_envs, device=asset.device)
+
+    trigger_positions_t = torch.tensor(trigger_positions, device=asset.device, dtype=torch.long)
+    neighbor_ids_t = torch.tensor(neighbor_ids, device=asset.device, dtype=torch.long)
+
+    force_trigger_base = torch.sum(forces_per_body_base.index_select(1, trigger_positions_t), dim=1)  # [N,3]
+    force_norm = torch.linalg.norm(force_trigger_base, dim=1)  # [N]
+    big_force = force_norm > force_threshold  # [N]
+    active = standing & big_force  # [N]
+
+    if not torch.any(active):
+        return torch.zeros(env.num_envs, device=asset.device)
+
+    # force 방향 (base -> world)
+    dir_base = force_trigger_base / (force_norm.unsqueeze(1) + eps)  # [N,3]
+    dir_world = quat_apply(asset.data.root_quat_w, dir_base)  # [N,3]
+
+    # 주변 링크 선속도(월드 프레임) 프로젝션: dir_world 방향으로 "같은 방향" 움직일수록 보상
+    neighbor_vel_w = asset.data.body_lin_vel_w.index_select(1, neighbor_ids_t)  # [N, M, 3]
+    proj = torch.sum(neighbor_vel_w * dir_world.unsqueeze(1), dim=-1)  # [N, M]
+    proj = torch.relu(proj)  # 반대방향 움직임은 보상하지 않음
+
+    neighbor_motion = torch.mean(proj, dim=1)  # [N]
+
+    # 외력 크기 가중 (threshold 기준으로 스케일링)
+    force_activation = torch.tanh(force_norm / (force_threshold + eps))  # [N]
+    reward = neighbor_motion * force_activation
+    reward = torch.where(active, reward, torch.zeros_like(reward))
+    return reward
+
+
+def standing_leg_compliance(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg,
+    force_command_name: str,
+    trigger_body_cfg: SceneEntityCfg,
+    neighbor_body_cfg: SceneEntityCfg,
+    force_threshold: float = 20.0,
+    standing_lin_vel_threshold: float = 0.02,
+    standing_ang_vel_threshold: float = 0.02,
+    contact_sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
+    contact_force_threshold: float = 1.0,
+    eps: float = 1e-6,
+) -> torch.Tensor:
+    """서 있을 때(속도 거의 0) 외력이 특정 다리 링크에 들어오면,
+    그 외력 방향을 기준으로 다리 주변 링크들이 같이 움직이도록 유도하는 보상.
+
+    특히 발/발목 링크가 공중으로 들려 한 쪽만 움직이는 현상을 줄이기 위해,
+    reward는 contact sensor 기준으로 지면 접촉 상태일 때만 켜지도록(또는 약화되도록) 합니다.
+    """
+
+    asset: Articulation = env.scene[asset_cfg.name]
+
+    # --- standing mask (base의 실제 속도/각속도 기준) ---
+    vel_actual_xy = asset.data.root_lin_vel_b[:, :2]
+    lin_speed = torch.linalg.norm(vel_actual_xy, dim=1)  # [N]
+    ang_z_speed = torch.abs(asset.data.root_ang_vel_b[:, 2])  # [N]
+    standing = (lin_speed < standing_lin_vel_threshold) & (ang_z_speed < standing_ang_vel_threshold)  # [N]
+
+    if force_command_name is None:
+        return torch.zeros(env.num_envs, device=asset.device)
+
+    # --- external force per body (UniformForceCommand 기반 가정) ---
+    try:
+        force_term = env.command_manager.get_term(force_command_name)
+    except Exception:
+        return torch.zeros(env.num_envs, device=asset.device)
+
+    if not hasattr(force_term, "command_per_body") or not hasattr(force_term, "body_indices"):
+        return torch.zeros(env.num_envs, device=asset.device)
+
+    forces_per_body_base = force_term.command_per_body  # [N, B, 3] in base frame
+    term_body_indices = list(force_term.body_indices)  # articulation indices order for command_per_body
+
+    def _slice_or_list_to_list(ids, num_all: int) -> list[int]:
+        if isinstance(ids, slice):
+            if ids == slice(None):
+                return list(range(num_all))
+            return list(range(num_all))[ids]
+        if ids is None:
+            return []
+        return list(ids)
+
+    trigger_ids = _slice_or_list_to_list(getattr(trigger_body_cfg, "body_ids", None), asset.num_bodies)
+    neighbor_ids = _slice_or_list_to_list(getattr(neighbor_body_cfg, "body_ids", None), asset.num_bodies)
+
+    if len(trigger_ids) == 0 or len(neighbor_ids) == 0:
+        return torch.zeros(env.num_envs, device=asset.device)
+
+    trigger_positions: list[int] = []
+    for bid in trigger_ids:
+        if bid in term_body_indices:
+            trigger_positions.append(term_body_indices.index(bid))
+
+    if len(trigger_positions) == 0:
+        return torch.zeros(env.num_envs, device=asset.device)
+
+    trigger_positions_t = torch.tensor(trigger_positions, device=asset.device, dtype=torch.long)
+    neighbor_ids_t = torch.tensor(neighbor_ids, device=asset.device, dtype=torch.long)
+
+    # trigger 링크들에서 외력 방향 계산
+    force_trigger_base = torch.sum(forces_per_body_base.index_select(1, trigger_positions_t), dim=1)  # [N,3]
+    force_norm = torch.linalg.norm(force_trigger_base, dim=1)  # [N]
+    big_force = force_norm > force_threshold  # [N]
+    active = standing & big_force  # [N]
+
+    if not torch.any(active):
+        return torch.zeros(env.num_envs, device=asset.device)
+
+    # --- contact gating (다리가 공중일 때 보상 0) ---
+    try:
+        contact_sensor = env.scene.sensors[contact_sensor_cfg.name]
+        contact_forces = contact_sensor.data.net_forces_w[:, contact_sensor_cfg.body_ids]  # [N, K, 3]
+        contact_norm = torch.linalg.norm(contact_forces, dim=-1)  # [N, K]
+        contact_any = torch.any(contact_norm > contact_force_threshold, dim=1)  # [N]
+    except Exception:
+        # contact sensor가 없으면 게이팅을 꺼버림
+        contact_any = torch.ones(env.num_envs, device=asset.device, dtype=torch.bool)
+
+    # --- force direction -> world ---
+    dir_base = force_trigger_base / (force_norm.unsqueeze(1) + eps)  # [N,3]
+    dir_world = quat_apply(asset.data.root_quat_w, dir_base)  # [N,3]
+
+    # --- neighbor linear velocity projection onto dir_world ---
+    neighbor_vel_w = asset.data.body_lin_vel_w.index_select(1, neighbor_ids_t)  # [N, M, 3]
+    proj = torch.sum(neighbor_vel_w * dir_world.unsqueeze(1), dim=-1)  # [N, M]
+    proj = torch.relu(proj)
+    neighbor_motion = torch.mean(proj, dim=1)  # [N]
+
+    # 외력 크기 가중(스케일)
+    force_activation = torch.tanh(force_norm / (force_threshold + eps))  # [N]
+    reward = neighbor_motion * force_activation
+
+    # standing && big_force && contact 일 때만 활성
+    reward = torch.where(active & contact_any, reward, torch.zeros_like(reward))
+    return reward
+
 
 def shoulder_roll_limit(
     env: ManagerBasedRLEnv,

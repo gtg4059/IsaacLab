@@ -125,7 +125,11 @@ class CommandsCfg:
     base_force = mdp.UniformForceCommandCfg(
         asset_name="robot",
         # body_name="torso_link",
-        body_names=["left_wrist_yaw_link", "right_wrist_yaw_link", "torso_link"],
+        body_names=["left_wrist_yaw_link",
+                    "right_wrist_yaw_link", 
+                    "torso_link", 
+                    "left_knee_link", 
+                    "right_knee_link"],
         resampling_time_range=(5.0, 5.0), #(10.0, 10.0),
         apply_probability=0.5,#0.6,
         debug_vis_height_offset=0.02,
@@ -135,13 +139,21 @@ class CommandsCfg:
             force_range_fx=(-50.0, 50.0),
             force_range_fy=(-50.0, 50.0),
             force_range_fz=(-40.0, 40.0),
+            # 
             duration_range_s=(2.5, 3.5),
             interval_range_s=(0.0, 2.0),
             # 링크별 크기/방향: body_names 순서대로. 설정 시 위 전역 fx/fy/fz 대신 사용
             force_ranges_per_link=[
-                ((-30.0, 30.0), (-20.0, 30.0), (-30.0, 30.0)),   # left_wrist
-                ((-30.0, 30.0), (-30.0, 20.0), (-30.0, 30.0)),  # right_wrist 
-                ((-40.0, 40.0), (-40.0, 40.0), (-40.0, 40.0)),  # torso 
+                # ((-30.0, 30.0), (-20.0, 30.0), (-30.0, 30.0)),  # left_wrist
+                # ((-30.0, 30.0), (-30.0, 20.0), (-30.0, 30.0)),  # right_wrist 
+                # ((-40.0, 40.0), (-40.0, 40.0), (-40.0, 40.0)),  # torso 
+                # ((-20.0, 20.0), (-10.0, 10.0), (-20.0, 20.0)),  # left_knee
+                # ((-20.0, 20.0), (-10.0, 10.0), (-20.0, 20.0)),  # right_knee
+                ((-5.0, 5.0), (-5.0, 5.0), (-5.0, 5.0)),  # left_wrist
+                ((-5.0, 5.0), (-5.0, 5.0), (-5.0, 5.0)),  # right_wrist 
+                ((-5.0, 5.0), (-5.0, 5.0), (-5.0, 5.0)),  # torso 
+                ((-5.0, 5.0), (-5.0, 5.0), (-5.0, 5.0)),  # left_knee
+                ((-5.0, 5.0), (-5.0, 5.0), (-5.0, 5.0)),  # right_knee
             ],
         ),
     )
@@ -627,7 +639,7 @@ class EventCfg:
             "asset_cfg": SceneEntityCfg("robot"),
             "command_name": "base_force",
             # "body_name": ".*_wrist_yaw_link",#"torso_link",
-            "body_names": ["left_wrist_yaw_link", "right_wrist_yaw_link", "torso_link"],
+            "body_names": ["left_wrist_yaw_link", "right_wrist_yaw_link", "torso_link", "left_knee_link", "right_knee_link"],
         },
     )
 #     # reset_arm_position = EventTerm(
@@ -671,11 +683,11 @@ class RewardsCfg:
         func=mdp.track_ang_vel_z_exp, weight=0.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     # -- penalties
-    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0) # -2.0, 0.2
+    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-1.0) # -2.0, 0.2
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6)# -1.0e-8, -1.0e-6
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-6)# -1.0e-8,-1.0e-6
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.02)
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-8)# -1.0e-8, -1.0e-6
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-8)# -1.0e-8,-1.0e-6
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
     # feet_air_time = RewTerm(
     #     func=mdp.feet_air_time,
     #     weight=0.0, #0.125,
