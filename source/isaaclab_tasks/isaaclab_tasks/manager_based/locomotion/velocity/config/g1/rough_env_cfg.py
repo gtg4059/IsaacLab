@@ -15,6 +15,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 # Pre-defined configs
 ##
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY  # isort: skip
+STEP = 32000
 
 
 @configclass
@@ -154,14 +155,14 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     terrain_levels = CurrTerm(
         func=mdp.terrain_levels_step_schedule,
         params={
-            "step_interval": 1000*8,
+            "step_interval": STEP,
             "percent_per_interval": 0.5,
-            "min_steps": 8000*8,
+            "min_steps": STEP*4,
         },
     ) 
     foot_clearance_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 16000*8}
+        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": STEP*8}
     )
 
     # 초기 50.0에서 num_steps 동안 선형 감쇠하여 0으로 수렴
@@ -172,29 +173,29 @@ class G1RoughCurriculumCfg(CurriculumCfg):
             "term_name": "feet_land_time",
             "initial_weight": 200.0,
             "final_weight": 1.2,
-            "num_steps": 16000*8,
-            "min_steps": 16000*8,  # 이 스텝 이후부터 감쇠 시작 (이전에는 weight=0)
+            "num_steps": STEP*8+STEP*8,
+            "min_steps": STEP*8+STEP*8,  # 이 스텝 이후부터 감쇠 시작 (이전에는 weight=0)
         },
     )
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "contact_forces", "weight": -0.0000002, "num_steps": 16000*8}
+        params={"term_name": "contact_forces", "weight": -0.0000002, "num_steps": STEP*8}
     )
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.02, "num_steps": 16000*8}
+        params={"term_name": "action_rate_l2", "weight": -0.01, "num_steps": STEP*8}
     )
     dof_acc_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_acc_l2", "weight": -1.0e-7, "num_steps": 16000*8}
+        params={"term_name": "dof_acc_l2", "weight": -1.0e-7, "num_steps": STEP*8}
     )
     dof_torques_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 16000*8}
+        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": STEP*8}
     )
     joint_deviation_hip_yaw_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 16000*8}
+        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": STEP*8}
     )
 
 @configclass
