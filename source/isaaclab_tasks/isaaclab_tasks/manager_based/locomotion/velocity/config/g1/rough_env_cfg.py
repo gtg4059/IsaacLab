@@ -86,48 +86,10 @@ class G1Rewards(RewardsCfg):
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint"])},
     )
 
-    # joint_deviation_arms = RewTerm(
-    #     func=mdp.joint_deviation_l1,
-    #     weight=-1.0,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg(
-    #             "robot",
-    #             joint_names=[
-    #                 # ".*_shoulder_pitch_joint",
-    #                 ".*_shoulder_roll_joint",
-    #                 ".*_shoulder_yaw_joint",
-    #                 # ".*_elbow_joint",
-    #                 ".*_wrist_roll_joint",
-    #                 ".*_wrist_pitch_joint",
-    #                 ".*_wrist_yaw_joint",
-    #             ],
-    #         )
-    #     },
-    # )
-    
-    # joint_deviation_shoulders = RewTerm(
-    #     func=mdp.joint_deviation_l1,
-    #     weight=-0.1,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg(
-    #             "robot",
-    #             joint_names=[
-    #                 ".*_shoulder_pitch_joint",
-    #                 # ".*_shoulder_roll_joint",
-    #                 # ".*_shoulder_yaw_joint",
-    #                 ".*_elbow_joint",
-    #                 # ".*_wrist_roll_joint",
-    #                 # ".*_wrist_pitch_joint",
-    #                 # ".*_wrist_yaw_joint",
-    #             ],
-    #         )
-    #     },
-    # )
-
     # G1_29_no_hand
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-1.0,
+        weight=-0.2,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
             "waist_roll_joint",
             "waist_pitch_joint",
