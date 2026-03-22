@@ -15,7 +15,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 # Pre-defined configs
 ##
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY  # isort: skip
-STEP = 32000
+STEP = 16000
 
 
 @configclass
@@ -155,9 +155,9 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     terrain_levels = CurrTerm(
         func=mdp.terrain_levels_step_schedule,
         params={
-            "step_interval": STEP,
+            "step_interval": 1000*8,
             "percent_per_interval": 0.5,
-            "min_steps": STEP*4,
+            "min_steps": STEP*8/4,
         },
     ) 
     foot_clearance_weight = CurrTerm(
@@ -167,16 +167,16 @@ class G1RoughCurriculumCfg(CurriculumCfg):
 
     # 초기 50.0에서 num_steps 동안 선형 감쇠하여 0으로 수렴
     # min_steps 이전에는 weight=0, 이후 initial_weight에서 final_weight로 num_steps 동안 감쇠
-    feet_land_time_weight = CurrTerm(
-        func=mdp.modify_reward_weight_linear_decay,
-        params={
-            "term_name": "feet_land_time",
-            "initial_weight": 200.0,
-            "final_weight": 1.2,
-            "num_steps": STEP*8+STEP*8,
-            "min_steps": STEP*8+STEP*8,  # 이 스텝 이후부터 감쇠 시작 (이전에는 weight=0)
-        },
-    )
+    # feet_land_time_weight = CurrTerm(
+    #     func=mdp.modify_reward_weight_linear_decay,
+    #     params={
+    #         "term_name": "feet_land_time",
+    #         "initial_weight": 200.0,
+    #         "final_weight": 1.2,
+    #         "num_steps": STEP*8+STEP*8,
+    #         "min_steps": STEP*8+STEP*8,  # 이 스텝 이후부터 감쇠 시작 (이전에는 weight=0)
+    #     },
+    # )
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
         params={"term_name": "contact_forces", "weight": -0.0000002, "num_steps": STEP*8}
