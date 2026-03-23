@@ -16,7 +16,7 @@ class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     empirical_normalization = False
     clip_actions = 50.0
     max_iterations = 9000000
-    resume = True
+    # resume = True
     # LSTM + MLP 아키텍처 사용
     # notion의 "[정리] 휴머노이드 걷기 학습" 참조
     policy = RslRlPpoActorCriticRecurrentCfg(
