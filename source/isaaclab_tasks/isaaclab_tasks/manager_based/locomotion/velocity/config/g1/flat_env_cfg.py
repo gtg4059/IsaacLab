@@ -12,7 +12,7 @@ import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import RewardsCfg, CurriculumCfg
 
-STEP = 16000
+STEP = 24000
 @configclass
 class G1FlatCurriculumCfg(CurriculumCfg):
     """Curriculum configuration for G1 flat environment."""
@@ -52,7 +52,7 @@ class G1FlatCurriculumCfg(CurriculumCfg):
             "event_term_name": "set_arm_joint_targets_interval",
             "start_step": STEP*8,
             "end_step": STEP*2*8,
-            "max_range": 1.6,
+            "max_range": 0.2,
         },
     )
     
@@ -97,9 +97,9 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         self.scene.env_spacing = 2.5
         self.curriculum.arm_joint_targets_position_range = None
         self.events.set_arm_joint_targets_interval.params["position_range"] = (-0.8, 0.8)
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, 0.0)
-        # self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
-        # self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.0, 0.0)
+        self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
+        self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
         self.events.push_robot = None
         # disable randomization for play
         # self.observations.policy.enable_corruption = False
