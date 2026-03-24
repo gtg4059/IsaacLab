@@ -6,47 +6,52 @@
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 
-from .rough_env_cfg import G1RoughEnvCfg
+from .rough_env_cfg import G1RoughEnvCfg, G1RoughRewards
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import CurriculumCfg
+from isaaclab.managers import RewardTermCfg as RewTerm
 import math
+
+STEP = 32000*8
+RESUME = 32000*8
+
+@configclass
+class G1FlatRewards(G1RoughRewards):
+    """Reward terms for the MDP."""
+    base_height = RewTerm(func=mdp.base_height_l2, weight=-100.0, params={
+        "target_height": 0.78,
+    })
 
 @configclass
 class G1FlatCurriculumCfg(CurriculumCfg):
     """Curriculum configuration for G1 flat environment."""
     foot_clearance_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": 20000*8}
+        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": STEP}
     )
     feet_land_time_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "feet_land_time", "weight": 1.0, "num_steps": 20000*8}
+        params={"term_name": "feet_land_time", "weight": 1.2, "num_steps": STEP}
     )
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 20000*8}
+        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": STEP}
     )
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.01, "num_steps": 20000*8}
+        params={"term_name": "action_rate_l2", "weight": -0.05, "num_steps": STEP}
     )
-    dof_acc_l2_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "dof_acc_l2", "weight": -1.0e-6, "num_steps": 20000*8}
-    )
-    dof_torques_l2_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": 20000*8}
-    )
-    joint_deviation_hip_yaw_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": 20000*8}
-    )
+    # joint_deviation_hip_yaw_weight = CurrTerm(
+    #     func=mdp.modify_reward_weight,
+    #     params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": STEP}
+    # )
 
 @configclass
 class G1FlatEnvCfg(G1RoughEnvCfg):
+    curriculum: G1FlatCurriculumCfg = G1FlatCurriculumCfg()
+    rewards: G1FlatRewards = G1FlatRewards()
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
@@ -62,12 +67,12 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.feet_land_time.weight = 0.0
         self.rewards.contact_forces.weight = 0.0
         self.rewards.action_rate_l2.weight = -0.001
-        self.rewards.dof_acc_l2.weight = 0.0
-        self.rewards.dof_torques_l2.weight = 0.0
-        self.rewards.joint_deviation_hip_yaw.weight = -1.0
+        self.rewards.joint_deviation_torso.weight = -1.0
+        # self.rewards.dof_acc_l2.weight = 0.0
+        # self.rewards.dof_torques_l2.weight = 0.0
+        # self.rewards.joint_deviation_hip_yaw.weight = -1.0
 
 class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
-    curriculum: G1FlatCurriculumCfg = G1FlatCurriculumCfg()
     def __post_init__(self) -> None:
         # post init of parent
         super().__post_init__()

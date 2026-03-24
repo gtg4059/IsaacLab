@@ -48,5 +48,4 @@ class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
 class G1FlatPPORunnerCfg(G1RoughPPORunnerCfg):
     def __post_init__(self):
         super().__post_init__()
-        self.max_iterations = 30000
         self.experiment_name = "g1_flat"
