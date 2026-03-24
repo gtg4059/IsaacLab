@@ -169,16 +169,16 @@ class G1RoughCurriculumCfg(CurriculumCfg):
 
     # 초기 50.0에서 num_steps 동안 선형 감쇠하여 0으로 수렴
     # min_steps 이전에는 weight=0, 이후 initial_weight에서 final_weight로 num_steps 동안 감쇠
-    # feet_land_time_weight = CurrTerm(
-    #     func=mdp.modify_reward_weight_linear_decay,
-    #     params={
-    #         "term_name": "feet_land_time",
-    #         "initial_weight": 200.0,
-    #         "final_weight": 1.2,
-    #         "num_steps": STEP*8+STEP*8,
-    #         "min_steps": STEP*8+STEP*8,  # 이 스텝 이후부터 감쇠 시작 (이전에는 weight=0)
-    #     },
-    # )
+    feet_land_time_weight = CurrTerm(
+        func=mdp.modify_reward_weight_linear_decay,
+        params={
+            "term_name": "feet_land_time",
+            "initial_weight": 60.0,
+            "final_weight": 2.0,
+            "num_steps": 2.08*STEP-RESUME,
+            "min_steps": 2*STEP-RESUME,  # 이 스텝 이후부터 감쇠 시작 (이전에는 weight=0)
+        },
+    )
 
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
@@ -186,7 +186,7 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     )
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.01, "num_steps": 2*STEP-RESUME}
+        params={"term_name": "action_rate_l2", "weight": -0.002, "num_steps": 2*STEP-RESUME}
     )
     dof_acc_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
