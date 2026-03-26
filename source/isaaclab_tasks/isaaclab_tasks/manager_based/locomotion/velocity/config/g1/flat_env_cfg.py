@@ -21,7 +21,7 @@ RESUME = 32000*8
 class G1FlatRewards(G1RoughRewards):
     """Reward terms for the MDP."""
     base_height = RewTerm(func=mdp.base_height_l2, weight=-100.0, params={
-        "target_height": 0.78,
+        "target_height": 0.77,
     })
 
     foot_clearance = RewTerm(
@@ -137,9 +137,19 @@ class G1FlatCurriculumCfg(CurriculumCfg):
         func=mdp.modify_reward_weight,
         params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": STEP-RESUME}
     )
+    # feet_land_time_weight = CurrTerm(
+    #     func=mdp.modify_reward_weight,
+    #     params={"term_name": "feet_land_time", "weight": 1.6, "num_steps": STEP-RESUME}
+    # )
     feet_land_time_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "feet_land_time", "weight": 1.6, "num_steps": STEP-RESUME}
+        func=mdp.modify_reward_weight_linear_decay,
+        params={
+            "term_name": "feet_land_time",
+            "initial_weight": 10.0,
+            "final_weight": 1.2,
+            "num_steps": 1.05*STEP-RESUME,
+            "min_steps": STEP-RESUME,  # 이 스텝 이후부터 감쇠 시작 (이전에는 weight=0)
+        },
     )
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
@@ -149,6 +159,7 @@ class G1FlatCurriculumCfg(CurriculumCfg):
         func=mdp.modify_reward_weight,
         params={"term_name": "action_rate_l2", "weight": -0.05, "num_steps": STEP-RESUME}
     )
+
     # joint_deviation_hip_yaw_weight = CurrTerm(
     #     func=mdp.modify_reward_weight,
     #     params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": STEP}

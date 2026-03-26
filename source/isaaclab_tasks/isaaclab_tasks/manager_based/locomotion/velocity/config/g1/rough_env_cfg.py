@@ -16,7 +16,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY  # isort: skip
 STEP = 32000*8
-RESUME = 0*8
+RESUME = 20000*8
 
 @configclass
 class G1RoughRewards(RewardsCfg):
@@ -146,14 +146,14 @@ class G1RoughRewards(RewardsCfg):
 class G1RoughCurriculumCfg(CurriculumCfg):
     """Curriculum configuration for G1 flat environment."""
     # 10000 step마다 최대 난이도의 10%씩 증가 (거리 기반 아님)
-    terrain_levels = CurrTerm(
-        func=mdp.terrain_levels_step_schedule,
-        params={
-            "step_interval": 8000*8,
-            "percent_per_interval": 0.5,
-            "min_steps": 8000*8-RESUME,
-        },
-    ) 
+    # terrain_levels = CurrTerm(
+    #     func=mdp.terrain_levels_step_schedule,
+    #     params={
+    #         "step_interval": 8000*8,
+    #         "percent_per_interval": 0.5,
+    #         "min_steps": 8000*8-RESUME,
+    #     },
+    # ) 
     foot_clearance_weight = CurrTerm(
         func=mdp.modify_reward_weight,
         params={
@@ -193,11 +193,11 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
         # Scene
         self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        self.scene.robot.init_state.pos = (0.0, 0.0, 0.79)
+        self.scene.robot.init_state.pos = (0.0, 0.0, 0.80)
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
         # start at minimum terrain difficulty (curriculum increases after min_steps)
-        # self.scene.terrain.terrain_generator.difficulty_range = (1.0, 1.0)
-        self.scene.terrain.max_init_terrain_level = 0
+        self.scene.terrain.terrain_generator.difficulty_range = (1.0, 1.0)
+        self.scene.terrain.max_init_terrain_level = None
         # self.curriculum.terrain_levels = None
         # Randomization
         self.events.reset_base.params = {
@@ -250,8 +250,8 @@ class G1RoughEnvCfg_PLAY(G1RoughEnvCfg):
         self.scene.env_spacing = 2.5
         self.episode_length_s = 40.0
         # spawn only on easiest terrain (minimum difficulty)
-        self.scene.terrain.terrain_generator.difficulty_range = (1.0, 1.0)
-        self.scene.terrain.max_init_terrain_level = None
+        # self.scene.terrain.terrain_generator.difficulty_range = (1.0, 1.0)
+        # self.scene.terrain.max_init_terrain_level = None
         # reduce the number of terrains to save memory
         # if self.scene.terrain.terrain_generator is not None:
         #     self.scene.terrain.terrain_generator.num_rows = 5
