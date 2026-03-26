@@ -17,9 +17,8 @@ from typing import TYPE_CHECKING
 from isaaclab.envs import mdp
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor
-from isaaclab.utils.math import yaw_quat, subtract_frame_transforms, quat_error_magnitude
+from isaaclab.utils.math import yaw_quat, subtract_frame_transforms, quat_error_magnitude, quat_apply, quat_apply_inverse
 from isaaclab.assets import RigidObject, Articulation
-from isaaclab.utils.math import quat_apply_inverse, yaw_quat
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
