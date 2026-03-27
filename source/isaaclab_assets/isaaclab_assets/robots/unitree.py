@@ -556,6 +556,9 @@ G1_DEX_FIX = ArticulationCfg(
     },
 )
 
+G1_SHOE = G1_DEX_FIX.copy()
+G1_SHOE.spawn.usd_path = "./source/isaaclab_assets/data/Robots/g1_29dof_rev_3_0/g1_29dof_rev_3_0.usd"
+
 G1_DEX_EASY = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         usd_path="./source/isaaclab_assets/data/Robots/g1_29dof_rev_1_0/g1_29dof_rev_1_0.usd",

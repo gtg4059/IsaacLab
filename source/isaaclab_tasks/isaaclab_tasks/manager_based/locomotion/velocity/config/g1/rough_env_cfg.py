@@ -16,7 +16,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY  # isort: skip
 STEP = 64000*8
-RESUME = 0*8
+RESUME = 57500*8
 
 @configclass
 class G1RoughRewards(RewardsCfg):
@@ -163,15 +163,15 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     terrain_levels = CurrTerm(
         func=mdp.terrain_levels_step_schedule,
         params={
-            "step_interval": STEP/4,
+            "step_interval": 1,#STEP/4,
             "percent_per_interval": 0.5,
-            "min_steps": STEP/4-RESUME,
+            "min_steps": 0.#STEP/4-RESUME,
         },
     ) 
     foot_clearance_weight = CurrTerm(
         func=mdp.modify_reward_weight,
         params={
-            "term_name": "foot_clearance", "weight": 0.0, "num_steps": STEP-RESUME
+            "term_name": "foot_clearance", "weight": 0.0, "num_steps": 0#0.75*STEP-RESUME
         }
     )
 
@@ -213,18 +213,6 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # self.scene.terrain.terrain_generator.difficulty_range = (1.0, 1.0)
         self.scene.terrain.max_init_terrain_level = 0
         # self.curriculum.terrain_levels = None
-        # Randomization
-        self.events.reset_base.params = {
-            "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
-            "velocity_range": {
-                "x": (0.0, 0.0),
-                "y": (0.0, 0.0),
-                "z": (0.0, 0.0),
-                "roll": (0.0, 0.0),
-                "pitch": (0.0, 0.0),
-                "yaw": (0.0, 0.0),
-            },
-        }
         # Rewards
         self.rewards.undesired_contacts = None
         # no height scan
@@ -232,7 +220,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # reward for init model file
         self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
         self.commands.base_velocity.ranges.lin_vel_y = (-0.2, 0.2)
-        self.rewards.base_height.params["target_height"] = 0.75
+        self.rewards.base_height.params["target_height"] = 0.76
         self.rewards.foot_clearance.weight = 0.75
         self.rewards.feet_land_time.weight = 0.0
         self.rewards.contact_forces.weight = 0.0
@@ -244,12 +232,8 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # self.rewards.joint_deviation_hip.weight = -1.0
 
         self.events.randomize_friction.params["asset_cfg"].body_names = [".*_ankle_roll_link"]
-        # self.events.randomize_joint_param = None
-        # self.events.randomize_link_mass = None
-        self.events.randomize_base_mass = None
-        self.events.randomize_base_com = None
-        self.events.randomize_pd_gains = None
-        self.events.randomize_motor_zero_offset = None
+        # self.events.randomize_pd_gains = None
+        # self.events.randomize_motor_zero_offset = None
 
 
 
@@ -264,9 +248,10 @@ class G1RoughEnvCfg_PLAY(G1RoughEnvCfg):
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
         self.episode_length_s = 40.0
-        # spawn only on easiest terrain (minimum difficulty)
         self.scene.terrain.terrain_generator.difficulty_range = (1.0, 1.0)
-        self.scene.terrain.max_init_terrain_level = None
+        # spawn only on easiest terrain (minimum difficulty)
+        # self.scene.terrain.terrain_generator.difficulty_range = (1.0, 1.0)
+        # self.scene.terrain.max_init_terrain_level = None
         # reduce the number of terrains to save memory
         # if self.scene.terrain.terrain_generator is not None:
         #     self.scene.terrain.terrain_generator.num_rows = 5

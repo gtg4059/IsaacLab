@@ -8,21 +8,32 @@ from isaaclab.utils import configclass
 
 from .rough_env_cfg import G1RoughEnvCfg, G1RoughRewards
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
-from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY
+from isaaclab_assets import G1_DEX_FIX, G1_SHOE
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import CurriculumCfg
+from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg, RewardsCfg
 from isaaclab.managers import RewardTermCfg as RewTerm
 import math
 
 STEP = 32000*8
-RESUME = 32000*8
+RESUME = 0*8
 
 @configclass
-class G1FlatRewards(G1RoughRewards):
+class G1FlatRewards(RewardsCfg):
     """Reward terms for the MDP."""
     base_height = RewTerm(func=mdp.base_height_l2, weight=-100.0, params={
-        "target_height": 0.77,
+        "target_height": 0.78,
     })
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
+
+    track_lin_vel_xy_exp = RewTerm(
+        func=mdp.track_lin_vel_xy_yaw_frame_exp,
+        weight=1.0,
+        params={"command_name": "base_velocity", "std": 1.0},
+    )
+    track_ang_vel_z_exp = RewTerm(
+        func=mdp.track_ang_vel_z_world_exp, weight=1.0, params={"command_name": "base_velocity", "std": 1.0}
+    )
 
     foot_clearance = RewTerm(
         func=mdp.foot_clearance_reward,
@@ -147,8 +158,8 @@ class G1FlatCurriculumCfg(CurriculumCfg):
             "term_name": "feet_land_time",
             "initial_weight": 10.0,
             "final_weight": 1.2,
-            "num_steps": 1.05*STEP-RESUME,
-            "min_steps": STEP-RESUME,  # 이 스텝 이후부터 감쇠 시작 (이전에는 weight=0)
+            "num_steps": 1.25*STEP-RESUME,
+            "min_steps": 1.2*STEP-RESUME,  # 이 스텝 이후부터 감쇠 시작 (이전에는 weight=0)
         },
     )
     contact_forces_weight = CurrTerm(
@@ -166,30 +177,35 @@ class G1FlatCurriculumCfg(CurriculumCfg):
     # )
 
 @configclass
-class G1FlatEnvCfg(G1RoughEnvCfg):
+class G1FlatEnvCfg(LocomotionVelocityRoughEnvCfg):
     curriculum: G1FlatCurriculumCfg = G1FlatCurriculumCfg()
     rewards: G1FlatRewards = G1FlatRewards()
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
-        self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        # Scene
+        self.scene.robot = G1_SHOE.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot.init_state.pos = (0.0, 0.0, 0.81)
+        self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
+        # Randomization
+        self.events.randomize_friction.params["asset_cfg"].body_names = [".*_ankle_roll_link"]
+        # self.events.randomize_friction.params["static_friction_range"] = (0.1, 1.0)
+        # self.events.randomize_friction.params["dynamic_friction_range"] = (0.1, 1.0)
+        # Rewards
+        self.rewards.undesired_contacts = None
+        self.rewards.action_rate_l2.weight = -0.001
         # change terrain to flat
         self.scene.terrain.terrain_type = "plane"
         self.scene.terrain.terrain_generator = None
         self.curriculum.terrain_levels = None
         # no height scan
         self.scene.height_scanner = None
-        # reward for init model file
-        self.rewards.action_rate_l2.weight = -0.001
-        # self.rewards.flat_orientation_l2.weight = -5.0
 
 
 class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
     def __post_init__(self) -> None:
         # post init of parent
         super().__post_init__()
-
-        self.scene.robot = G1_DEX_FIX.replace(prim_path="{ENV_REGEX_NS}/Robot")
         # make a smaller scene for play
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
