@@ -15,8 +15,8 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 # Pre-defined configs
 ##
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY  # isort: skip
-STEP = 32000*8
-RESUME = 20000*8
+STEP = 64000*8
+RESUME = 0*8
 
 @configclass
 class G1RoughRewards(RewardsCfg):
@@ -71,6 +71,7 @@ class G1RoughRewards(RewardsCfg):
         func=mdp.joint_pos_limits,
         weight=-1.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
+            ".*_shoulder_roll_joint",
             ".*_ankle_pitch_joint", 
             ".*_ankle_roll_joint",
             ".*_knee_joint"
@@ -92,12 +93,25 @@ class G1RoughRewards(RewardsCfg):
                 "robot",
                 joint_names=[
                     # ".*_shoulder_pitch_joint",
-                    ".*_shoulder_roll_joint",
+                    # ".*_shoulder_roll_joint",
                     # ".*_shoulder_yaw_joint",
                     # ".*_elbow_joint",
                     ".*_wrist_roll_joint",
                     ".*_wrist_pitch_joint",
                     ".*_wrist_yaw_joint",
+                ],
+            )
+        },
+    )
+
+    joint_deviation_shoulder_roll = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-0.2,
+        params={
+            "asset_cfg": SceneEntityCfg(
+                "robot",
+                joint_names=[
+                    ".*_shoulder_roll_joint",
                 ],
             )
         },
@@ -146,14 +160,14 @@ class G1RoughRewards(RewardsCfg):
 class G1RoughCurriculumCfg(CurriculumCfg):
     """Curriculum configuration for G1 flat environment."""
     # 10000 step마다 최대 난이도의 10%씩 증가 (거리 기반 아님)
-    # terrain_levels = CurrTerm(
-    #     func=mdp.terrain_levels_step_schedule,
-    #     params={
-    #         "step_interval": 8000*8,
-    #         "percent_per_interval": 0.5,
-    #         "min_steps": 8000*8-RESUME,
-    #     },
-    # ) 
+    terrain_levels = CurrTerm(
+        func=mdp.terrain_levels_step_schedule,
+        params={
+            "step_interval": STEP/4,
+            "percent_per_interval": 0.5,
+            "min_steps": STEP/4-RESUME,
+        },
+    ) 
     foot_clearance_weight = CurrTerm(
         func=mdp.modify_reward_weight,
         params={
@@ -196,8 +210,8 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.robot.init_state.pos = (0.0, 0.0, 0.80)
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
         # start at minimum terrain difficulty (curriculum increases after min_steps)
-        self.scene.terrain.terrain_generator.difficulty_range = (1.0, 1.0)
-        self.scene.terrain.max_init_terrain_level = None
+        # self.scene.terrain.terrain_generator.difficulty_range = (1.0, 1.0)
+        self.scene.terrain.max_init_terrain_level = 0
         # self.curriculum.terrain_levels = None
         # Randomization
         self.events.reset_base.params = {
@@ -216,16 +230,17 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # no height scan
         # self.scene.height_scanner = None
         # reward for init model file
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, 2.0)
-        # self.commands.base_velocity.ranges.lin_vel_y = (-0.01, 0.01)
-        self.rewards.base_height.params["target_height"] = 0.76
+        self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_y = (-0.2, 0.2)
+        self.rewards.base_height.params["target_height"] = 0.75
         self.rewards.foot_clearance.weight = 0.75
         self.rewards.feet_land_time.weight = 0.0
         self.rewards.contact_forces.weight = 0.0
         self.rewards.action_rate_l2.weight = -0.0001
         # self.rewards.dof_acc_l2.weight = -1.0e-7
         # self.rewards.joint_deviation_torso.weight = -0.5
-        # self.rewards.dof_torques_l2.weight = -1.0e-6
+        self.rewards.dof_acc_l2.weight = 0.0
+        self.rewards.dof_torques_l2.weight = 0.0
         # self.rewards.joint_deviation_hip.weight = -1.0
 
         self.events.randomize_friction.params["asset_cfg"].body_names = [".*_ankle_roll_link"]
@@ -250,8 +265,8 @@ class G1RoughEnvCfg_PLAY(G1RoughEnvCfg):
         self.scene.env_spacing = 2.5
         self.episode_length_s = 40.0
         # spawn only on easiest terrain (minimum difficulty)
-        # self.scene.terrain.terrain_generator.difficulty_range = (1.0, 1.0)
-        # self.scene.terrain.max_init_terrain_level = None
+        self.scene.terrain.terrain_generator.difficulty_range = (1.0, 1.0)
+        self.scene.terrain.max_init_terrain_level = None
         # reduce the number of terrains to save memory
         # if self.scene.terrain.terrain_generator is not None:
         #     self.scene.terrain.terrain_generator.num_rows = 5
