@@ -169,12 +169,12 @@ class G1RoughCurriculumCfg(CurriculumCfg):
             "min_steps": 0.#STEP/4-RESUME,
         },
     ) 
-    foot_clearance_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={
-            "term_name": "foot_clearance", "weight": 0.0, "num_steps": STEP-RESUME
-        }
-    )
+    # foot_clearance_weight = CurrTerm(
+    #     func=mdp.modify_reward_weight,
+    #     params={
+    #         "term_name": "foot_clearance", "weight": 0.0, "num_steps": STEP-RESUME
+    #     }
+    # )
 
     # 초기 50.0에서 num_steps 동안 선형 감쇠하여 0으로 수렴
     # min_steps 이전에는 weight=0, 이후 initial_weight에서 final_weight로 num_steps 동안 감쇠
