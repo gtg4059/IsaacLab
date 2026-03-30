@@ -16,7 +16,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY  # isort: skip
 STEP = 64000*8
-RESUME = 57500*8
+RESUME = 48000*8
 
 @configclass
 class G1RoughRewards(RewardsCfg):
@@ -29,11 +29,11 @@ class G1RoughRewards(RewardsCfg):
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=1.0,
+        weight=2.0,
         params={"command_name": "base_velocity", "std": 1.0},
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=1.0, params={"command_name": "base_velocity", "std": 1.0}
+        func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "base_velocity", "std": 1.0}
     )
 
     foot_clearance = RewTerm(
@@ -171,7 +171,7 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     foot_clearance_weight = CurrTerm(
         func=mdp.modify_reward_weight,
         params={
-            "term_name": "foot_clearance", "weight": 0.0, "num_steps": 0#0.75*STEP-RESUME
+            "term_name": "foot_clearance", "weight": 0.0, "num_steps": STEP-RESUME
         }
     )
 
@@ -190,12 +190,12 @@ class G1RoughCurriculumCfg(CurriculumCfg):
 
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 2*STEP-RESUME}
+        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": STEP-RESUME}
     )
 
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.01, "num_steps": 2*STEP-RESUME}
+        params={"term_name": "action_rate_l2", "weight": -0.01, "num_steps": STEP-RESUME}
     )
 
 @configclass
@@ -224,11 +224,11 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.foot_clearance.weight = 0.75
         self.rewards.feet_land_time.weight = 0.0
         self.rewards.contact_forces.weight = 0.0
-        self.rewards.action_rate_l2.weight = -0.0001
+        self.rewards.action_rate_l2.weight = -0.001
         # self.rewards.dof_acc_l2.weight = -1.0e-7
         # self.rewards.joint_deviation_torso.weight = -0.5
-        self.rewards.dof_acc_l2.weight = 0.0
-        self.rewards.dof_torques_l2.weight = 0.0
+        # self.rewards.dof_acc_l2.weight = 0.0
+        # self.rewards.dof_torques_l2.weight = 0.0
         # self.rewards.joint_deviation_hip.weight = -1.0
 
         self.events.randomize_friction.params["asset_cfg"].body_names = [".*_ankle_roll_link"]
