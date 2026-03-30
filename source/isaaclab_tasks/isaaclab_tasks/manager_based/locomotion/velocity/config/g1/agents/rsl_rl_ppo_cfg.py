@@ -14,7 +14,6 @@ from isaaclab_rl.rsl_rl import (
     RslRlDistillationAlgorithmCfg,
 )
 
-
 @configclass
 class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
@@ -42,7 +41,6 @@ class G1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         desired_kl=0.01,
         max_grad_norm=1.0,
     )
-
 
 @configclass
 class G1FlatPPORunnerCfg(G1RoughPPORunnerCfg):
