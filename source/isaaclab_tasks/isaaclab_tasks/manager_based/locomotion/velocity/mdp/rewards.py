@@ -88,6 +88,7 @@ def feet_slide(env, sensor_cfg: SceneEntityCfg, asset_cfg: SceneEntityCfg = Scen
 def foot_clearance_reward(
     env: ManagerBasedRLEnv, 
     asset_cfg: SceneEntityCfg,
+    command_name: str,
     sensor_cfg: SceneEntityCfg,
     target_height: float, std: float
 ) -> torch.Tensor:
@@ -101,6 +102,7 @@ def foot_clearance_reward(
     """Reward the swinging feet for clearing a specified height off the ground"""
     asset = env.scene[asset_cfg.name]
     reward = torch.square(asset.data.body_pos_w[:, asset_cfg.body_ids, 2] - target_height)
+    reward = torch.where(torch.norm(env.command_manager.get_command(command_name)[:, :3], dim=-1, keepdim=True) > 0.05,reward,0)
     # print(single_stance)
     return torch.exp(-torch.sum(reward, dim=1) / std)*single_stance
 

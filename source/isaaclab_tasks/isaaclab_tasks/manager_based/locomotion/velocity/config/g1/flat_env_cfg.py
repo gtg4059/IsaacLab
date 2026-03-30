@@ -42,6 +42,7 @@ class G1FlatRewards(RewardsCfg):
             "std": 0.05,
             "target_height": 0.2,
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
+            "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
         },
     )

@@ -29,11 +29,11 @@ class G1RoughRewards(RewardsCfg):
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=2.0,
+        weight=1.0,
         params={"command_name": "base_velocity", "std": 1.0},
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=2.0, params={"command_name": "base_velocity", "std": 1.0}
+        func=mdp.track_ang_vel_z_world_exp, weight=1.0, params={"command_name": "base_velocity", "std": 1.0}
     )
 
     foot_clearance = RewTerm(
@@ -43,6 +43,7 @@ class G1RoughRewards(RewardsCfg):
             "std": 0.05,
             "target_height": 0.2,
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_ankle_roll_link"),
+            "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
         },
     )
@@ -218,7 +219,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # no height scan
         # self.scene.height_scanner = None
         # reward for init model file
-        self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_x = (-0.6, 1.5)
         self.commands.base_velocity.ranges.lin_vel_y = (-0.2, 0.2)
         self.rewards.base_height.params["target_height"] = 0.76
         self.rewards.foot_clearance.weight = 0.75
