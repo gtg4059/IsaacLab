@@ -150,11 +150,11 @@ class CommandsCfg:
                 # ((-5.0, 5.0), (-5.0, 5.0), (-5.0, 5.0)),  # left_knee
                 # ((-5.0, 5.0), (-5.0, 5.0), (-5.0, 5.0)),  # right_knee
 
-                # ((-10.0, 10.0), (-10.0, 20.0), (-10.0, 10.0)),  # left_wrist
-                # ((-10.0, 10.0), (-10.0, 20.0), (-10.0, 10.0)),  # right_wrist 
+                # ((-15.0, 15.0), (-15.0, 15.0), (-15.0, 15.0)),  # left_wrist
+                # ((-15.0, 15.0), (-15.0, 15.0), (-15.0, 15.0)),  # right_wrist 
                 # ((-20.0, 20.0), (-20.0, 20.0), (-20.0, 20.0)),  # torso 
-                # ((-15.0, 15.0), (-15.0, 15.0), (-5.0, 5.0)),  # left_knee
-                # ((-15.0, 15.0), (-15.0, 15.0), (-5.0, 5.0)),  # right_knee   
+                # ((-10.0, 10.0), (-10.0, 10.0), (-5.0, 5.0)),  # left_knee
+                # ((-10.0, 10.0), (-10.0, 10.0), (-5.0, 5.0)),  # right_knee   
             
                 ((-30.0, 30.0), (-20.0, 30.0), (-30.0, 30.0)),  # left_wrist
                 ((-30.0, 30.0), (-30.0, 20.0), (-30.0, 30.0)),  # right_wrist 
@@ -324,9 +324,9 @@ class ObservationsCfg:
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}, scale=(2.0,2.0,0.25), 
         # history_length=3
         )  # 3
-        base_force_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_force"}, 
-        # history_length=3
-        )  # 3
+        # base_force_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_force"}, 
+        # # history_length=3
+        # )  # 3
 
 
         def __post_init__(self):
@@ -436,9 +436,9 @@ class ObservationsCfg:
         )  # 3
         base_force_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_force"}, 
         # history_length=3
-        )  # 3 * 3
+        )  # 3
 
-# 
+
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
@@ -614,24 +614,6 @@ class EventCfg:
     )
 ########### init_state의 설정############
 
-    # reset_robot_position = EventTerm(
-    #     func=mdp.reset_root_state_uniform,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot"),
-    #         # "pose_range": {"x": (-0.25, 0.25), "y": (-0.25, 0.25), "yaw": (-0.45, 0.45)},# x,y는 +-0.5 였음
-    #         "pose_range": {"x": (-0.00, 0.00), "y": (-0.00, 0.00), "yaw": (-0.0, 0.0)},
-    #         "velocity_range": {
-    #             "x": (-0.05, 0.05),
-    #             "y": (-0.05, 0.05),
-    #             "z": (-0.05, 0.05),
-    #             "roll": (-0.05, 0.05),
-    #             "pitch": (-0.05, 0.05),
-    #             "yaw": (-0.05, 0.05),
-    #         },
-    #     },
-    # )
-
     # base_external_force_torque = EventTerm(
     #     func=mdp.apply_external_force_torque,
     #     mode="reset",
@@ -653,23 +635,6 @@ class EventCfg:
             "body_names": ["left_wrist_yaw_link", "right_wrist_yaw_link", "torso_link", "left_knee_link", "right_knee_link"],
         },
     )
-#     # reset_arm_position = EventTerm(
-#     #     func=mdp.reset_root_state_uniform,
-#     #     mode="reset",
-#     #     params={
-#     #         "asset_cfg": SceneEntityCfg("ee_gripper"),
-#     #         "pose_range": {"x": (0.0, 0.2), "y": (0.0, 0.0), "z": (0.0, 0.2)},# x,y는 +-0.5 였음
-#     #         # "pose_range": {"x": (-0.00, 0.00), "y": (-0.00, 0.00), "yaw": (-0.0, 0.0)},
-#     #         "velocity_range": {
-#     #             "x": (0.0, 0.0),
-#     #             "y": (0.0, 0.0),
-#     #             "z": (0.0, 0.0),
-#     #             "roll": (0.0, 0.0),
-#     #             "pitch": (0.0, 0.0),
-#     #             "yaw": (0.0, 0.0),
-#     #         },
-#     #     },
-#     # )
 
 #### case2: motor strength. range:(0.85, 1.1) ####
 
@@ -696,9 +661,9 @@ class RewardsCfg:
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0) # -2.0, 0.2
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6)# -1.0e-8, -1.0e-6
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-6)# -1.0e-8,-1.0e-6
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.1)
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-8)# -1.0e-8, -1.0e-6
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-8)# -1.0e-8,-1.0e-6
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.005)
     # feet_air_time = RewTerm(
     #     func=mdp.feet_air_time,
     #     weight=0.0, #0.125,
