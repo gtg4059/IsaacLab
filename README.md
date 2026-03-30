@@ -1,206 +1,210 @@
-![Isaac Lab](docs/source/_static/isaaclab.jpg)
-
----
-
-# Isaac Lab
-
-[![IsaacSim](https://img.shields.io/badge/IsaacSim-5.0.0-silver.svg)](https://docs.isaacsim.omniverse.nvidia.com/latest/index.html)
-[![Python](https://img.shields.io/badge/python-3.11-blue.svg)](https://docs.python.org/3/whatsnew/3.11.html)
-[![Linux platform](https://img.shields.io/badge/platform-linux--64-orange.svg)](https://releases.ubuntu.com/22.04/)
-[![Windows platform](https://img.shields.io/badge/platform-windows--64-orange.svg)](https://www.microsoft.com/en-us/)
-[![pre-commit](https://img.shields.io/github/actions/workflow/status/isaac-sim/IsaacLab/pre-commit.yaml?logo=pre-commit&logoColor=white&label=pre-commit&color=brightgreen)](https://github.com/isaac-sim/IsaacLab/actions/workflows/pre-commit.yaml)
-[![docs status](https://img.shields.io/github/actions/workflow/status/isaac-sim/IsaacLab/docs.yaml?label=docs&color=brightgreen)](https://github.com/isaac-sim/IsaacLab/actions/workflows/docs.yaml)
-[![License](https://img.shields.io/badge/license-BSD--3-yellow.svg)](https://opensource.org/licenses/BSD-3-Clause)
-[![License](https://img.shields.io/badge/license-Apache--2.0-yellow.svg)](https://opensource.org/license/apache-2-0)
-
-
-**Isaac Lab** is a GPU-accelerated, open-source framework designed to unify and simplify robotics research workflows, such as reinforcement learning, imitation learning, and motion planning. Built on [NVIDIA Isaac Sim](https://docs.isaacsim.omniverse.nvidia.com/latest/index.html), it combines fast and accurate physics and sensor simulation, making it an ideal choice for sim-to-real transfer in robotics.
-
-Isaac Lab provides developers with a range of essential features for accurate sensor simulation, such as RTX-based cameras, LIDAR, or contact sensors. The framework's GPU acceleration enables users to run complex simulations and computations faster, which is key for iterative processes like reinforcement learning and data-intensive tasks. Moreover, Isaac Lab can run locally or be distributed across the cloud, offering flexibility for large-scale deployments.
-
-
-## Key Features
-
-Isaac Lab offers a comprehensive set of tools and environments designed to facilitate robot learning:
-- **Robots**: A diverse collection of robots, from manipulators, quadrupeds, to humanoids, with 16 commonly available models.
-- **Environments**: Ready-to-train implementations of more than 30 environments, which can be trained with popular reinforcement learning frameworks such as RSL RL, SKRL, RL Games, or Stable Baselines. We also support multi-agent reinforcement learning.
-- **Physics**: Rigid bodies, articulated systems, deformable objects
-- **Sensors**: RGB/depth/segmentation cameras, camera annotations, IMU, contact sensors, ray casters.
-
-
-## Getting Started
-
-### Getting Started with Open-Source Isaac Sim
-
-Isaac Sim is now open source and available on GitHub!
-
-For detailed Isaac Sim installation instructions, please refer to
-[Isaac Sim README](https://github.com/isaac-sim/IsaacSim?tab=readme-ov-file#quick-start).
-
-1. Clone Isaac Sim
-
-    ```
-    git clone https://github.com/isaac-sim/IsaacSim.git
-    ```
-
-2. Build Isaac Sim
-
-    ```
-    cd IsaacSim
-    ./build.sh
-    ```
-
-    On Windows, please use `build.bat` instead.
-
-3. Clone Isaac Lab
-
-    ```
-    cd ..
-    git clone https://github.com/isaac-sim/IsaacLab.git
-    cd isaaclab
-    ```
-
-4. Set up symlink in Isaac Lab
-
-    Linux:
-
-    ```
-    ln -s ../IsaacSim/_build/linux-x86_64/release _isaac_sim
-    ```
-
-    Windows:
-
-    ```
-    mklink /D _isaac_sim ..\IsaacSim\_build\windows-x86_64\release
-    ```
-
-5. Install Isaac Lab
-
-    Linux:
-
-    ```
-    ./isaaclab.sh -i
-    ```
-
-    Windows:
-
-    ```
-    isaaclab.bat -i
-    ```
-
-6. [Optional] Set up a virtual python environment (e.g. for Conda)
-
-    Linux:
-
-    ```
-    source _isaac_sim/setup_conda_env.sh
-    ```
-
-    Windows:
-
-    ```
-    _isaac_sim\setup_python_env.bat
-    ```
-
-7. Train!
-
-    Linux:
-
-    ```
-    ./isaaclab.sh -p scripts/reinforcement_learning/skrl/train.py --task Isaac-Ant-v0 --headless
-    ```
-
-    Windows:
-
-    ```
-    isaaclab.bat -p scripts\reinforcement_learning\skrl\train.py --task Isaac-Ant-v0 --headless
-    ```
-
-### Documentation
-
-Our [documentation page](https://isaac-sim.github.io/IsaacLab) provides everything you need to get started, including detailed tutorials and step-by-step guides. Follow these links to learn more about:
-
-- [Installation steps](https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/index.html#local-installation)
-- [Reinforcement learning](https://isaac-sim.github.io/IsaacLab/main/source/overview/reinforcement-learning/rl_existing_scripts.html)
-- [Tutorials](https://isaac-sim.github.io/IsaacLab/main/source/tutorials/index.html)
-- [Available environments](https://isaac-sim.github.io/IsaacLab/main/source/overview/environments.html)
-
-
-## Isaac Sim Version Dependency
-
-Isaac Lab is built on top of Isaac Sim and requires specific versions of Isaac Sim that are compatible with each release of Isaac Lab.
-Below, we outline the recent Isaac Lab releases and GitHub branches and their corresponding dependency versions for Isaac Sim.
-
-| Isaac Lab Version             | Isaac Sim Version   |
-| ----------------------------- | ------------------- |
-| `main` branch                 | Isaac Sim 4.5 / 5.0 |
-| `v2.2.0`                      | Isaac Sim 4.5 / 5.0 |
-| `v2.1.1`                      | Isaac Sim 4.5       |
-| `v2.1.0`                      | Isaac Sim 4.5       |
-| `v2.0.2`                      | Isaac Sim 4.5       |
-| `v2.0.1`                      | Isaac Sim 4.5       |
-| `v2.0.0`                      | Isaac Sim 4.5       |
-
-
-## Contributing to Isaac Lab
-
-We wholeheartedly welcome contributions from the community to make this framework mature and useful for everyone.
-These may happen as bug reports, feature requests, or code contributions. For details, please check our
-[contribution guidelines](https://isaac-sim.github.io/IsaacLab/main/source/refs/contributing.html).
-
-## Show & Tell: Share Your Inspiration
-
-We encourage you to utilize our [Show & Tell](https://github.com/isaac-sim/IsaacLab/discussions/categories/show-and-tell) area in the
-`Discussions` section of this repository. This space is designed for you to:
-
-* Share the tutorials you've created
-* Showcase your learning content
-* Present exciting projects you've developed
-
-By sharing your work, you'll inspire others and contribute to the collective knowledge
-of our community. Your contributions can spark new ideas and collaborations, fostering
-innovation in robotics and simulation.
-
-## Troubleshooting
-
-Please see the [troubleshooting](https://isaac-sim.github.io/IsaacLab/main/source/refs/troubleshooting.html) section for
-common fixes or [submit an issue](https://github.com/isaac-sim/IsaacLab/issues).
-
-For issues related to Isaac Sim, we recommend checking its [documentation](https://docs.omniverse.nvidia.com/app_isaacsim/app_isaacsim/overview.html)
-or opening a question on its [forums](https://forums.developer.nvidia.com/c/agx-autonomous-machines/isaac/67).
-
-## Support
-
-* Please use GitHub [Discussions](https://github.com/isaac-sim/IsaacLab/discussions) for discussing ideas, asking questions, and requests for new features.
-* Github [Issues](https://github.com/isaac-sim/IsaacLab/issues) should only be used to track executable pieces of work with a definite scope and a clear deliverable. These can be fixing bugs, documentation issues, new features, or general updates.
-
-## Connect with the NVIDIA Omniverse Community
-
-Do you have a project or resource you'd like to share more widely? We'd love to hear from you!
-Reach out to the NVIDIA Omniverse Community team at OmniverseCommunity@nvidia.com to explore opportunities
-to spotlight your work.
-
-You can also join the conversation on the [Omniverse Discord](https://discord.com/invite/nvidiaomniverse) to
-connect with other developers, share your projects, and help grow a vibrant, collaborative ecosystem
-where creativity and technology intersect. Your contributions can make a meaningful impact on the Isaac Lab community and beyond!
-
-## License
-
-The Isaac Lab framework is released under [BSD-3 License](LICENSE). The `isaaclab_mimic` extension and its corresponding standalone scripts are released under [Apache 2.0](LICENSE-mimic). The license files of its dependencies and assets are present in the [`docs/licenses`](docs/licenses) directory.
-
-## Acknowledgement
-
-Isaac Lab development initiated from the [Orbit](https://isaac-orbit.github.io/) framework. We would appreciate if you would cite it in academic publications as well:
-
+# KHU G1 Train
+
+Isaac Lab 기반 Unitree G1 보행 학습 프로젝트입니다.
+
+## 1) 프로젝트 개요
+
+- 학습 스크립트: `scripts/rsl_rl/train.py`
+- 재생(검증) 스크립트: `scripts/rsl_rl/play.py`
+- 환경 등록: `source/g1_loco/g1_loco/tasks/manager_based/g1_loco/__init__.py`
+- 주요 환경 설정 파일:
+  - `rough_env_cfg.py` (Rough 기본)
+  - `flat_env_cfg.py` (Flat 기본)
+  - `g1_loco_env_cfg.py` (Rough Base)
+
+## 2) 사전 준비
+
+- 기준 문서: Isaac Lab v2.3.2 `Local Installation > System Requirements`
+- OS: Ubuntu 22.04 (Linux x64) 또는 Windows 11 (x64)
+- RAM: 32 GB 이상
+- GPU VRAM: 16 GB 이상
+- NVIDIA Driver: 최신 Production Branch 권장
+  - Linux: `580.65.06` 이상 권장 (특히 Ubuntu 22.04.5 + kernel 6.8.0-48 이상)
+  - Windows: `580.88` 권장
+- Python (Isaac Sim 버전에 맞춰 선택)
+  - Isaac Sim 5.x: Python 3.11
+  - Isaac Sim 4.x: Python 3.10
+- Git + Git LFS
+- Conda(권장: Miniconda)
+
+## 3) Miniconda 설치 (없을 때)
+
+### 설치 확인
+
+```bash
+conda --version
 ```
-@article{mittal2023orbit,
-   author={Mittal, Mayank and Yu, Calvin and Yu, Qinxi and Liu, Jingzhou and Rudin, Nikita and Hoeller, David and Yuan, Jia Lin and Singh, Ritvik and Guo, Yunrong and Mazhar, Hammad and Mandlekar, Ajay and Babich, Buck and State, Gavriel and Hutter, Marco and Garg, Animesh},
-   journal={IEEE Robotics and Automation Letters},
-   title={Orbit: A Unified Simulation Framework for Interactive Robot Learning Environments},
-   year={2023},
-   volume={8},
-   number={6},
-   pages={3740-3747},
-   doi={10.1109/LRA.2023.3270034}
-}
+
+### Linux/WSL 기준 설치 예시
+
+```bash
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+source ~/.bashrc
 ```
+
+## 4) `env_isaaclab` 환경 생성
+
+### 새 환경 생성 예시
+
+```bash
+# Isaac Sim 5.x 사용 시
+conda create -n env_isaaclab python=3.11 -y
+
+# IsaacLab sh 파일 사용시
+./isaaclab.sh --conda my_env_name
+
+# Activate environment
+conda activate env_isaaclab
+```
+
+## 5) Isaac Sim 및 Lab 설치
+
+Isaac Lab을 먼저 설치해야 이 프로젝트 스크립트가 동작합니다.
+
+- 공식 git 저장소: https://github.com/isaac-sim/IsaacLab
+- 공식 문서(v2.3.2): https://isaac-sim.github.io/IsaacLab/v2.3.2/index.html
+- 설치 가이드: https://isaac-sim.github.io/IsaacLab/v2.3.2/source/setup/installation/index.html
+
+## 6) Isaac Sim 환경 스크립트 적용 (`setup_conda_env.sh`)
+
+Isaac Sim/Lab 설치 후, `env_isaaclab` 활성화만으로는 Isaac Sim 관련 환경변수가 자동 반영되지 않을 수 있습니다.
+아래 두 방법 중 하나를 사용하세요.
+
+### 방법 A: 매번 수동으로 실행
+
+```bash
+conda activate env_isaaclab
+source /home/safetics/isaacsim/setup_conda_env.sh
+```
+
+### 방법 B(옵션): `conda activate` 시 자동 실행
+
+한 번만 설정하면, 이후에는 `conda activate env_isaaclab`만으로 자동 적용됩니다.
+
+```bash
+conda activate env_isaaclab
+mkdir -p "$CONDA_PREFIX/etc/conda/activate.d"
+cat > "$CONDA_PREFIX/etc/conda/activate.d/isaacsim.sh" <<'EOF'
+#!/usr/bin/env bash
+source /home/safetics/isaacsim/setup_conda_env.sh
+EOF
+chmod +x "$CONDA_PREFIX/etc/conda/activate.d/isaacsim.sh"
+```
+
+자동 적용 해제:
+
+```bash
+conda activate env_isaaclab
+rm -f "$CONDA_PREFIX/etc/conda/activate.d/isaacsim.sh"
+```
+
+## 7) 저장소 클론
+
+```bash
+git clone https://github.com/safetics-dev/KHU_g1_train.git
+cd KHU_g1_train
+```
+
+## 8) Git LFS 파일 받기
+
+이 저장소의 G1 USD 자산은 Git LFS로 관리됩니다.
+
+```bash
+# git-lfs install
+sudo apt install git-lfs
+
+# 1회 설정
+git lfs install
+
+# 현재 저장소 LFS 파일 다운로드
+git lfs pull
+```
+
+## 9) `g1_loco` 패키지 설치 (중요)
+
+반드시 `env_isaaclab` 활성화 후 설치하세요.
+
+```bash
+conda activate env_isaaclab
+cd /path/to/KHU_g1_train
+python -m pip install -e source/g1_loco
+```
+
+### 왜 설치가 필요한가?
+
+- `import g1_loco.tasks`가 실행되면서 `gym.register(...)`가 호출됩니다.
+- 이 단계가 되어야 `gym.make("KHU-...")`에서 태스크 ID를 찾을 수 있습니다.
+- `-e`(editable) 설치라서 코드 수정이 즉시 반영됩니다.
+- 보통 **환경당 1회 설치**면 충분하고, 새 conda 환경을 만들면 다시 설치해야 합니다.
+
+## 10) 학습/재생 실행
+
+### Rough 기본 환경
+
+```bash
+# 학습
+python scripts/rsl_rl/train.py --task KHU-Velocity-Rough-G1-v0 --num_envs 4096 --headless
+
+# 재생
+python scripts/rsl_rl/play.py --task KHU-Velocity-Rough-G1-Play-v0 --checkpoint path/to/model.pt
+```
+
+### Flat 기본 환경
+
+```bash
+# 학습
+python scripts/rsl_rl/train.py --task KHU-Velocity-Flat-G1-v0 --num_envs 4096 --headless
+
+# 재생
+python scripts/rsl_rl/play.py --task KHU-Velocity-Flat-G1-Play-v0 --checkpoint path/to/model.pt
+```
+
+### Rough Base 환경 (`g1_loco_env_cfg` 기반)
+
+```bash
+# 학습
+python scripts/rsl_rl/train.py --task KHU-Velocity-Base-G1-v0 --num_envs 4096 --headless
+
+# 재생
+python scripts/rsl_rl/play.py --task KHU-Velocity-Base-G1-Play-v0 --checkpoint path/to/model.pt
+```
+
+## 11) Gym 등록 매핑
+
+| Task ID | Env Config | Runner Config |
+|---|---|---|
+| `KHU-Velocity-Rough-G1-v0` | `rough_env_cfg:G1RoughEnvCfg` | `rsl_rl_ppo_cfg:G1RoughPPORunnerCfg` |
+| `KHU-Velocity-Rough-G1-Play-v0` | `rough_env_cfg:G1RoughEnvCfg_PLAY` | `rsl_rl_ppo_cfg:G1RoughPPORunnerCfg` |
+| `KHU-Velocity-Flat-G1-v0` | `flat_env_cfg:G1FlatEnvCfg` | `rsl_rl_ppo_cfg:G1FlatPPORunnerCfg` |
+| `KHU-Velocity-Flat-G1-Play-v0` | `flat_env_cfg:G1FlatEnvCfg_PLAY` | `rsl_rl_ppo_cfg:G1FlatPPORunnerCfg` |
+| `KHU-Velocity-Base-G1-v0` | `g1_loco_env_cfg:G1LocoEnvCfg` | `rsl_rl_ppo_cfg:G1RoughPPORunnerCfg` |
+| `KHU-Velocity-Base-G1-Play-v0` | `g1_loco_env_cfg:G1LocoEnvCfg_PLAY` | `rsl_rl_ppo_cfg:G1RoughPPORunnerCfg` |
+
+## 12) 자주 발생하는 문제
+
+### `ModuleNotFoundError: No module named 'g1_loco'`
+
+```bash
+conda activate env_isaaclab
+python -m pip install -e source/g1_loco
+```
+
+### `ModuleNotFoundError: No module named 'isaacsim'`
+
+`ModuleNotFoundError: No module named 'isaacsim'` 오류가 발생하면, 가상환경이 활성화되어 있는지 확인하고 `source /home/safetics/isaacsim/setup_conda_env.sh`를 실행하세요.
+
+```bash
+conda activate env_isaaclab
+source /home/safetics/isaacsim/setup_conda_env.sh
+```
+
+### 에셋이 포인터 파일처럼 보이는 경우(LFS 미반영)
+
+```bash
+git lfs pull
+```
+
+### `conda: command not found`
+
+Miniconda 설치 후 새 셸을 열거나 `source ~/.bashrc`를 실행하세요.
