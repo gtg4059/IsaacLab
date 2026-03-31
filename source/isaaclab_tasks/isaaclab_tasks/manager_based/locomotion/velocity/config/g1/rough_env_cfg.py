@@ -95,7 +95,7 @@ class G1RoughRewards(RewardsCfg):
                 joint_names=[
                     # ".*_shoulder_pitch_joint",
                     # ".*_shoulder_roll_joint",
-                    # ".*_shoulder_yaw_joint",
+                    ".*_shoulder_yaw_joint",
                     # ".*_elbow_joint",
                     ".*_wrist_roll_joint",
                     ".*_wrist_pitch_joint",
@@ -127,7 +127,7 @@ class G1RoughRewards(RewardsCfg):
                 joint_names=[
                     ".*_shoulder_pitch_joint",
                     ".*_shoulder_roll_joint",
-                    ".*_shoulder_yaw_joint",
+                    # ".*_shoulder_yaw_joint",
                     ".*_elbow_joint",
                     # ".*_wrist_roll_joint",
                     # ".*_wrist_pitch_joint",
