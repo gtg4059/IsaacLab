@@ -68,10 +68,10 @@ RANDOM_ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
             proportion=0.25, noise_range=(0.00, 0.03), noise_step=0.01, border_width=0.25
         ),
         "hf_pyramid_slope": terrain_gen.HfPyramidSlopedTerrainCfg(
-            proportion=0.25, slope_range=(0.0, 0.3), platform_width=2.0, border_width=0.25
+            proportion=0.25, slope_range=(0.0, 0.2), platform_width=2.0, border_width=0.25
         ),
         "hf_pyramid_slope_inv": terrain_gen.HfInvertedPyramidSlopedTerrainCfg(
-            proportion=0.25, slope_range=(0.0, 0.3), platform_width=2.0, border_width=0.25
+            proportion=0.25, slope_range=(0.0, 0.2), platform_width=2.0, border_width=0.25
         ),
     },
 )

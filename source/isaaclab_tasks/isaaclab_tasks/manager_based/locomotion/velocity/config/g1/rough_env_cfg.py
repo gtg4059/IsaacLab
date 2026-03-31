@@ -16,7 +16,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY  # isort: skip
 STEP = 32000*8
-RESUME = 32000*8
+RESUME = 15000*8
 
 @configclass
 class G1RoughRewards(RewardsCfg):
@@ -164,9 +164,9 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     terrain_levels = CurrTerm(
         func=mdp.terrain_levels_step_schedule,
         params={
-            "step_interval": 1,#0.25*STEP,
+            "step_interval": 0.25*STEP,
             "percent_per_interval": 0.5,
-            "min_steps": 0,#0.25*STEP-RESUME,
+            "min_steps": 0.25*STEP-RESUME,
         },
     ) 
     # foot_clearance_weight = CurrTerm(
@@ -219,9 +219,9 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # no height scan
         # self.scene.height_scanner = None
         # reward for init model file
-        # self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 2.0)
-        # self.commands.base_velocity.ranges.lin_vel_y = (-0.2, 0.2)
-        self.rewards.base_height.params["target_height"] = 0.76
+        self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 2.0)
+        self.commands.base_velocity.ranges.lin_vel_y = (-0.02, 0.02)
+        self.rewards.base_height.params["target_height"] = 0.75
         self.rewards.foot_clearance.weight = 0.75
         self.rewards.feet_land_time.weight = 0.0
         self.rewards.contact_forces.weight = 0.0
