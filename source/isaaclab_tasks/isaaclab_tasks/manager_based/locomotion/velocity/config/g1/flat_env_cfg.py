@@ -13,7 +13,7 @@ from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import RewardsCfg, CurriculumCfg
 
 STEP = 24000*8
-RESUME = 24000*8
+RESUME = 0*8
 
 @configclass
 class G1FlatCurriculumCfg(CurriculumCfg):
@@ -24,7 +24,7 @@ class G1FlatCurriculumCfg(CurriculumCfg):
     )
     feet_land_time_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "feet_land_time", "weight": 1.2, "num_steps": STEP-RESUME}
+        params={"term_name": "feet_land_time", "weight": 1.6, "num_steps": STEP-RESUME}
     )
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
@@ -32,7 +32,7 @@ class G1FlatCurriculumCfg(CurriculumCfg):
     )
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.02, "num_steps": STEP-RESUME}
+        params={"term_name": "action_rate_l2", "weight": -0.05, "num_steps": STEP-RESUME}
     )
 
     # 상체 arm joint target position_range를 0 → ±0.6 rad로 점진 증가
@@ -64,7 +64,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.feet_land_time.weight = 0.0
         self.rewards.contact_forces.weight = 0.0
         self.rewards.action_rate_l2.weight = -0.001
-
+        self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
         self.events.randomize_friction.params["asset_cfg"].body_names = [".*_ankle_roll_link"]
         # self.events.randomize_joint_param = None
 
