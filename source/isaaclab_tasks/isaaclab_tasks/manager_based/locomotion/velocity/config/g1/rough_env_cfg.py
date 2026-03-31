@@ -15,8 +15,8 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 # Pre-defined configs
 ##
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY  # isort: skip
-STEP = 64000*8
-RESUME = 48000*8
+STEP = 32000*8
+RESUME = 32000*8
 
 @configclass
 class G1RoughRewards(RewardsCfg):
@@ -88,7 +88,7 @@ class G1RoughRewards(RewardsCfg):
 
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-1.0,
+        weight=-0.2,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -105,28 +105,28 @@ class G1RoughRewards(RewardsCfg):
         },
     )
 
-    joint_deviation_shoulder_roll = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-0.2,
-        params={
-            "asset_cfg": SceneEntityCfg(
-                "robot",
-                joint_names=[
-                    ".*_shoulder_roll_joint",
-                ],
-            )
-        },
-    )
+    # joint_deviation_shoulder_roll = RewTerm(
+    #     func=mdp.joint_deviation_l1,
+    #     weight=-0.2,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg(
+    #             "robot",
+    #             joint_names=[
+    #                 ".*_shoulder_roll_joint",
+    #             ],
+    #         )
+    #     },
+    # )
     
     joint_deviation_shoulders = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.1,
+        weight=-0.01,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
                 joint_names=[
                     ".*_shoulder_pitch_joint",
-                    # ".*_shoulder_roll_joint",
+                    ".*_shoulder_roll_joint",
                     ".*_shoulder_yaw_joint",
                     ".*_elbow_joint",
                     # ".*_wrist_roll_joint",
@@ -140,7 +140,7 @@ class G1RoughRewards(RewardsCfg):
     # G1_29_no_hand
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.5,
+        weight=-0.2,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
             "waist_roll_joint",
             "waist_pitch_joint",
@@ -164,9 +164,9 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     terrain_levels = CurrTerm(
         func=mdp.terrain_levels_step_schedule,
         params={
-            "step_interval": 1,#STEP/4,
+            "step_interval": 1,#0.25*STEP,
             "percent_per_interval": 0.5,
-            "min_steps": 0.#STEP/4-RESUME,
+            "min_steps": 0,#0.25*STEP-RESUME,
         },
     ) 
     # foot_clearance_weight = CurrTerm(
@@ -189,15 +189,15 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     #     },
     # )
 
-    contact_forces_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": STEP-RESUME}
-    )
+    # contact_forces_weight = CurrTerm(
+    #     func=mdp.modify_reward_weight,
+    #     params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": STEP-RESUME}
+    # )
 
-    action_rate_l2_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.01, "num_steps": STEP-RESUME}
-    )
+    # action_rate_l2_weight = CurrTerm(
+    #     func=mdp.modify_reward_weight,
+    #     params={"term_name": "action_rate_l2", "weight": -0.01, "num_steps": STEP-RESUME}
+    # )
 
 @configclass
 class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
@@ -219,13 +219,13 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # no height scan
         # self.scene.height_scanner = None
         # reward for init model file
-        self.commands.base_velocity.ranges.lin_vel_x = (-0.6, 1.5)
-        self.commands.base_velocity.ranges.lin_vel_y = (-0.2, 0.2)
+        # self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 2.0)
+        # self.commands.base_velocity.ranges.lin_vel_y = (-0.2, 0.2)
         self.rewards.base_height.params["target_height"] = 0.76
         self.rewards.foot_clearance.weight = 0.75
         self.rewards.feet_land_time.weight = 0.0
         self.rewards.contact_forces.weight = 0.0
-        self.rewards.action_rate_l2.weight = -0.001
+        self.rewards.action_rate_l2.weight = -0.0001
         # self.rewards.dof_acc_l2.weight = -1.0e-7
         # self.rewards.joint_deviation_torso.weight = -0.5
         # self.rewards.dof_acc_l2.weight = 0.0
