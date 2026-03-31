@@ -12,37 +12,27 @@ import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import RewardsCfg, CurriculumCfg
 
-STEP = 24000
+STEP = 24000*8
+RESUME = 24000*8
+
 @configclass
 class G1FlatCurriculumCfg(CurriculumCfg):
     """Curriculum configuration for G1 flat environment."""
     foot_clearance_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": STEP*8}
+        params={"term_name": "foot_clearance", "weight": 0.0, "num_steps": STEP-RESUME}
     )
     feet_land_time_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "feet_land_time", "weight": 1.0, "num_steps": STEP*8}
+        params={"term_name": "feet_land_time", "weight": 1.2, "num_steps": STEP-RESUME}
     )
     contact_forces_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": STEP*8}
+        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": STEP-RESUME}
     )
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.05, "num_steps": STEP*8}
-    )
-    dof_acc_l2_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "dof_acc_l2", "weight": -1.0e-6, "num_steps": STEP*8}
-    )
-    dof_torques_l2_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "dof_torques_l2", "weight": -1.0e-6, "num_steps": STEP*8}
-    )
-    joint_deviation_hip_yaw_weight = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "joint_deviation_hip_yaw", "weight": -0.1, "num_steps": STEP*8}
+        params={"term_name": "action_rate_l2", "weight": -0.02, "num_steps": STEP-RESUME}
     )
 
     # 상체 arm joint target position_range를 0 → ±0.6 rad로 점진 증가
@@ -50,9 +40,9 @@ class G1FlatCurriculumCfg(CurriculumCfg):
         func=mdp.modify_arm_joint_targets_position_range,
         params={
             "event_term_name": "set_arm_joint_targets_interval",
-            "start_step": STEP*8,
-            "end_step": STEP*2*8,
-            "max_range": 0.2,
+            "start_step": STEP-RESUME,
+            "end_step": 2*STEP-RESUME,
+            "max_range": 0.8,
         },
     )
     
@@ -74,17 +64,9 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         self.rewards.feet_land_time.weight = 0.0
         self.rewards.contact_forces.weight = 0.0
         self.rewards.action_rate_l2.weight = -0.001
-        self.rewards.dof_acc_l2.weight = 0.0
-        self.rewards.dof_torques_l2.weight = 0.0
-        self.rewards.joint_deviation_hip_yaw.weight = -1.0
 
         self.events.randomize_friction.params["asset_cfg"].body_names = [".*_ankle_roll_link"]
         # self.events.randomize_joint_param = None
-        self.events.randomize_link_mass = None
-        self.events.randomize_base_mass = None
-        self.events.randomize_base_com = None
-        self.events.randomize_pd_gains = None
-        self.events.randomize_motor_zero_offset = None
 
 class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
     def __post_init__(self) -> None:

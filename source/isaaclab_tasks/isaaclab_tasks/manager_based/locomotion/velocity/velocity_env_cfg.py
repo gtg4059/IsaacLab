@@ -130,9 +130,9 @@ class ActionsCfg:
                      'right_ankle_pitch_joint', 
                      'right_ankle_roll_joint',
                      # G1_29_no_hand
-                    "waist_yaw_joint",
-                    "waist_roll_joint",
-                    "waist_pitch_joint",
+                    # "waist_yaw_joint",
+                    # "waist_roll_joint",
+                    # "waist_pitch_joint",
                     # G1 상체 arm: 하체·허리만 제어 시 주석 처리 (상체는 interval 이벤트로 랜덤 타겟)
                     # "left_shoulder_pitch_joint",
                     # "left_shoulder_roll_joint",
@@ -386,6 +386,9 @@ class EventCfg:
                     "right_wrist_roll_joint",
                     "right_wrist_pitch_joint",
                     "right_wrist_yaw_joint",
+                    "waist_yaw_joint",
+                    "waist_roll_joint",
+                    "waist_pitch_joint",
                 ],
                 preserve_order=True,
             ),
