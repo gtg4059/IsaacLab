@@ -12,7 +12,7 @@ import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import RewardsCfg, CurriculumCfg
 
-STEP = 24000*8
+STEP = 16000*8
 RESUME = 0*8
 
 @configclass
