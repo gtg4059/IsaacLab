@@ -80,16 +80,16 @@ class G1Rewards(RewardsCfg):
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint",".*_hip_roll_joint"])},
     )
 
-    # G1_29_no_hand
-    joint_deviation_torso = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
-            "waist_roll_joint",
-            "waist_pitch_joint",
-            "waist_yaw_joint",
-        ])},
-    )
+    # # G1_29_no_hand
+    # joint_deviation_torso = RewTerm(
+    #     func=mdp.joint_deviation_l1,
+    #     weight=-1.0,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
+    #         "waist_roll_joint",
+    #         "waist_pitch_joint",
+    #         "waist_yaw_joint",
+    #     ])},
+    # )
 
     contact_forces = RewTerm(
         func=mdp.contact_forces_minimize,
