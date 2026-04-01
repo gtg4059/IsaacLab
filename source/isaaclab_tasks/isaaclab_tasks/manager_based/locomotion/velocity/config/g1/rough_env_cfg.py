@@ -48,12 +48,12 @@ def _curriculum_base_force_ranges(
 class G1Rewards(RewardsCfg):
     """Reward terms for the MDP."""
 
-    base_height = RewTerm(func=mdp.base_height_l2, weight=-75.0, params={"target_height": 0.78}) #weight=-100.0
+    base_height = RewTerm(func=mdp.base_height_l2, weight=-100.0, params={"target_height": 0.78}) #weight=-100.0
     
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=5.0, #4.0,
+        weight=6.0, #4.0,
         params={"command_name": "base_velocity", "std": 0.25},
     )
     track_ang_vel_z_exp = RewTerm(
@@ -63,7 +63,7 @@ class G1Rewards(RewardsCfg):
 
     foot_clearance = RewTerm(
         func=mdp.foot_clearance_reward,
-        weight=0.6, #0.75,0.0
+        weight=0.0, #0.75,0.0
         params={
             "std": 0.05,
             "target_height": 0.1,
@@ -74,7 +74,7 @@ class G1Rewards(RewardsCfg):
 
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
-        weight=0.0, #0.0,1.2
+        weight=0.5, #0.0,1.2
         params={
             "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
@@ -120,7 +120,7 @@ class G1Rewards(RewardsCfg):
 
     joint_deviation_hip_yaw = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-1.3, #-1.5,-0.1
+        weight=-0.1, #-1.5,-0.1
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint"])},
     )
 
@@ -145,7 +145,7 @@ class G1Rewards(RewardsCfg):
     
     joint_deviation_shoulders = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.3,#-0.1?
+        weight=-0.1,#-0.1?
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -187,7 +187,7 @@ class G1Rewards(RewardsCfg):
     # )
     contact_forces = RewTerm(
         func=mdp.contact_forces_minimize,
-        weight=0.0,# 0.0,-0.0000005
+        weight=-0.0000005,# 0.0,-0.0000005
         params={
             "threshold": 0.0,
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
