@@ -89,7 +89,7 @@ class G1RoughRewards(RewardsCfg):
 
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.2,
+        weight=-1.0,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -218,6 +218,8 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # Rewards
         self.rewards.undesired_contacts = None
         # no height scan
+        self.actions.joint_pos.clip = {"left_shoulder_roll_joint": (0.2, 1.0),
+                                       "right_shoulder_roll_joint": (-1.0, -0.2)}
         # self.scene.height_scanner = None
         # reward for init model file
         self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 2.0)
