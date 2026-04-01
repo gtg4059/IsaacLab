@@ -73,6 +73,7 @@ class G1RoughRewards(RewardsCfg):
         weight=-1.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
             ".*_shoulder_roll_joint",
+            ".*_elbow_joint",
             ".*_ankle_pitch_joint", 
             ".*_ankle_roll_joint",
             ".*_knee_joint"
