@@ -12,8 +12,8 @@ import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import RewardsCfg, CurriculumCfg
 
-STEP = 16000*8
-RESUME = 16000*8
+STEP = 24000*8
+RESUME = 0*8
 
 @configclass
 class G1FlatCurriculumCfg(CurriculumCfg):
@@ -41,7 +41,7 @@ class G1FlatCurriculumCfg(CurriculumCfg):
         params={
             "event_term_name": "set_arm_joint_targets_interval",
             "start_step": 2*STEP-RESUME,
-            "end_step": 3*STEP-RESUME,
+            "end_step": 2.5*STEP-RESUME,
             "max_range": 0.8,
         },
     )
