@@ -548,6 +548,10 @@ class TerminationsCfg:  # 로봇 종료 및 재생성 조건 설정
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True) # 시간 초과
+    hip_contacts = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_hip_roll_link"), "threshold": 1.0},
+    )
     base_contact = DoneTerm(
         func=mdp.bad_orientation,
         params={"limit_angle": 0.9},

@@ -106,18 +106,6 @@ class G1RoughRewards(RewardsCfg):
         },
     )
 
-    # joint_deviation_shoulder_roll = RewTerm(
-    #     func=mdp.joint_deviation_l1,
-    #     weight=-0.2,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg(
-    #             "robot",
-    #             joint_names=[
-    #                 ".*_shoulder_roll_joint",
-    #             ],
-    #         )
-    #     },
-    # )
     
     joint_deviation_shoulders = RewTerm(
         func=mdp.joint_deviation_l1,
@@ -216,14 +204,15 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.terrain.max_init_terrain_level = 0
         # self.curriculum.terrain_levels = None
         # Rewards
-        self.rewards.undesired_contacts = None
         # no height scan
-        self.actions.joint_pos.clip = {"left_shoulder_roll_joint": (0.2, 1.0),
-                                       "right_shoulder_roll_joint": (-1.0, -0.2)}
+        # self.actions.joint_pos.clip = {"left_shoulder_roll_joint": (0.2, 1.0),
+        #                                "right_shoulder_roll_joint": (-1.0, -0.2)}
         # self.scene.height_scanner = None
         # reward for init model file
         self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 2.0)
         self.commands.base_velocity.ranges.lin_vel_y = (-0.02, 0.02)
+
+        self.rewards.undesired_contacts = None
         self.rewards.base_height.params["target_height"] = 0.75
         self.rewards.foot_clearance.weight = 0.75
         self.rewards.feet_land_time.weight = 0.0
@@ -238,6 +227,7 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.events.randomize_friction.params["asset_cfg"].body_names = [".*_ankle_roll_link"]
         # self.events.randomize_pd_gains = None
         # self.events.randomize_motor_zero_offset = None
+        self.terminations.hip_contacts.params["sensor_cfg"].body_names = ".*_hip_roll_link"
 
 
 
