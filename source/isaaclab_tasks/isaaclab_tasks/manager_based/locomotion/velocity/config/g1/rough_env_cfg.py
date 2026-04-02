@@ -205,8 +205,8 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # self.curriculum.terrain_levels = None
         # Rewards
         # no height scan
-        # self.actions.joint_pos.clip = {"left_shoulder_roll_joint": (0.2, 1.0),
-        #                                "right_shoulder_roll_joint": (-1.0, -0.2)}
+        self.actions.joint_pos.clip = {"left_shoulder_roll_joint": (0.2, 1.0),
+                                       "right_shoulder_roll_joint": (-1.0, -0.2)}
         # self.scene.height_scanner = None
         # reward for init model file
         self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 2.0)
@@ -227,7 +227,8 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.events.randomize_friction.params["asset_cfg"].body_names = [".*_ankle_roll_link"]
         # self.events.randomize_pd_gains = None
         # self.events.randomize_motor_zero_offset = None
-        self.terminations.hip_contacts.params["sensor_cfg"].body_names = ".*_hip_roll_link"
+        # Terminations
+        # self.terminations.hip_contacts.params["sensor_cfg"].body_names = ".*_hip_roll_link"
 
 
 
