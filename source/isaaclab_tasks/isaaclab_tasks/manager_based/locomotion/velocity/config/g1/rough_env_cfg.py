@@ -53,7 +53,7 @@ class G1Rewards(RewardsCfg):
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=6.0, #4.0,
+        weight=6.5, #4.0,
         params={"command_name": "base_velocity", "std": 0.25},
     )
     track_ang_vel_z_exp = RewTerm(
@@ -145,7 +145,7 @@ class G1Rewards(RewardsCfg):
     
     joint_deviation_shoulders = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.1,#-0.1?
+        weight=-0.2,#-0.1?
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -225,7 +225,7 @@ class G1Rewards(RewardsCfg):
 
     standing_arm_compliance = RewTerm(
         func=mdp.standing_arm_compliance,
-        weight=0.5,
+        weight=1.0,
         params={
             "asset_cfg": SceneEntityCfg("robot"),
             "force_command_name": "base_force",
