@@ -81,6 +81,11 @@ def collision_risk_index(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = Scene
     asset: Articulation = env.scene[asset_cfg.name]
     return asset.data.CRI
 
+def CRI_OVF_penalty(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    asset: Articulation = env.scene[asset_cfg.name]
+    result,_ = torch.max(asset.data.CRI,dim=1)
+    return (result>1)*(result+1)
+
 def CRI_OVF(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     asset: Articulation = env.scene[asset_cfg.name]
     result,_ = torch.max(asset.data.CRI,dim=1)

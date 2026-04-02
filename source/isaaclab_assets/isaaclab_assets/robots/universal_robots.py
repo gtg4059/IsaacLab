@@ -55,3 +55,32 @@ UR10_CFG = ArticulationCfg(
     },
 )
 """Configuration of UR-10 arm using implicit actuator models."""
+
+# UR10_CFG = ArticulationCfg(
+#     spawn=sim_utils.UsdFileCfg(
+#         usd_path=f"{ISAACLAB_NUCLEUS_DIR}/Robots/UniversalRobots/UR10/ur10_instanceable.usd",
+#         rigid_props=sim_utils.RigidBodyPropertiesCfg(
+#             disable_gravity=False,
+#             max_depenetration_velocity=5.0,
+#         ),
+#         activate_contact_sensors=False,
+#     ),
+#     init_state=ArticulationCfg.InitialStateCfg(
+#         joint_pos={
+#             "shoulder_pan_joint": 0.0,
+#             "shoulder_lift_joint": -1.832595714594046055769875306913,
+#             "elbow_joint": -2.0943951023931954923084289221863,
+#             "wrist_1_joint": -0.78539816339744830961566084581988,
+#             "wrist_2_joint": 0.0,
+#             "wrist_3_joint": 0.0,
+#         },
+#     ),
+#     actuators={
+#         "arm": ImplicitActuatorCfg(
+#             joint_names_expr=[".*"],
+#             effort_limit_sim=87.0,
+#             stiffness=800.0,
+#             damping=40.0,
+#         ),
+#     },
+# )

@@ -562,6 +562,12 @@ def randomize_joint_parameters(
     else:
         joint_ids = torch.tensor(asset_cfg.joint_ids, dtype=torch.int, device=asset.device)
 
+    def _gather_env_joint(data: torch.Tensor) -> torch.Tensor:
+        """Subset (env_ids, joint_ids) for write_*_to_sim; shape (len(env_ids), n_joints[, ...])."""
+        if isinstance(joint_ids, slice):
+            return data[env_ids]
+        return data[env_ids[:, None], joint_ids]
+
     # sample joint properties from the given ranges and set into the physics simulation
     # joint friction coefficient
     if friction_distribution_params is not None:
@@ -574,7 +580,7 @@ def randomize_joint_parameters(
             distribution=distribution,
         )
         asset.write_joint_friction_coefficient_to_sim(
-            friction_coeff[env_ids[:, None], joint_ids], joint_ids=joint_ids, env_ids=env_ids
+            _gather_env_joint(friction_coeff), joint_ids=joint_ids, env_ids=env_ids
         )
 
     # joint armature
@@ -587,7 +593,7 @@ def randomize_joint_parameters(
             operation=operation,
             distribution=distribution,
         )
-        asset.write_joint_armature_to_sim(armature[env_ids[:, None], joint_ids], joint_ids=joint_ids, env_ids=env_ids)
+        asset.write_joint_armature_to_sim(_gather_env_joint(armature), joint_ids=joint_ids, env_ids=env_ids)
 
     # joint position limits
     if lower_limit_distribution_params is not None or upper_limit_distribution_params is not None:
@@ -614,7 +620,7 @@ def randomize_joint_parameters(
             )
 
         # extract the position limits for the concerned joints
-        joint_pos_limits = joint_pos_limits[env_ids[:, None], joint_ids]
+        joint_pos_limits = _gather_env_joint(joint_pos_limits)
         if (joint_pos_limits[..., 0] > joint_pos_limits[..., 1]).any():
             raise ValueError(
                 "Randomization term 'randomize_joint_parameters' is setting lower joint limits that are greater than"

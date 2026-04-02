@@ -20,7 +20,6 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
-
 import isaaclab_tasks.manager_based.manipulation.reach.mdp as mdp
 
 ##
@@ -66,9 +65,9 @@ class CommandsCfg:
 
     ee_pose = mdp.UniformPoseTrigCommandCfg(
         asset_name="robot",
-        body_name=MISSING,
+        body_name="ee_link",
         debug_vis=True,
-        resampling_time_range=(60,60),
+        resampling_time_range=(16,16),
         ranges=mdp.UniformPoseTrigCommandCfg.PolarRanges(
             pos_r=(0.4,0.8),
             pos_th=MISSING,
@@ -85,6 +84,10 @@ class ActionsCfg:
     """Action specifications for the MDP."""
 
     arm_action: ActionTerm = MISSING
+    # arm_action = mdp.JointPositionActionCfg(
+    #     asset_name="robot", 
+    #     scale=0.25, # deploy code와 같은 순서로 scale을 설정
+    # )
     gripper_action: ActionTerm | None = None
 
 
@@ -99,7 +102,7 @@ class ObservationsCfg:
         # observation terms (order preserved)
         ee_pose_error = ObsTerm(
             func=mdp.ee_pose_error_to_command,
-            params={"command_name": "ee_pose", "asset_cfg": SceneEntityCfg("robot", body_names=MISSING)},
+            params={"command_name": "ee_pose", "asset_cfg": SceneEntityCfg("robot", body_names="ee_link")},
         )
         CRI = ObsTerm(func=mdp.collision_risk_index)
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.0001, n_max=0.0001))
@@ -110,10 +113,24 @@ class ObservationsCfg:
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
+            # self.history_length = 5
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
 
+
+# @configclass
+# class EventCfg:
+#     """Configuration for events."""
+
+#     reset_robot_joints = EventTerm(
+#         func=mdp.reset_joints_by_scale,
+#         mode="reset",
+#         params={
+#             "position_range": (0.5, 1.5),
+#             "velocity_range": (0.0, 0.0),
+#         },
+#     )
 
 @configclass
 class EventCfg:
@@ -125,6 +142,43 @@ class EventCfg:
         params={
             "position_range": (0.5, 1.5),
             "velocity_range": (0.0, 0.0),
+        },
+    )
+
+    randomize_joint_param = EventTerm( # 로봇이 재생성될때마다 관절 마찰력, 점성, 관절 질량을 랜덤하게 변경하는 이벤트
+        func=mdp.randomize_joint_parameters,
+        min_step_count_between_reset=720,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "friction_distribution_params": (0.01, 1.0),
+            # "viscous_friction_distribution_params": (0.3, 1.5),
+            "armature_distribution_params": (0.008,0.06),
+            "operation": "add",
+            "distribution": "uniform",
+        },
+    )
+
+    randomize_link_mass = EventTerm( # epoch마다 로봇의 링크 질량을 랜덤하게 변경하는 이벤트
+        func=mdp.randomize_rigid_body_mass,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "mass_distribution_params": (0.8, 1.2),
+            "operation": "scale",
+        },
+    )
+
+    randomize_pd_gains = EventTerm( # 로봇이 재생성될때마다 PD 게인을 랜덤하게 변경하는 이벤트
+        func=mdp.randomize_actuator_gains,
+        min_step_count_between_reset=720,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "stiffness_distribution_params": (0.9, 1.1),
+            "damping_distribution_params": (0.9, 1.1),
+            "operation": "scale",
+            "distribution": "uniform",
         },
     )
 
@@ -146,24 +200,38 @@ class RewardsCfg:
     # )
     end_effector_position_tracking = RewTerm(
         func=mdp.position_command_error,
-        weight=-1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
+        weight=-2.0,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
-    end_effector_position_tracking_fine_grained = RewTerm(
-        func=mdp.position_command_error_tanh,
-        weight=0.5,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "std": 0.1, "command_name": "ee_pose"},
-    )
-    end_effector_orientation_tracking = RewTerm(
+    # end_effector_position_tracking_fine_grained = RewTerm(
+    #     func=mdp.position_command_error_tanh,
+    #     weight=0.2,
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "std": 0.1, "command_name": "ee_pose"},
+    # )
+    # end_effector_orientation_tracking = RewTerm(
+    #     func=mdp.orientation_command_error,
+    #     weight=-0.02,
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
+    # )
+    end_effector_pos_orientation_tracking = RewTerm(
         func=mdp.position_orientation_command_error,
-        weight=2.0,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=MISSING), "command_name": "ee_pose"},
+        weight=-4.0,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
-    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
-    # action penalty
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.03)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-7)
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-9)
+    end_effector_pos_orientation_tracking_fine_grained = RewTerm(
+        func=mdp.position_orientation_command_error_fine_grained,
+        weight=32.0,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
+    )
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-400.0)
+
+    alive = RewTerm(func=mdp.is_alive, weight=1.2)
+    # overflow = RewTerm(func=mdp.CRI_OVF_penalty, weight=-4.0)
+
+    # action penalty (initial weight; curriculum ramps toward stronger penalty)
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.0001)
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6)
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-8)
 
 @configclass
 class TerminationsCfg:
@@ -172,13 +240,22 @@ class TerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     OVF = DoneTerm(func=mdp.CRI_OVF)
 
-@configclass
-class CurriculumCfg:
-    """Curriculum terms for the MDP."""
+# @configclass
+# class CurriculumCfg:
+#     """Curriculum terms for the MDP."""
 
-    action_rate = CurrTerm(
-        func=mdp.modify_reward_weight, params={"term_name": "action_rate", "weight": -0.01, "num_steps": 2000*60}
-    )
+#     # Linear ramp after hold_steps: weight_start is fixed until then, then ramps to weight_end over num_steps.
+#     termination_penalty = CurrTerm(
+#         func=mdp.modify_reward_weight_linear,
+#         params={
+#             "term_name": "termination_penalty",
+#             "weight_start": -2.0,
+#             "weight_end": -400.0,
+#             "hold_steps": 1 * 16,
+#             "num_steps": 12000 * 16,
+#         },
+#     )
+
 
 
 ##
@@ -208,7 +285,7 @@ class ReachEnvCfg(ManagerBasedRLEnvCfg):
         self.decimation = 4
         self.sim.dt = 0.005
         self.sim.render_interval = self.decimation
-        self.episode_length_s = 60.0
+        self.episode_length_s = 16.0
         self.viewer.eye = (3.5, 3.5, 3.5)
         # simulation settings
         self.sim.dt = 1.0 / 60.0
