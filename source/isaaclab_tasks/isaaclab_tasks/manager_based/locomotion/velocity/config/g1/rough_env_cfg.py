@@ -106,7 +106,7 @@ class G1RoughRewards(RewardsCfg):
         },
     )
 
-    
+
     joint_deviation_shoulders = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-0.1,
@@ -121,6 +121,32 @@ class G1RoughRewards(RewardsCfg):
                     # ".*_wrist_roll_joint",
                     # ".*_wrist_pitch_joint",
                     # ".*_wrist_yaw_joint",
+                ],
+            )
+        },
+    )
+
+    # penalty for shoulder shrinkage
+    joint_deviation_LSR = RewTerm(
+        func=mdp.joint_deviation_neg,
+        weight=-1.0,
+        params={
+            "asset_cfg": SceneEntityCfg(
+                "robot",
+                joint_names=[
+                    "left_shoulder_roll_joint",
+                ],
+            )
+        },
+    )
+    joint_deviation_RSR = RewTerm(
+        func=mdp.joint_deviation_pos,
+        weight=-1.0,
+        params={
+            "asset_cfg": SceneEntityCfg(
+                "robot",
+                joint_names=[
+                    "right_shoulder_roll_joint",
                 ],
             )
         },
@@ -205,8 +231,8 @@ class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # self.curriculum.terrain_levels = None
         # Rewards
         # no height scan
-        self.actions.joint_pos.clip = {"left_shoulder_roll_joint": (0.2, 1.0),
-                                       "right_shoulder_roll_joint": (-1.0, -0.2)}
+        # self.actions.joint_pos.clip = {"left_shoulder_roll_joint": (0.2, 1.0),
+        #                                "right_shoulder_roll_joint": (-1.0, -0.2)}
         # self.scene.height_scanner = None
         # reward for init model file
         self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 2.0)
