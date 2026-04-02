@@ -32,7 +32,7 @@ class G1FlatCurriculumCfg(CurriculumCfg):
     )
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.05, "num_steps": STEP-RESUME}
+        params={"term_name": "action_rate_l2", "weight": -0.02, "num_steps": STEP-RESUME}
     )
 
     # 상체 arm joint target position_range를 0 → ±0.6 rad로 점진 증가
