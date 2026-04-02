@@ -16,7 +16,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY  # isort: skip
 STEP = 32000*8
-RESUME = 15000*8
+RESUME = 0*8
 
 @configclass
 class G1RoughRewards(RewardsCfg):
@@ -121,7 +121,7 @@ class G1RoughRewards(RewardsCfg):
     
     joint_deviation_shoulders = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.01,
+        weight=-0.1,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -165,7 +165,7 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     terrain_levels = CurrTerm(
         func=mdp.terrain_levels_step_schedule,
         params={
-            "step_interval": 0.25*STEP,
+            "step_interval": 1,#0.25*STEP,
             "percent_per_interval": 0.5,
             "min_steps": 0.25*STEP-RESUME,
         },
