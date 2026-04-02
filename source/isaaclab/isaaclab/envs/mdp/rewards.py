@@ -339,7 +339,7 @@ def joint_deviation_pos(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = Scen
     asset: Articulation = env.scene[asset_cfg.name]
     # compute out of limits constraints
     angle = asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, asset_cfg.joint_ids]
-    return torch.sum(angle, dim=1)
+    return torch.sum(torch.abs(torch.clip(angle, min=0.0)), dim=1)
 
 def joint_deviation_neg(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize joint positions that deviate from the default one."""
@@ -347,4 +347,4 @@ def joint_deviation_neg(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = Scen
     asset: Articulation = env.scene[asset_cfg.name]
     # compute out of limits constraints
     angle = asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, asset_cfg.joint_ids]
-    return torch.sum(-1.0*angle, dim=1)
+    return torch.sum(torch.abs(torch.clip(angle, max=0.0)), dim=1)
