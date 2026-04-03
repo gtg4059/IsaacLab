@@ -13,7 +13,7 @@ from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import RewardsCfg, CurriculumCfg
 
 STEP = 24000*8
-RESUME = 0*8
+RESUME = 48000*8
 
 @configclass
 class G1FlatCurriculumCfg(CurriculumCfg):
@@ -60,6 +60,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # no height scan
         self.scene.height_scanner = None
         # reward for init model file
+        self.rewards.base_height.params["target_height"] = 0.76
         self.rewards.foot_clearance.weight = 0.75
         self.rewards.feet_land_time.weight = 0.0
         self.rewards.contact_forces.weight = 0.0
