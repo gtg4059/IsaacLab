@@ -16,7 +16,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY  # isort: skip
 STEP = 32000*8
-RESUME = 64000*8
+RESUME = 80000*8
 
 @configclass
 class G1RoughRewards(RewardsCfg):
@@ -197,9 +197,9 @@ class G1RoughCurriculumCfg(CurriculumCfg):
         func=mdp.modify_reward_weight_linear_decay,
         params={
             "term_name": "feet_land_time",
-            "initial_weight": 80.0,
+            "initial_weight": 32.0,
             "final_weight": 2.0,
-            "num_steps": 2.6*STEP-RESUME,
+            "num_steps": 2.7*STEP-RESUME,
             "min_steps": 2.5*STEP-RESUME,  # 이 스텝 이후부터 감쇠 시작 (이전에는 weight=0)
         },
     )
