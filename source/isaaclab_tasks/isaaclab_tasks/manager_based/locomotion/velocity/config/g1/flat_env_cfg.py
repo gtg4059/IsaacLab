@@ -6,14 +6,21 @@
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 
+
 from .rough_env_cfg import G1RoughEnvCfg
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
+from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import RewardsCfg, CurriculumCfg
 
+from .rough_env_cfg import G1RoughRewards
 STEP = 24000*8
-RESUME = 0*8
+RESUME = 24000*8
+
+@configclass
+class G1FlatRewards(G1RoughRewards):
+    base_height = RewTerm(func=mdp.base_height_command, weight=-100.0, params={"target_height": 0.78, "command_name": "base_velocity"})
 
 @configclass
 class G1FlatCurriculumCfg(CurriculumCfg):
@@ -48,6 +55,7 @@ class G1FlatCurriculumCfg(CurriculumCfg):
     
 @configclass
 class G1FlatEnvCfg(G1RoughEnvCfg):
+    rewards: G1FlatRewards = G1FlatRewards()
     curriculum: G1FlatCurriculumCfg = G1FlatCurriculumCfg()
     def __post_init__(self):
         # post init of parent
@@ -60,7 +68,7 @@ class G1FlatEnvCfg(G1RoughEnvCfg):
         # no height scan
         self.scene.height_scanner = None
         # reward for init model file
-        self.rewards.base_height.params["target_height"] = 0.75
+        # self.rewards.base_height.params["target_height"] = 0.77
         self.rewards.foot_clearance.weight = 0.75
         self.rewards.feet_land_time.weight = 0.0
         self.rewards.contact_forces.weight = 0.0

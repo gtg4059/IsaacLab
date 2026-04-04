@@ -18,7 +18,7 @@ from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY  # isort: skip
 
 
 @configclass
-class G1Rewards(RewardsCfg):
+class G1RoughRewards(RewardsCfg):
     """Reward terms for the MDP."""
 
     base_height = RewTerm(func=mdp.base_height_l2, weight=-100.0, params={"target_height": 0.78})
@@ -103,7 +103,7 @@ class G1Rewards(RewardsCfg):
 
 @configclass
 class G1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
-    rewards: G1Rewards = G1Rewards()
+    rewards: G1RoughRewards = G1RoughRewards()
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
