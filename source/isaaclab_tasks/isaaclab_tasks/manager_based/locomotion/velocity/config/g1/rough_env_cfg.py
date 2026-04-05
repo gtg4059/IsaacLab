@@ -16,7 +16,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY  # isort: skip
 STEP = 32000*8
-RESUME = 80000*8
+RESUME = 143000*8
 
 @configclass
 class G1RoughRewards(RewardsCfg):
@@ -211,7 +211,7 @@ class G1RoughCurriculumCfg(CurriculumCfg):
 
     action_rate_l2_weight = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.002, "num_steps": 2*STEP-RESUME}
+        params={"term_name": "action_rate_l2", "weight": -0.02, "num_steps": 2*STEP-RESUME}
     )
 
 @configclass
