@@ -46,7 +46,43 @@ class modify_reward_weight(ManagerTermBase):
 
         return self._term_cfg.weight
 
+class modify_reward_weight_linear_decay(ManagerTermBase):
+    """Curriculum that linearly decays reward weight from initial to final over num_steps.
 
+    Weight behavior:
+    - Before min_steps: weight = 0
+    - After min_steps: linearly decays from initial_weight to final_weight over num_steps
+    - Weight at step t (after min_steps): initial_weight + (final_weight - initial_weight) * min(1, (t - min_steps) / num_steps)
+    """
+
+    def __init__(self, cfg: CurriculumTermCfg, env: ManagerBasedRLEnv):
+        super().__init__(cfg, env)
+        term_name = cfg.params["term_name"]
+        self._term_cfg = env.reward_manager.get_term_cfg(term_name)
+
+    def __call__(
+        self,
+        env: ManagerBasedRLEnv,
+        env_ids: Sequence[int],
+        term_name: str,
+        initial_weight: float,
+        final_weight: float = 0.0,
+        num_steps: int = 1,
+        min_steps: int = 0,
+    ) -> float:
+        # min_steps 이전에는 weight = 0 유지
+        if env.common_step_counter < min_steps:
+            weight = 0.0
+        else:
+            # min_steps 이후부터 num_steps 동안 initial_weight에서 final_weight로 감쇠
+            steps_elapsed = env.common_step_counter - min_steps
+            progress = min(1.0, steps_elapsed / max(1, num_steps))
+            weight = initial_weight + (final_weight - initial_weight) * progress
+        
+        self._term_cfg.weight = float(weight)
+        env.reward_manager.set_term_cfg(term_name, self._term_cfg)
+        return self._term_cfg.weight
+        
 class modify_env_param(ManagerTermBase):
     """Curriculum term for modifying an environment parameter at runtime.
 
