@@ -16,7 +16,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Re
 
 from .rough_env_cfg import G1RoughRewards
 STEP = 24000*8
-RESUME = 24000*8
+RESUME = 60000*8
 
 @configclass
 class G1FlatRewards(G1RoughRewards):
@@ -57,9 +57,9 @@ class G1FlatCurriculumCfg(CurriculumCfg):
         func=mdp.modify_arm_joint_targets_position_range,
         params={
             "event_term_name": "set_arm_joint_targets_interval",
-            "start_step": 2*STEP-RESUME,
-            "end_step": 2.5*STEP-RESUME,
-            "max_range": 0.8,
+            "start_step": 2.5*STEP-RESUME,
+            "end_step": 3*STEP-RESUME,
+            "max_range": 0.6,
         },
     )
     

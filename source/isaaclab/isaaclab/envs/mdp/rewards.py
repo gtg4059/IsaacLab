@@ -142,7 +142,7 @@ def base_height_command(
         adjusted_target_height = target_height + torch.mean(sensor.data.ray_hits_w[..., 2], dim=1)
     else:
         # Use the provided target height directly for flat terrain
-        adjusted_target_height = torch.where(torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) > 0.05, target_height, target_height-0.03)
+        adjusted_target_height = torch.where(torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) > 0.05, target_height, target_height-0.01)
         # adjusted_target_height = target_height
     # Compute the L2 squared penalty
     return torch.square(asset.data.root_pos_w[:, 2] - adjusted_target_height)
