@@ -209,9 +209,14 @@ class G1RoughCurriculumCfg(CurriculumCfg):
         params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 2*STEP-RESUME}
     )
 
-    action_rate_l2_weight = CurrTerm(
+    action_rate_l2_1st = CurrTerm(
         func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate_l2", "weight": -0.02, "num_steps": 2*STEP-RESUME}
+        params={"term_name": "action_rate_l2", "weight": -0.002, "num_steps": 2*STEP-RESUME}
+    )
+
+    action_rate_l2_2nd = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "action_rate_l2", "weight": -0.02, "num_steps": 3*STEP-RESUME}
     )
 
 @configclass
