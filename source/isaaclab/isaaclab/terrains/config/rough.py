@@ -57,7 +57,6 @@ RANDOM_ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
     num_rows=10,
     num_cols=20,
     horizontal_scale=0.1,
-    difficulty_range=(1.0, 1.0),
     vertical_scale=0.005,
     slope_threshold=0.75,
     use_cache=False,
@@ -66,7 +65,7 @@ RANDOM_ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
             proportion=0.25, grid_width=0.45, grid_height_range=(0.00, 0.04), platform_width=2.0
         ),
         "random_rough": terrain_gen.HfRandomUniformTerrainCfg(
-            proportion=0.25, noise_range=(0.00, 0.03), noise_step=0.01, border_width=0.25
+            proportion=0.25, noise_range=(0.00, 0.05), noise_step=0.01, border_width=0.25
         ),
         "hf_pyramid_slope": terrain_gen.HfPyramidSlopedTerrainCfg(
             proportion=0.25, slope_range=(0.0, 0.3), platform_width=2.0, border_width=0.25

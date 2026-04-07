@@ -54,6 +54,7 @@ class G1RoughEnvCfg_PLAY(G1RoughEnvCfg):
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
         self.episode_length_s = 40.0
+        self.scene.terrain.terrain_generator.difficulty_range = (1.0, 1.0)
         # spawn the robot randomly in the grid (instead of their terrain levels)
         self.scene.terrain.max_init_terrain_level = None
         # reduce the number of terrains to save memory

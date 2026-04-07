@@ -58,12 +58,12 @@ def main():
     policy_path = "./logs/rsl_rl/ptcontainer/policy.pt"
     policy_run = torch.jit.load(policy_path, map_location="cpu")
     # env
-    env_cfg = G1FlatEnvCfg_PLAY()
+    env_cfg = G1RoughEnvCfg_PLAY()
     
     env_cfg.scene.num_envs = 1
     env_cfg.curriculum = None
     env_cfg.sim.device = "cpu"
-    env_cfg.scene.robot = G1_SHOE.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    # env_cfg.scene.robot = G1_SHOE.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
     env = ManagerBasedRLEnv(cfg=env_cfg)
     obs, _ = env.reset()
