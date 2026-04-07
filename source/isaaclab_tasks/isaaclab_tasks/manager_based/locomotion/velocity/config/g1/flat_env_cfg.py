@@ -59,7 +59,7 @@ class G1FlatCurriculumCfg(CurriculumCfg):
             "event_term_name": "set_arm_joint_targets_interval",
             "start_step": 2.5*STEP-RESUME,
             "end_step": 3*STEP-RESUME,
-            "max_range": 0.6,
+            "max_range": 1.6,
         },
     )
     
@@ -97,7 +97,7 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
         self.scene.num_envs = 50
         self.scene.env_spacing = 2.5
         self.curriculum.arm_joint_targets_position_range = None
-        # self.events.set_arm_joint_targets_interval.params["position_range"] = (-0.8, 0.8)
+        self.events.set_arm_joint_targets_interval.params["position_range"] = (-0.8, 0.8)
         # self.commands.base_velocity.ranges.lin_vel_x = (0.0, 0.0)
         # self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
         # self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
