@@ -41,7 +41,7 @@ class UR10ReachEnvCfg(ReachEnvCfg):
         self.actions.arm_action = mdp.JointVelocityActionCfg(asset_name="robot", joint_names=[".*"],scale=0.2)
         # self.actions.arm_action = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"],scale=0.01)
 
-        self.events.reset_robot_joints.params["position_range"] = (-math.pi, math.pi)
+        self.events.reset_robot_joints.params["position_range"] = (-math.pi*0.8, math.pi*0.8)
         self.commands.ee_pose.ranges.pos_th = (-math.pi, math.pi)
         self.commands.ee_pose.ranges.roll = (-math.pi, math.pi)
         self.commands.ee_pose.ranges.pitch = (-math.pi, math.pi)
