@@ -65,16 +65,16 @@ RANDOM_ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
             proportion=0.2,
         ),
         "boxes": terrain_gen.MeshRandomGridTerrainCfg(
-            proportion=0.2, grid_width=0.45, grid_height_range=(0.0, 0.06), platform_width=2.0
+            proportion=0.2, grid_width=0.45, grid_height_range=(0.0, 0.04), platform_width=2.0
         ),
         "random_rough": terrain_gen.HfRandomUniformTerrainCfg(
-            proportion=0.2, noise_range=(0.00, 0.06), noise_step=0.01, border_width=0.25
+            proportion=0.2, noise_range=(0.00, 0.04), noise_step=0.01, border_width=0.25
         ),
         "hf_pyramid_slope": terrain_gen.HfPyramidSlopedTerrainCfg(
-            proportion=0.2, slope_range=(0.0, 0.3), platform_width=2.0, border_width=0.25
+            proportion=0.2, slope_range=(0.0, 0.25), platform_width=2.0, border_width=0.25
         ),
         "hf_pyramid_slope_inv": terrain_gen.HfInvertedPyramidSlopedTerrainCfg(
-            proportion=0.2, slope_range=(0.0, 0.3), platform_width=2.0, border_width=0.25
+            proportion=0.2, slope_range=(0.0, 0.25), platform_width=2.0, border_width=0.25
         ),
     },
 )

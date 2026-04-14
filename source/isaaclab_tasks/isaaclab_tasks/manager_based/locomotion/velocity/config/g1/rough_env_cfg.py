@@ -16,7 +16,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY  # isort: skip
 STEP = 32000*8
-RESUME = 60000*8
+RESUME = 32000*8
 
 @configclass
 class G1RoughRewards(RewardsCfg):
