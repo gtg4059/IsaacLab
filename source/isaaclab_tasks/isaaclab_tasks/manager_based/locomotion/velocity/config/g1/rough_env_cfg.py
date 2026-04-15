@@ -16,7 +16,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 from isaaclab_assets import G1_DEX_FIX, G1_DEX_EASY  # isort: skip
 STEP = 32000*8
-RESUME = 32000*8
+RESUME = 64000*8
 
 @configclass
 class G1RoughRewards(RewardsCfg):
@@ -184,12 +184,12 @@ class G1RoughCurriculumCfg(CurriculumCfg):
             "min_steps": STEP-RESUME,
         },
     ) 
-    # foot_clearance_weight = CurrTerm(
-    #     func=mdp.modify_reward_weight,
-    #     params={
-    #         "term_name": "foot_clearance", "weight": 0.0, "num_steps": 2*STEP-RESUME
-    #     }
-    # )
+    foot_clearance_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={
+            "term_name": "foot_clearance", "weight": 0.0, "num_steps": 2*STEP-RESUME
+        }
+    )
 
     # 초기 50.0에서 num_steps 동안 선형 감쇠하여 0으로 수렴
     # min_steps 이전에는 weight=0, 이후 initial_weight에서 final_weight로 num_steps 동안 감쇠
@@ -204,15 +204,15 @@ class G1RoughCurriculumCfg(CurriculumCfg):
     #     },
     # )
 
-    # contact_forces_weight = CurrTerm(
-    #     func=mdp.modify_reward_weight,
-    #     params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 2*STEP-RESUME}
-    # )
+    contact_forces_weight = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "contact_forces", "weight": -0.0000005, "num_steps": 2*STEP-RESUME}
+    )
 
-    # action_rate_l2_1st = CurrTerm(
-    #     func=mdp.modify_reward_weight,
-    #     params={"term_name": "action_rate_l2", "weight": -0.002, "num_steps": 2*STEP-RESUME}
-    # )
+    action_rate_l2_1st = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "action_rate_l2", "weight": -0.0005, "num_steps": 2*STEP-RESUME}
+    )
 
     # action_rate_l2_2nd = CurrTerm(
     #     func=mdp.modify_reward_weight,
