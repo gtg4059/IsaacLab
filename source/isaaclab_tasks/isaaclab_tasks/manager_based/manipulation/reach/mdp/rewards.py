@@ -54,7 +54,7 @@ def position_orientation_command_error(env: ManagerBasedRLEnv, command_name: str
     des_quat_w = quat_mul(asset.data.root_quat_w, des_quat_b)
     curr_quat_w = asset.data.body_quat_w[:, asset_cfg.body_ids[0]]  # type: ignore
     # print("position_orientation_command_error: ",2*torch.exp(-2*distance)*torch.exp(-1*quat_error_magnitude(curr_quat_w, des_quat_w)))
-    return torch.norm(curr_pos_w - des_pos_w, dim=1)*quat_error_magnitude(curr_quat_w, des_quat_w)
+    return torch.exp(-2*distance)*torch.exp(-0.5*quat_error_magnitude(curr_quat_w, des_quat_w))
 
 def position_orientation_command_error_fine_grained(env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     """Penalize tracking position and orientation error.
@@ -77,7 +77,8 @@ def position_orientation_command_error_fine_grained(env: ManagerBasedRLEnv, comm
     des_quat_w = quat_mul(asset.data.root_quat_w, des_quat_b)
     curr_quat_w = asset.data.body_quat_w[:, asset_cfg.body_ids[0]]  # type: ignore
     # print("position_orientation_command_error: ",2*torch.exp(-2*distance)*torch.exp(-1*quat_error_magnitude(curr_quat_w, des_quat_w)))
-    return torch.exp(-20*distance)*torch.exp(-2*quat_error_magnitude(curr_quat_w, des_quat_w))
+    # print("position_orientation_command_error_fine_grained: ",torch.exp(-10*distance)*torch.exp(-2*quat_error_magnitude(curr_quat_w, des_quat_w)))
+    return torch.exp(-20*distance)*torch.exp(-4*quat_error_magnitude(curr_quat_w, des_quat_w))
     # return quat_error_magnitude(curr_quat_w, des_quat_w)*(distance**2)#torch.exp(-2*quat_error_magnitude(curr_quat_w, des_quat_w))
 
 def position_command_error_tanh(

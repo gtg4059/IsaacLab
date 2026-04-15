@@ -100,10 +100,10 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
-        # ee_pose_error = ObsTerm(
-        #     func=mdp.ee_pose_error_to_command,
-        #     params={"command_name": "ee_pose", "asset_cfg": SceneEntityCfg("robot", body_names="ee_link")},
-        # )
+        ee_pose_error = ObsTerm(
+            func=mdp.ee_pose_error_to_command,
+            params={"command_name": "ee_pose", "asset_cfg": SceneEntityCfg("robot", body_names="ee_link")},
+        )
         CRI = ObsTerm(func=mdp.collision_risk_index)
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.001, n_max=0.001))
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.001, n_max=0.001))
@@ -113,7 +113,7 @@ class ObservationsCfg:
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
-            # self.history_length = 5
+            self.history_length = 5
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
@@ -189,26 +189,26 @@ class RewardsCfg:
 
     end_effector_position_tracking = RewTerm(
         func=mdp.position_command_error,
-        weight=-2.0,
+        weight=-1.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
     end_effector_pos_orientation_tracking = RewTerm(
         func=mdp.position_orientation_command_error,
-        weight=-4.0,
+        weight=1.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
     end_effector_pos_orientation_tracking_fine_grained = RewTerm(
         func=mdp.position_orientation_command_error_fine_grained,
-        weight=20.0,
+        weight=12.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-1000.0)
     # alive = RewTerm(func=mdp.is_alive, weight=1.2)
 
     # action penalty (initial weight; curriculum ramps toward stronger penalty)
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.0001)
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
     # dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6)
-    # dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-4)
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-5)
 
 @configclass
 class TerminationsCfg:
