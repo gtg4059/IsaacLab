@@ -78,7 +78,7 @@ def position_orientation_command_error_fine_grained(env: ManagerBasedRLEnv, comm
     curr_quat_w = asset.data.body_quat_w[:, asset_cfg.body_ids[0]]  # type: ignore
     # print("position_orientation_command_error: ",2*torch.exp(-2*distance)*torch.exp(-1*quat_error_magnitude(curr_quat_w, des_quat_w)))
     # print("position_orientation_command_error_fine_grained: ",torch.exp(-10*distance)*torch.exp(-2*quat_error_magnitude(curr_quat_w, des_quat_w)))
-    return torch.exp(-20*distance)*torch.exp(-4*quat_error_magnitude(curr_quat_w, des_quat_w))
+    return torch.exp(-40*distance)*torch.exp(-4*quat_error_magnitude(curr_quat_w, des_quat_w))
     # return quat_error_magnitude(curr_quat_w, des_quat_w)*(distance**2)#torch.exp(-2*quat_error_magnitude(curr_quat_w, des_quat_w))
 
 def position_command_error_tanh(

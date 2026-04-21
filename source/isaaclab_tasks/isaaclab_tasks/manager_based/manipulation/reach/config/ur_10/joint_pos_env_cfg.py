@@ -40,8 +40,12 @@ class UR10ReachEnvCfg(ReachEnvCfg):
         self.commands.ee_pose.body_name = "ee_link"
         self.actions.arm_action = mdp.JointVelocityActionCfg(asset_name="robot", joint_names=[".*"],scale=0.2)
         # self.actions.arm_action = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"],scale=0.01)
+        # shoulder_lift_joint 와 나머지 관절에 서로 다른 위치/속도 reset 오프셋 범위 (uniform 샘플)
+        self.events.reset_robot_joints.params["primary_position_range"] = (-math.pi/2, math.pi/2)
+        self.events.reset_robot_joints.params["primary_velocity_range"] = (0.0, 0.0)
+        self.events.reset_robot_joints.params["secondary_position_range"] = (-math.pi*0.8, math.pi*0.8)
+        self.events.reset_robot_joints.params["secondary_velocity_range"] = (0.0, 0.0)
 
-        self.events.reset_robot_joints.params["position_range"] = (-math.pi*0.8, math.pi*0.8)
         self.commands.ee_pose.ranges.pos_th = (-math.pi, math.pi)
         self.commands.ee_pose.ranges.roll = (-math.pi, math.pi)
         self.commands.ee_pose.ranges.pitch = (-math.pi, math.pi)
@@ -58,6 +62,6 @@ class UR10ReachEnvCfg_PLAY(UR10ReachEnvCfg):
         # make a smaller scene for play
         self.scene.num_envs = 1
         self.scene.env_spacing = 2.5
-        self.viewer.eye = (3.5, 3.5, 3.5)
+        self.viewer.eye = (4.5, 4.5, 4.5)
         # disable randomization for play
         self.observations.policy.enable_corruption = False

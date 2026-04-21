@@ -137,50 +137,24 @@ class EventCfg:
     """Configuration for events."""
 
     reset_robot_joints = EventTerm(
-        func=mdp.reset_joints_by_offset,
+        func=mdp.reset_robot_joints_two_groups_by_offset,
         mode="reset",
         params={
-            "position_range": (-1.0, 1.0),
-            "velocity_range": (0.0, 0.0),
+            "asset_cfg": SceneEntityCfg("robot"),
+            "primary_joint_names": ["shoulder_lift_joint"],
+            "primary_position_range": (0.0, 0.0),
+            "primary_velocity_range": (0.0, 0.0),
+            "secondary_joint_names": [
+                "shoulder_pan_joint",
+                "elbow_joint",
+                "wrist_1_joint",
+                "wrist_2_joint",
+                "wrist_3_joint",
+            ],
+            "secondary_position_range": (0.0, 0.0),
+            "secondary_velocity_range": (0.0, 0.0),
         },
     )
-
-    # randomize_joint_param = EventTerm( # 로봇이 재생성될때마다 관절 마찰력, 점성, 관절 질량을 랜덤하게 변경하는 이벤트
-    #     func=mdp.randomize_joint_parameters,
-    #     min_step_count_between_reset=720,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot"),
-    #         "friction_distribution_params": (0.01, 1.0),
-    #         # "viscous_friction_distribution_params": (0.3, 1.5),
-    #         "armature_distribution_params": (0.008,0.06),
-    #         "operation": "add",
-    #         "distribution": "uniform",
-    #     },
-    # )
-
-    # randomize_link_mass = EventTerm( # epoch마다 로봇의 링크 질량을 랜덤하게 변경하는 이벤트
-    #     func=mdp.randomize_rigid_body_mass,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot"),
-    #         "mass_distribution_params": (0.8, 1.2),
-    #         "operation": "scale",
-    #     },
-    # )
-
-    # randomize_pd_gains = EventTerm( # 로봇이 재생성될때마다 PD 게인을 랜덤하게 변경하는 이벤트
-    #     func=mdp.randomize_actuator_gains,
-    #     min_step_count_between_reset=720,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot"),
-    #         "stiffness_distribution_params": (0.9, 1.1),
-    #         "damping_distribution_params": (0.9, 1.1),
-    #         "operation": "scale",
-    #         "distribution": "uniform",
-    #     },
-    # )
 
 
 @configclass
@@ -199,14 +173,14 @@ class RewardsCfg:
     )
     end_effector_pos_orientation_tracking_fine_grained = RewTerm(
         func=mdp.position_orientation_command_error_fine_grained,
-        weight=12.0,
+        weight=16.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
-    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-1000.0)
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-2000.0)
     # alive = RewTerm(func=mdp.is_alive, weight=1.2)
 
     # action penalty (initial weight; curriculum ramps toward stronger penalty)
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.05)
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
     # dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-5)
 
@@ -214,6 +188,13 @@ class RewardsCfg:
 class TerminationsCfg:
     """Termination terms for the MDP."""
 
+    reach = DoneTerm(
+        func=mdp.reach,
+        params={
+            "command_name": "ee_pose",
+            "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
+        },
+    )
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     OVF = DoneTerm(func=mdp.CRI_OVF)
 
