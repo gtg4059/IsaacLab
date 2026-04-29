@@ -18,7 +18,12 @@ Example::
 
     ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/play_lula_UR.py \\
         --task Isaac-Reach-UR10-Play-v0 --num_envs 4 \\
-        --traj_duration 5.0 --traj_playback_speed 1.5
+        --traj_duration 5.0 --traj_playback_speed 1.5 \\
+        --export_joint_traj_csv
+
+Pass ``--export_joint_traj_csv`` to write per-env files
+``<log_dir>/joint_trajectory/Path_<id>.txt`` (tab-separated, no header: time, Lula active ``q``, ``qd``).
+Each file only contains the first planned segment for the initial target; rows after a reset, trajectory completion, or new ``ee_pose`` resample are omitted. Omit the flag to disable; ``--joint_traj_csv_dir`` overrides the directory.
 
 ``--traj_duration`` stretches the spline in time (larger ⇒ slower planned motion).
 ``--traj_playback_speed`` scales how fast we advance along that spline per env step.
@@ -29,9 +34,9 @@ Device selection uses the same ``--device`` flag as other Isaac Lab apps (regist
 from __future__ import annotations
 
 import argparse
-from typing import Any, Set
 import os
 import time
+from typing import Any, IO, Set
 
 import numpy as np
 import torch
@@ -71,6 +76,18 @@ parser.add_argument(
     type=int,
     default=100,
     help="Print CRI>1 rate every this many env steps (0 = only final summary on exit).",
+)
+parser.add_argument(
+    "--export_joint_traj_csv",
+    action="store_true",
+    default=False,
+    help="When set, write per-env tab text (Path_<id>.txt) under <log_dir>/joint_trajectory/ (see --joint_traj_csv_dir).",
+)
+parser.add_argument(
+    "--joint_traj_csv_dir",
+    type=str,
+    default=None,
+    help="Output directory for Path_*.txt (default: <log_dir>/joint_trajectory). Only used with --export_joint_traj_csv.",
 )
 
 AppLauncher.add_app_launcher_args(parser)
@@ -156,6 +173,49 @@ def _print_trajectory_timing_stats(driver: "LulaCubicSplineReachDriver", step_dt
     )
     print(f"       측정 평균 = {mean_s:.6g}s, 표본 분산 = {var_s:.6g}s², 표본 표준편차 = {np.sqrt(var_s):.6g}s")
     print(f"       Lula 도메인 평균 = {mean_dom:.6g}s, 표본 분산 = {var_dom:.6g}s², 표본 표준편차 = {np.sqrt(var_dom):.6g}s")
+
+
+def _st_motion_info_line(sim_time_s: float, q: np.ndarray, qd: np.ndarray) -> str:
+    """Format one line like ``ST_MotionInfo.txt``: time, then all ``q``, then all ``qd`` (tab, no header)."""
+    parts: list[str] = [f"{float(sim_time_s):.9g}"]
+    q = np.asarray(q, dtype=np.float64).reshape(-1)
+    qd = np.asarray(qd, dtype=np.float64).reshape(-1)
+    for x in q:
+        parts.append(f"{float(x):.9g}")
+    for x in qd:
+        parts.append(f"{float(x):.9g}")
+    return "\t".join(parts) + "\n"
+
+
+def _open_st_motion_info_files(out_dir: str, num_envs: int) -> dict[int, IO[str]]:
+    """Open one text file per env (headerless; each line written by :func:`_st_motion_info_line`)."""
+    os.makedirs(out_dir, exist_ok=True)
+    files: dict[int, IO[str]] = {}
+    for e in range(num_envs):
+        path = os.path.join(out_dir, f"Path_{e}.txt")
+        files[e] = open(path, "w", encoding="utf-8", newline="\n")
+    return files
+
+
+def _append_st_motion_info_rows(
+    files: dict[int, IO[str]],
+    robot,
+    joint_indices: list[int],
+    log_still: list[bool],
+    trajectory_ok: list[bool],
+    line_count: list[int],
+    step_dt: float,
+) -> None:
+    """Append at most one line per env: first-c-spline segment only; ``time`` = segment-local (line_idx * step_dt)."""
+    with torch.inference_mode():
+        jp = robot.data.joint_pos[:, joint_indices].detach().cpu().numpy()
+        jv = robot.data.joint_vel[:, joint_indices].detach().cpu().numpy()
+    for e, f in files.items():
+        if not log_still[e] or not trajectory_ok[e]:
+            continue
+        line_count[e] += 1
+        t_seg = float(line_count[e]) * float(step_dt)
+        f.write(_st_motion_info_line(t_seg, jp[e], jv[e]))
 
 
 def _print_cri_exceed_one_stats(
@@ -245,6 +305,19 @@ class LulaCubicSplineReachDriver:
         # One entry each time an env's trajectory reaches end_time in simulation time.
         self.traj_sim_duration_samples_s: list[float] = []
         self.traj_lula_domain_duration_samples_s: list[float] = []
+
+    @property
+    def active_joint_names(self) -> list[str]:
+        """Joint names in Lula active order (matches C-space trajectory and IK)."""
+        return self._active_joint_names
+
+    def spline_times(self) -> list[float]:
+        """Spline clock ``_t`` per env after the last :meth:`action_from_trajectory` call in that step."""
+        return [float(t) for t in self._t]
+
+    def trajectory_active(self, env_idx: int) -> bool:
+        """True if a Lula plan is present for this sub-environment (see ``_traj``)."""
+        return self._traj[env_idx] is not None
 
     def _sync_lula_robot_base(self, robot, env_idx: int) -> None:
         """Align Lula with the articulated robot root in the USD stage (world pose).
@@ -490,11 +563,31 @@ def main():
     cri_steps_any_env_max_gt1 = 0
     cri_per_env_exceed_steps = [0] * num_envs
 
+    joint_traj_files: dict[int, IO[str]] | None = None
+    joint_traj_indices: list[int] | None = None
+    joint_traj_names: list[str] = list(driver.active_joint_names)
+    st_motion_still_log: list[bool] | None = None
+    st_motion_line_count: list[int] | None = None
+    if args_cli.export_joint_traj_csv:
+        out_dir = args_cli.joint_traj_csv_dir or os.path.join(log_dir, "joint_trajectory")
+        name_to_i = {n: i for i, n in enumerate(robot.joint_names)}
+        joint_traj_indices = [name_to_i[n] for n in joint_traj_names]
+        joint_traj_files = _open_st_motion_info_files(out_dir, num_envs)
+        st_motion_still_log = [True] * num_envs
+        st_motion_line_count = [0] * num_envs
+        n_j = len(joint_traj_names)
+        print(
+            f"[INFO] ST_MotionInfo 형식 궤적 기록: 디렉터리 = {out_dir} "
+            f"(sub-env마다 Path_<id>.txt, 첫 Lula 플랜 1세그먼트만, 탭: time(구간) + {n_j}×q + {n_j}×qd)"
+        )
+
     try:
         while simulation_app.is_running():
             t0 = time.time()
             for e in range(num_envs):
                 if driver.need_replan(base, e):
+                    if st_motion_still_log is not None:
+                        st_motion_still_log[e] = False
                     driver.replan(
                         base, e, robot, arm_term, env_steps_completed_at_start=cri_total_steps
                     )
@@ -524,6 +617,25 @@ def main():
                 if exceed_cpu[e]:
                     cri_per_env_exceed_steps[e] += 1
 
+            if (
+                joint_traj_files is not None
+                and joint_traj_indices is not None
+                and st_motion_still_log is not None
+                and st_motion_line_count is not None
+            ):
+                traj_ok = [driver.trajectory_active(i) for i in range(num_envs)]
+                _append_st_motion_info_rows(
+                    joint_traj_files,
+                    robot,
+                    joint_traj_indices,
+                    st_motion_still_log,
+                    traj_ok,
+                    st_motion_line_count,
+                    float(dt),
+                )
+                for f in joint_traj_files.values():
+                    f.flush()
+
             ep_done_set: Set[int] = set()
             done_tensor: torch.Tensor | None = None
             if bool(episode_done.any()):
@@ -549,6 +661,9 @@ def main():
                     break
 
             if traj_reset_ids:
+                if st_motion_still_log is not None:
+                    for ei in traj_reset_ids:
+                        st_motion_still_log[int(ei)] = False
                 ids_tensor = torch.tensor(traj_reset_ids, device=base.device, dtype=torch.int64)
                 driver.on_env_reset(ids_tensor)
                 # After ``env.step()`` under ``inference_mode``, articulation buffers can be inference tensors;
@@ -562,6 +677,9 @@ def main():
                     )
 
             if done_tensor is not None:
+                if st_motion_still_log is not None:
+                    for ei in done_tensor.tolist():
+                        st_motion_still_log[int(ei)] = False
                 driver.on_env_reset(done_tensor)
                 for e in done_tensor.tolist():
                     driver.replan(
@@ -580,6 +698,9 @@ def main():
             cri_per_env_exceed_steps,
         )
         _print_trajectory_timing_stats(driver, dt)
+        if joint_traj_files is not None:
+            for f in joint_traj_files.values():
+                f.close()
         env.close()
 
 

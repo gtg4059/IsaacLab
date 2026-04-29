@@ -69,8 +69,10 @@ class CommandsCfg:
         debug_vis=True,
         resampling_time_range=(24,24),
         ranges=mdp.UniformPoseTrigCommandCfg.PolarRanges(
-            pos_r=(0.4,0.8),
             pos_th=MISSING,
+            # pos_r=(0.6,0.6),
+            # pos_z=(0.6,0.6),
+            pos_r=(0.4,0.8),
             pos_z=(0.4, 0.8),
             roll=MISSING,
             pitch=MISSING,  # depends on end-effector axis
@@ -176,7 +178,7 @@ class RewardsCfg:
         weight=16.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
-    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-2000.0)
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-1000.0)
     # alive = RewTerm(func=mdp.is_alive, weight=1.2)
 
     # action penalty (initial weight; curriculum ramps toward stronger penalty)
@@ -188,13 +190,13 @@ class RewardsCfg:
 class TerminationsCfg:
     """Termination terms for the MDP."""
 
-    reach = DoneTerm(
-        func=mdp.reach,
-        params={
-            "command_name": "ee_pose",
-            "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
-        },
-    )
+    # reach = DoneTerm(
+    #     func=mdp.reach,
+    #     params={
+    #         "command_name": "ee_pose",
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
+    #     },
+    # )
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     OVF = DoneTerm(func=mdp.CRI_OVF)
 

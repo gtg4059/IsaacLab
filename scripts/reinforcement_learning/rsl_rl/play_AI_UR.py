@@ -47,6 +47,19 @@ parser.add_argument(
     default=1_000_000,
     help="Max reach-time samples kept for the boxplot (FIFO ring). 0 = unlimited (can use large RAM on long runs).",
 )
+parser.add_argument(
+    "--joint_traj_csv",
+    action="store_true",
+    default=False,
+    help="Enable: per-env joint q/qd CSV; each env logs until a **reach** (success) termination, then stops ("
+    "re-logging only after time_out/OVF reset; first reach in that env → no more rows for that file).",
+)
+parser.add_argument(
+    "--joint_traj_csv_dir",
+    type=str,
+    default=None,
+    help="If --joint_traj_csv: output directory for q/qd CSVs (default: <checkpoint_dir>/joint_trajectory).",
+)
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
@@ -62,10 +75,12 @@ simulation_app = app_launcher.app
 
 """Rest everything follows."""
 
+import csv
 import gymnasium as gym
 import os
 import time
 from collections import deque
+from typing import Any, IO
 
 import torch
 
@@ -82,6 +97,50 @@ import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg
 
 # PLACEHOLDER: Extension template (do not remove this comment)
+
+
+def _open_joint_traj_csv_writers_rl(
+    csv_dir: str,
+    num_envs: int,
+    joint_names: list[str],
+) -> tuple[dict[int, IO[str]], dict[int, csv.DictWriter]]:
+    """One CSV per env: global_step, sim_time_s, q_<name>, qd_<name> (same naming as play_lula_UR without lula_t)."""
+    os.makedirs(csv_dir, exist_ok=True)
+    fieldnames = ["global_step", "sim_time_s"] + [f"q_{j}" for j in joint_names] + [f"qd_{j}" for j in joint_names]
+    files: dict[int, IO[str]] = {}
+    writers: dict[int, csv.DictWriter] = {}
+    for e in range(num_envs):
+        path = os.path.join(csv_dir, f"env_{e}_joint_q_qd.csv")
+        f = open(path, "w", newline="", encoding="utf-8")
+        w = csv.DictWriter(f, fieldnames=fieldnames)
+        w.writeheader()
+        f.flush()
+        files[e] = f
+        writers[e] = w
+    return files, writers
+
+
+def _append_joint_traj_rows_rl(
+    writers: dict[int, csv.DictWriter],
+    robot,
+    global_step: int,
+    sim_time_s: float,
+    env_log_mask: torch.Tensor,
+) -> None:
+    """Log joint_pos / joint_vel from ``robot`` (post-``env.step``) to each env’s CSV; skip envs with mask False."""
+    joint_names = robot.joint_names
+    with torch.inference_mode():
+        jp = robot.data.joint_pos.detach().cpu().numpy()
+        jv = robot.data.joint_vel.detach().cpu().numpy()
+    mask = env_log_mask.detach().bool().cpu()
+    for e, w in writers.items():
+        if e >= int(mask.shape[0]) or not bool(mask[e].item()):
+            continue
+        row: dict[str, Any] = {"global_step": global_step, "sim_time_s": sim_time_s}
+        for k, name in enumerate(joint_names):
+            row[f"q_{name}"] = float(jp[e, k])
+            row[f"qd_{name}"] = float(jv[e, k])
+        w.writerow(row)
 
 
 def _count_episode_terminations_legacy(
@@ -240,6 +299,7 @@ def main():
 
     log_dir = os.path.dirname(resume_path)
     reach_boxplot_dir = args_cli.reach_time_boxplot_out_dir or os.path.join(log_dir, "play_reach_time_boxplots")
+    joint_traj_csv_dir = args_cli.joint_traj_csv_dir or os.path.join(log_dir, "joint_trajectory")
 
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
@@ -306,6 +366,9 @@ def main():
     reach_traj_times_plot: list[float] | deque[float] = (
         [] if reach_plot_max == 0 else deque(maxlen=reach_plot_max)
     )
+    joint_csv_files: dict[int, IO[str]] | None = None
+    joint_csv_writers: dict[int, csv.DictWriter] | None = None
+    joint_traj_log_active: torch.Tensor | None = None
     print(
         "[INFO] Tracking episode ends: time_out vs reach vs OVF (mutually exclusive; "
         "priority if multiple: time_out > reach > OVF). Counters accumulate until you close the app."
@@ -315,6 +378,13 @@ def main():
         f"mean is cumulative, boxplot uses stored samples (max_stored={reach_plot_max or 'unlimited'}). "
         f"Boxplot directory: {os.path.abspath(reach_boxplot_dir)}"
     )
+    if args_cli.joint_traj_csv:
+        print(
+            f"[INFO] Joint q/qd CSV: enabled → {os.path.abspath(joint_traj_csv_dir)}/env_*_joint_q_qd.csv "
+            "(per env: rows until first **reach** success; if only time_out/OVF terms use legacy stats, no reach-cut)"
+        )
+    else:
+        print("[INFO] Joint q/qd CSV: disabled (use --joint_traj_csv to record per-env q, qd)")
     # simulate environment
     while simulation_app.is_running():
         start_time = time.time()
@@ -325,6 +395,7 @@ def main():
             # env stepping
             obs, _, _, _extras = env.step(actions)
             base = env.unwrapped
+            reach_termination_excl: torch.Tensor | None = None
             if use_three_way_stats is None and isinstance(base, ManagerBasedRLEnv):
                 sample = _count_episode_terminations_reach_env(base)
                 use_three_way_stats = sample is not None
@@ -344,6 +415,7 @@ def main():
                 total_ovf += triple[2]
                 reach_mask = _reach_termination_mask_exclusive_timeout(base)
                 assert reach_mask is not None
+                reach_termination_excl = reach_mask
                 if reach_mask.any():
                     times_s = steps_since_reset[reach_mask].to(dtype=torch.float32) * dt
                     reach_traj_time_sum_s += float(times_s.sum().item())
@@ -358,7 +430,47 @@ def main():
                 )
                 total_timeout_legacy += t0
                 total_non_timeout_legacy += t1
+            if args_cli.joint_traj_csv and joint_csv_writers is None and isinstance(base, ManagerBasedRLEnv):
+                robot = base.scene["robot"]
+                joint_csv_files, joint_csv_writers = _open_joint_traj_csv_writers_rl(
+                    joint_traj_csv_dir, base.num_envs, list(robot.joint_names)
+                )
+                joint_traj_log_active = torch.ones(base.num_envs, device=base.device, dtype=torch.bool)
+                if use_three_way_stats:
+                    print(
+                        f"[INFO] Writing joint q/qd (until **reach** per env) to "
+                        f"{os.path.abspath(joint_traj_csv_dir)}/env_*_joint_q_qd.csv"
+                    )
+                else:
+                    print(
+                        f"[INFO] Writing joint q/qd (all control steps) to {os.path.abspath(joint_traj_csv_dir)}/"
+                        "env_*_joint_q_qd.csv — [WARN] reach-until not applied (time_out/reach/OVF terms missing)"
+                    )
             play_step += 1
+            if (
+                joint_csv_writers is not None
+                and joint_csv_files is not None
+                and joint_traj_log_active is not None
+                and isinstance(base, ManagerBasedRLEnv)
+            ):
+                # Append using mask before this step’s reach/unmark update (includes reach-termination row).
+                _append_joint_traj_rows_rl(
+                    joint_csv_writers,
+                    base.scene["robot"],
+                    play_step,
+                    float(play_step) * dt,
+                    joint_traj_log_active,
+                )
+                for f in joint_csv_files.values():
+                    f.flush()
+            if args_cli.joint_traj_csv and joint_traj_log_active is not None and isinstance(base, ManagerBasedRLEnv):
+                rmask = reach_termination_excl
+                if rmask is not None and use_three_way_stats:
+                    reset_ = base.reset_buf.bool()
+                    # After time_out or OVF (not reach bucket), a new episode should log again.
+                    joint_traj_log_active[reset_ & ~rmask] = True
+                    # After reach: stop this env (do not re-enable on the same reset).
+                    joint_traj_log_active[rmask] = False
             interval = args_cli.termination_stats_interval
             if interval > 0 and play_step % interval == 0:
                 if use_three_way_stats:
@@ -418,6 +530,11 @@ def main():
             )
         else:
             print("[INFO] No episode ended during this play session (no termination stats).")
+
+    if joint_csv_files is not None:
+        for f in joint_csv_files.values():
+            f.close()
+        print(f"[INFO] Closed joint trajectory CSV file handles under {os.path.abspath(joint_traj_csv_dir)}")
 
     # close the simulator
     env.close()
