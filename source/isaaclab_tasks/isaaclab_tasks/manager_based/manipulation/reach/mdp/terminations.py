@@ -5,8 +5,6 @@
 
 from __future__ import annotations
 
-import math
-
 import torch
 from typing import TYPE_CHECKING
 
@@ -23,21 +21,19 @@ def CRI_OVF(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("
     return result>1
 
 
-def reach(
+def reach_satisfied(
     env: ManagerBasedRLEnv,
     command_name: str,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot", body_names="ee_link"),
     max_distance: float = 0.05,
-    max_angle_deg: float = 5.7,
-    max_lin_vel: float = 0.02,
+    max_angle_rad: float = 0.1,
+    max_lin_vel: float = 0.01,
 ) -> torch.Tensor:
-    """Terminate when pose error is below thresholds and EE linear speed is low (task success).
+    """Return whether each env satisfies the reach criteria (pose + low EE linear speed).
 
-    Position and quaternion errors follow the same transforms as
-    :func:`position_orientation_command_error_fine_grained` in ``mdp.rewards``.
-    ``quat_error_magnitude`` is in radians; ``max_angle_deg`` is converted internally.
-    ``max_lin_vel`` is the maximum allowed L2 norm of the body linear velocity in world frame (m/s).
-    Set ``max_lin_vel`` to a very large value to ignore velocity (legacy pose-only success).
+    Same geometry as :func:`reach` termination; use for rewards / events without ending the episode.
+    ``quat_error_magnitude`` is in radians; ``max_angle_rad`` is a direct radian bound.
+    ``max_lin_vel`` is the max L2 norm of EE linear velocity in world frame (m/s).
     """
     asset: RigidObject = env.scene[asset_cfg.name]
     command = env.command_manager.get_command(command_name)
@@ -55,7 +51,25 @@ def reach(
     bid = asset_cfg.body_ids[0]  # type: ignore
     lin_spd = torch.norm(asset.data.body_lin_vel_w[:, bid, :], dim=-1)
 
-    max_angle_rad = math.radians(max_angle_deg)
     pose_ok = torch.logical_and(distance <= max_distance, quat_err_rad <= max_angle_rad)
     vel_ok = lin_spd <= max_lin_vel
     return torch.logical_and(pose_ok, vel_ok)
+
+
+def reach(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot", body_names="ee_link"),
+    max_distance: float = 0.05,
+    max_angle_rad: float = 0.1,
+    max_lin_vel: float = 0.01,
+) -> torch.Tensor:
+    """Episode termination when pose error and EE speed satisfy :func:`reach_satisfied`."""
+    return reach_satisfied(
+        env,
+        command_name,
+        asset_cfg,
+        max_distance=max_distance,
+        max_angle_rad=max_angle_rad,
+        max_lin_vel=max_lin_vel,
+    )

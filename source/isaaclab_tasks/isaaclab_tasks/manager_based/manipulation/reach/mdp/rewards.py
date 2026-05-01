@@ -15,6 +15,8 @@ from isaaclab.utils.math import combine_frame_transforms, quat_error_magnitude, 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
+from .terminations import reach_satisfied
+
 
 def position_command_error(env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     """Penalize tracking of the position error using L2-norm.
@@ -98,6 +100,25 @@ def position_command_error_tanh(
     curr_pos_w = asset.data.body_state_w[:, asset_cfg.body_ids[0], :3]  # type: ignore
     distance = torch.norm(curr_pos_w - des_pos_w, dim=1)
     return 1 - torch.tanh(distance / std)
+
+
+def reach_success_bonus(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+    asset_cfg: SceneEntityCfg,
+    max_distance: float,
+    max_angle_rad: float,
+    max_lin_vel: float,
+) -> torch.Tensor:
+    """Sparse bonus (1.0 when criteria met, else 0); scale with :attr:`RewTerm.weight` for large reward."""
+    return reach_satisfied(
+        env,
+        command_name,
+        asset_cfg,
+        max_distance=max_distance,
+        max_angle_rad=max_angle_rad,
+        max_lin_vel=max_lin_vel,
+    ).float()
 
 
 def orientation_command_error(env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg) -> torch.Tensor:

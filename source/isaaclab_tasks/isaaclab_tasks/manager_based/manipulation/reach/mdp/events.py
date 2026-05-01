@@ -17,6 +17,10 @@ from isaaclab.utils import math as math_utils
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv
 
+from isaaclab.envs import ManagerBasedRLEnv
+
+from .terminations import reach_satisfied
+
 
 def reset_robot_joints_two_groups_by_offset(
     env: ManagerBasedEnv,
@@ -70,3 +74,39 @@ def reset_robot_joints_two_groups_by_offset(
     joint_vel = joint_vel.clamp_(-joint_vel_limits, joint_vel_limits)
 
     asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
+
+
+def resample_ee_pose_command_on_reach(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor | None,
+    command_name: str,
+    asset_cfg: SceneEntityCfg,
+    max_distance: float,
+    max_angle_rad: float,
+    max_lin_vel: float,
+) -> None:
+    """If an env satisfies reach criteria, resample that env's pose command (new target).
+
+    Intended for ``EventTermCfg`` with ``mode="interval"`` and a short ``interval_range_s`` so this
+    runs every control step *after* :meth:`CommandManager.compute`, keeping the episode alive while
+    advancing goals on success.
+    """
+    if not isinstance(env, ManagerBasedRLEnv):
+        return
+    sat = reach_satisfied(
+        env,
+        command_name,
+        asset_cfg,
+        max_distance=max_distance,
+        max_angle_rad=max_angle_rad,
+        max_lin_vel=max_lin_vel,
+    )
+    if env_ids is not None:
+        sat_subset = sat[env_ids]
+        reached = env_ids[sat_subset]
+    else:
+        reached = torch.where(sat)[0]
+    if reached.numel() == 0:
+        return
+    term = env.command_manager.get_term(command_name)
+    term.reset(env_ids=reached)

@@ -51,8 +51,8 @@ parser.add_argument(
     "--joint_traj_csv",
     action="store_true",
     default=False,
-    help="Enable: per-env joint q/qd CSV; each env logs until a **reach** (success) termination, then stops ("
-    "re-logging only after time_out/OVF reset; first reach in that env → no more rows for that file).",
+    help="Enable: per-env CSV (global_step, sim_time_s, q_*, qd_*, CRI_*); logs until **reach** then stops ("
+    "re-log after time_out/OVF reset; first reach in that env → no more rows for that file).",
 )
 parser.add_argument(
     "--joint_traj_csv_dir",
@@ -104,9 +104,14 @@ def _open_joint_traj_csv_writers_rl(
     num_envs: int,
     joint_names: list[str],
 ) -> tuple[dict[int, IO[str]], dict[int, csv.DictWriter]]:
-    """One CSV per env: global_step, sim_time_s, q_<name>, qd_<name> (same naming as play_lula_UR without lula_t)."""
+    """One CSV per env: global_step, sim_time_s, q_*, qd_*, CRI_* (CRI from ``robot.data.CRI``)."""
     os.makedirs(csv_dir, exist_ok=True)
-    fieldnames = ["global_step", "sim_time_s"] + [f"q_{j}" for j in joint_names] + [f"qd_{j}" for j in joint_names]
+    fieldnames = (
+        ["global_step", "sim_time_s"]
+        + [f"q_{j}" for j in joint_names]
+        + [f"qd_{j}" for j in joint_names]
+        + [f"CRI_{j}" for j in joint_names]
+    )
     files: dict[int, IO[str]] = {}
     writers: dict[int, csv.DictWriter] = {}
     for e in range(num_envs):
@@ -127,11 +132,19 @@ def _append_joint_traj_rows_rl(
     sim_time_s: float,
     env_log_mask: torch.Tensor,
 ) -> None:
-    """Log joint_pos / joint_vel from ``robot`` (post-``env.step``) to each env’s CSV; skip envs with mask False."""
+    """Log joint_pos, joint_vel, and CRI from ``robot`` (post-``env.step``); skip envs with mask False."""
     joint_names = robot.joint_names
     with torch.inference_mode():
         jp = robot.data.joint_pos.detach().cpu().numpy()
         jv = robot.data.joint_vel.detach().cpu().numpy()
+        cri = robot.data.CRI.detach().cpu().numpy()
+    n_j = len(joint_names)
+    n_cri = int(cri.shape[1]) if cri.ndim == 2 else 0
+    if n_cri != n_j:
+        # CRI is defined per articulation joint in the same dof order as joint_pos for this asset.
+        n_use = min(n_j, n_cri) if n_cri > 0 else 0
+    else:
+        n_use = n_j
     mask = env_log_mask.detach().bool().cpu()
     for e, w in writers.items():
         if e >= int(mask.shape[0]) or not bool(mask[e].item()):
@@ -140,6 +153,10 @@ def _append_joint_traj_rows_rl(
         for k, name in enumerate(joint_names):
             row[f"q_{name}"] = float(jp[e, k])
             row[f"qd_{name}"] = float(jv[e, k])
+            if n_use > 0 and k < n_use:
+                row[f"CRI_{name}"] = float(cri[e, k])
+            else:
+                row[f"CRI_{name}"] = float("nan")
         w.writerow(row)
 
 
@@ -380,11 +397,11 @@ def main():
     )
     if args_cli.joint_traj_csv:
         print(
-            f"[INFO] Joint q/qd CSV: enabled → {os.path.abspath(joint_traj_csv_dir)}/env_*_joint_q_qd.csv "
-            "(per env: rows until first **reach** success; if only time_out/OVF terms use legacy stats, no reach-cut)"
+            f"[INFO] Joint q/qd/CRI CSV: enabled → {os.path.abspath(joint_traj_csv_dir)}/env_*_joint_q_qd.csv "
+            "(columns: global_step, sim_time_s, q_*, qd_*, CRI_*; per env until first **reach** unless legacy)"
         )
     else:
-        print("[INFO] Joint q/qd CSV: disabled (use --joint_traj_csv to record per-env q, qd)")
+        print("[INFO] Joint q/qd/CRI CSV: disabled (use --joint_traj_csv to record per-env trajectories)")
     # simulate environment
     while simulation_app.is_running():
         start_time = time.time()
@@ -438,12 +455,12 @@ def main():
                 joint_traj_log_active = torch.ones(base.num_envs, device=base.device, dtype=torch.bool)
                 if use_three_way_stats:
                     print(
-                        f"[INFO] Writing joint q/qd (until **reach** per env) to "
+                        f"[INFO] Writing joint q/qd/CRI (until **reach** per env) to "
                         f"{os.path.abspath(joint_traj_csv_dir)}/env_*_joint_q_qd.csv"
                     )
                 else:
                     print(
-                        f"[INFO] Writing joint q/qd (all control steps) to {os.path.abspath(joint_traj_csv_dir)}/"
+                        f"[INFO] Writing joint q/qd/CRI (all control steps) to {os.path.abspath(joint_traj_csv_dir)}/"
                         "env_*_joint_q_qd.csv — [WARN] reach-until not applied (time_out/reach/OVF terms missing)"
                     )
             play_step += 1
