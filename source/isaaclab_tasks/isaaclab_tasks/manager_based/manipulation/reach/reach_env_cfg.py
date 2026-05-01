@@ -167,9 +167,12 @@ class EventCfg:
         params={
             "command_name": "ee_pose",
             "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
-            "max_distance": 0.05,
+            "max_distance": 0.03,
             "max_angle_rad": 0.1,
             "max_lin_vel": 0.01,
+            "max_ang_vel": 0.1,
+            "max_lin_acc": 0.01,
+            "max_ang_acc": 0.1,
         },
     )
 
@@ -190,14 +193,14 @@ class RewardsCfg:
     )
     # end_effector_pos_orientation_tracking_fine_grained = RewTerm(
     #     func=mdp.position_orientation_command_error_fine_grained,
-    #     weight=16.0,
+    #     weight=4.0,
     #     params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     # )
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-1000.0)
     # alive = RewTerm(func=mdp.is_alive, weight=1.2)
 
     # action penalty (initial weight; curriculum ramps toward stronger penalty)
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.1)
     # dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-5)
 
@@ -205,14 +208,17 @@ class RewardsCfg:
 
     # Bonus when EE is within tolerances and slow; same thresholds as ``resample_ee_pose_on_reach``.
     reach_success_bonus = RewTerm(
-        func=mdp.reach_success_bonus,
-        weight=500.0,
+        func=mdp.reach_success_criteria,
+        weight=600.0,
         params={
             "command_name": "ee_pose",
             "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
-            "max_distance": 0.03,
+            "max_distance": 0.02,
             "max_angle_rad": 0.1,
             "max_lin_vel": 0.01,
+            "max_ang_vel": 0.1,
+            "max_lin_acc": 0.01,
+            "max_ang_acc": 0.1,
         },
     )
 
@@ -220,13 +226,7 @@ class RewardsCfg:
 class TerminationsCfg:
     """Termination terms for the MDP."""
 
-    # reach = DoneTerm(
-    #     func=mdp.reach,
-    #     params={
-    #         "command_name": "ee_pose",
-    #         "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
-    #     },
-    # )
+    # Success criteria live in ``mdp.reach_success_criteria`` / ``reach_success_bonus`` only (no ``reach`` term).
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     OVF = DoneTerm(func=mdp.CRI_OVF)
 

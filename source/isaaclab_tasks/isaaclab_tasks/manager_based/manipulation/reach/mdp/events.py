@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 from isaaclab.envs import ManagerBasedRLEnv
 
-from .terminations import reach_satisfied
+from .rewards import reach_success_criteria
 
 
 def reset_robot_joints_two_groups_by_offset(
@@ -84,6 +84,9 @@ def resample_ee_pose_command_on_reach(
     max_distance: float,
     max_angle_rad: float,
     max_lin_vel: float,
+    max_ang_vel: float,
+    max_lin_acc: float,
+    max_ang_acc: float,
 ) -> None:
     """If an env satisfies reach criteria, resample that env's pose command (new target).
 
@@ -93,13 +96,16 @@ def resample_ee_pose_command_on_reach(
     """
     if not isinstance(env, ManagerBasedRLEnv):
         return
-    sat = reach_satisfied(
+    sat = reach_success_criteria(
         env,
         command_name,
         asset_cfg,
         max_distance=max_distance,
         max_angle_rad=max_angle_rad,
         max_lin_vel=max_lin_vel,
+        max_ang_vel=max_ang_vel,
+        max_lin_acc=max_lin_acc,
+        max_ang_acc=max_ang_acc,
     )
     if env_ids is not None:
         sat_subset = sat[env_ids]
