@@ -51,15 +51,16 @@ parser.add_argument(
     "--joint_traj_csv",
     action="store_true",
     default=False,
-    help="Enable: per-env CSV (global_step, sim_time_s, q_*, qd_*, CRI_*). Default: stop after the first "
-    "``reach_success_criteria`` hit in any env (thresholds from env cfg). See --joint_traj_csv_always.",
+    help="Enable: per-env CSV (global_step, sim_time_s, reach_event 0/1, q_*, qd_*, CRI_*). reach_event matches "
+    "``reach_success_criteria`` / ``resample_ee_pose_on_reach``. Default: each env stops logging after that env's "
+    "first ``reach_success_criteria`` (thresholds from env cfg). See --joint_traj_csv_always.",
 )
 parser.add_argument(
     "--joint_traj_csv_always",
     action="store_true",
     default=False,
-    help="With --joint_traj_csv: keep recording for the full play session. If unset, logging stops after the "
-    "first reach (same test as reward ``reach_success_bonus`` / event ``resample_ee_pose_on_reach`` params).",
+    help="With --joint_traj_csv: keep recording for the full play session. If unset, each env's CSV stops after "
+    "that env's first ``reach_success_criteria`` (params from ``reach_success_bonus`` or ``resample_ee_pose_on_reach``).",
 )
 parser.add_argument(
     "--joint_traj_csv_dir",
@@ -108,7 +109,11 @@ from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg
 
 
 def _joint_csv_reach_params_from_env_cfg(base: ManagerBasedRLEnv) -> dict[str, Any] | None:
-    """Build kwargs for :func:`reach_success_criteria` from task cfg (reward term, else resample event)."""
+    """Shallow copy of kwargs for :func:`reach_success_criteria` (CSV ``reach_event`` / first-reach stop).
+
+    Uses ``rewards.reach_success_bonus`` if present, else ``events.resample_ee_pose_on_reach``; reach tasks
+    keep both aligned via shared tolerances in ``reach_env_cfg``.
+    """
     rewards_cfg = getattr(base.cfg, "rewards", None)
     if rewards_cfg is not None:
         term = getattr(rewards_cfg, "reach_success_bonus", None)
@@ -127,10 +132,10 @@ def _open_joint_traj_csv_writers_rl(
     num_envs: int,
     joint_names: list[str],
 ) -> tuple[dict[int, IO[str]], dict[int, csv.DictWriter]]:
-    """One CSV per env: global_step, sim_time_s, q_*, qd_*, CRI_* (CRI from ``robot.data.CRI``)."""
+    """One CSV per env: global_step, sim_time_s, reach_event, q_*, qd_*, CRI_* (CRI from ``robot.data.CRI``)."""
     os.makedirs(csv_dir, exist_ok=True)
     fieldnames = (
-        ["global_step", "sim_time_s"]
+        ["global_step", "sim_time_s", "reach_event"]
         + [f"q_{j}" for j in joint_names]
         + [f"qd_{j}" for j in joint_names]
         + [f"CRI_{j}" for j in joint_names]
@@ -154,13 +159,26 @@ def _append_joint_traj_rows_rl(
     global_step: int,
     sim_time_s: float,
     env_log_mask: torch.Tensor,
+    base: ManagerBasedRLEnv | None = None,
+    joint_reach_params: dict[str, Any] | None = None,
+    reach_command_b: torch.Tensor | None = None,
 ) -> None:
-    """Log joint_pos, joint_vel, and CRI from ``robot`` (post-``env.step``); skip envs with mask False."""
+    """Log joint_pos, joint_vel, CRI, and reach_event from ``robot`` (post-``env.step``); skip envs with mask False.
+
+    Pass ``reach_command_b`` = pose command cloned **before** :meth:`env.step` so ``reach_event`` matches
+    ``resample_ee_pose_on_reach`` (that event updates the command buffer inside the step).
+    """
     joint_names = robot.joint_names
     with torch.inference_mode():
         jp = robot.data.joint_pos.detach().cpu().numpy()
         jv = robot.data.joint_vel.detach().cpu().numpy()
         cri = robot.data.CRI.detach().cpu().numpy()
+        if base is not None and joint_reach_params is not None:
+            reach_ev = (
+                reach_success_criteria(base, command_b=reach_command_b, **joint_reach_params).detach().cpu().numpy()
+            )
+        else:
+            reach_ev = None
     n_j = len(joint_names)
     n_cri = int(cri.shape[1]) if cri.ndim == 2 else 0
     if n_cri != n_j:
@@ -173,6 +191,10 @@ def _append_joint_traj_rows_rl(
         if e >= int(mask.shape[0]) or not bool(mask[e].item()):
             continue
         row: dict[str, Any] = {"global_step": global_step, "sim_time_s": sim_time_s}
+        if reach_ev is not None and e < int(reach_ev.shape[0]):
+            row["reach_event"] = int(bool(reach_ev[e]))
+        else:
+            row["reach_event"] = 0
         for k, name in enumerate(joint_names):
             row[f"q_{name}"] = float(jp[e, k])
             row[f"qd_{name}"] = float(jv[e, k])
@@ -410,7 +432,6 @@ def main():
     joint_csv_writers: dict[int, csv.DictWriter] | None = None
     joint_traj_log_active: torch.Tensor | None = None
     joint_reach_params: dict[str, Any] | None = None
-    joint_csv_first_reach_notice_printed = False
     print(
         "[INFO] Tracking episode ends: time_out vs reach vs OVF (mutually exclusive; "
         "priority if multiple: time_out > reach > OVF). Counters accumulate until you close the app."
@@ -422,16 +443,27 @@ def main():
     )
     if args_cli.joint_traj_csv:
         print(
-            f"[INFO] Joint q/qd/CRI CSV: enabled → {os.path.abspath(joint_traj_csv_dir)}/env_*_joint_q_qd.csv "
-            "(default: stop after first ``reach_success_criteria`` in any env; use --joint_traj_csv_always for full run)"
+            f"[INFO] Joint q/qd/CRI/reach_event CSV: enabled → {os.path.abspath(joint_traj_csv_dir)}/env_*_joint_q_qd.csv "
+            "(default: each env stops after its own first ``reach_success_criteria``; use --joint_traj_csv_always for full run)"
         )
     else:
-        print("[INFO] Joint q/qd/CRI CSV: disabled (use --joint_traj_csv to record per-env trajectories)")
+        print("[INFO] Joint q/qd/CRI/reach_event CSV: disabled (use --joint_traj_csv to record per-env trajectories)")
     # simulate environment
     while simulation_app.is_running():
         start_time = time.time()
         # run everything in inference mode
         with torch.inference_mode():
+            # Clone pose command before step so CSV ``reach_event`` matches MDP / resample event (command
+            # may be reset inside ``env.step`` when reach succeeds).
+            reach_cmd_snapshot: torch.Tensor | None = None
+            if args_cli.joint_traj_csv:
+                snap_base = env.unwrapped
+                if isinstance(snap_base, ManagerBasedRLEnv):
+                    snap_params = joint_reach_params or _joint_csv_reach_params_from_env_cfg(snap_base)
+                    if snap_params:
+                        reach_cmd_snapshot = (
+                            snap_base.command_manager.get_command(snap_params["command_name"]).detach().clone()
+                        )
             # agent stepping
             actions = policy(obs)
             # env stepping
@@ -479,7 +511,10 @@ def main():
                 )
                 joint_traj_log_active = torch.ones(base.num_envs, device=base.device, dtype=torch.bool)
                 joint_reach_params = _joint_csv_reach_params_from_env_cfg(base)
-                print(f"[INFO] Writing joint q/qd/CRI to {os.path.abspath(joint_traj_csv_dir)}/env_*_joint_q_qd.csv")
+                print(
+                    f"[INFO] Writing joint q/qd/CRI/reach_event to "
+                    f"{os.path.abspath(joint_traj_csv_dir)}/env_*_joint_q_qd.csv"
+                )
                 if not args_cli.joint_traj_csv_always:
                     if joint_reach_params is None:
                         print(
@@ -488,8 +523,9 @@ def main():
                         )
                     else:
                         print(
-                            "[INFO] joint_traj_csv: will stop **all** env CSVs after the first step where "
-                            "``reach_success_criteria`` is true for any env (params from env cfg)."
+                            "[INFO] joint_traj_csv: each ``env_*`` file stops after **that** env's first step where "
+                            "``reach_success_criteria`` is true (params from ``reach_success_bonus`` or "
+                            "``resample_ee_pose_on_reach``)."
                         )
                 else:
                     print("[INFO] joint_traj_csv: --joint_traj_csv_always — logging all control steps for all envs.")
@@ -507,6 +543,9 @@ def main():
                     play_step,
                     float(play_step) * dt,
                     joint_traj_log_active,
+                    base=base,
+                    joint_reach_params=joint_reach_params,
+                    reach_command_b=reach_cmd_snapshot,
                 )
                 for f in joint_csv_files.values():
                     f.flush()
@@ -516,15 +555,15 @@ def main():
                     and joint_reach_params is not None
                     and bool(joint_traj_log_active.any().item())
                 ):
-                    crit = reach_success_criteria(base, **joint_reach_params)
-                    if bool(crit.any().item()):
-                        joint_traj_log_active[:] = False
-                        if not joint_csv_first_reach_notice_printed:
+                    crit = reach_success_criteria(base, command_b=reach_cmd_snapshot, **joint_reach_params)
+                    newly_done = joint_traj_log_active & crit
+                    if bool(newly_done.any().item()):
+                        joint_traj_log_active &= ~crit
+                        for e in newly_done.nonzero(as_tuple=False).view(-1).tolist():
                             print(
-                                "[INFO] joint_traj_csv: first ``reach_success_criteria`` satisfied — "
-                                "no further rows will be written (close files on exit as usual)."
+                                f"[INFO] joint_traj_csv: env {e} — first ``reach_success_criteria`` satisfied; "
+                                "no further rows for that env (file stays open until exit)."
                             )
-                            joint_csv_first_reach_notice_printed = True
                 elif args_cli.joint_traj_csv_always:
                     rmask = reach_termination_excl
                     if rmask is not None and use_three_way_stats:

@@ -58,6 +58,15 @@ class ReachSceneCfg(InteractiveSceneCfg):
 # MDP settings
 ##
 
+# Tolerances for ``mdp.reach_success_criteria`` — keep ``reach_success_bonus`` and
+# ``resample_ee_pose_on_reach`` in sync (one source of truth for numbers).
+REACH_SUCCESS_MAX_DISTANCE = 0.03
+REACH_SUCCESS_MAX_ANGLE_RAD = 0.1
+REACH_SUCCESS_MAX_LIN_VEL = 0.01
+REACH_SUCCESS_MAX_ANG_VEL = 0.1
+REACH_SUCCESS_MAX_LIN_ACC = 0.01
+REACH_SUCCESS_MAX_ANG_ACC = 0.1
+
 
 @configclass
 class CommandsCfg:
@@ -167,12 +176,12 @@ class EventCfg:
         params={
             "command_name": "ee_pose",
             "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
-            "max_distance": 0.03,
-            "max_angle_rad": 0.1,
-            "max_lin_vel": 0.01,
-            "max_ang_vel": 0.1,
-            "max_lin_acc": 0.01,
-            "max_ang_acc": 0.1,
+            "max_distance": REACH_SUCCESS_MAX_DISTANCE,
+            "max_angle_rad": REACH_SUCCESS_MAX_ANGLE_RAD,
+            "max_lin_vel": REACH_SUCCESS_MAX_LIN_VEL,
+            "max_ang_vel": REACH_SUCCESS_MAX_ANG_VEL,
+            "max_lin_acc": REACH_SUCCESS_MAX_LIN_ACC,
+            "max_ang_acc": REACH_SUCCESS_MAX_ANG_ACC,
         },
     )
 
@@ -206,19 +215,19 @@ class RewardsCfg:
 
     # CRI_optimize = RewTerm(func=mdp.CRI_optimize, weight=10.0)
 
-    # Bonus when EE is within tolerances and slow; same thresholds as ``resample_ee_pose_on_reach``.
+    # Bonus when EE is within tolerances and slow (numeric tolerances: module constants above).
     reach_success_bonus = RewTerm(
         func=mdp.reach_success_criteria,
         weight=600.0,
         params={
             "command_name": "ee_pose",
             "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
-            "max_distance": 0.02,
-            "max_angle_rad": 0.1,
-            "max_lin_vel": 0.01,
-            "max_ang_vel": 0.1,
-            "max_lin_acc": 0.01,
-            "max_ang_acc": 0.1,
+            "max_distance": REACH_SUCCESS_MAX_DISTANCE,
+            "max_angle_rad": REACH_SUCCESS_MAX_ANGLE_RAD,
+            "max_lin_vel": REACH_SUCCESS_MAX_LIN_VEL,
+            "max_ang_vel": REACH_SUCCESS_MAX_ANG_VEL,
+            "max_lin_acc": REACH_SUCCESS_MAX_LIN_ACC,
+            "max_ang_acc": REACH_SUCCESS_MAX_ANG_ACC,
         },
     )
 
