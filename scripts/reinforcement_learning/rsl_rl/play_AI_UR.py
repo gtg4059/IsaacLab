@@ -51,8 +51,15 @@ parser.add_argument(
     "--joint_traj_csv",
     action="store_true",
     default=False,
-    help="Enable: per-env CSV (global_step, sim_time_s, q_*, qd_*, CRI_*); logs until **reach** then stops ("
-    "re-log after time_out/OVF reset; first reach in that env → no more rows for that file).",
+    help="Enable: per-env CSV (global_step, sim_time_s, q_*, qd_*, CRI_*). Default: stop after the first "
+    "``reach_success_criteria`` hit in any env (thresholds from env cfg). See --joint_traj_csv_always.",
+)
+parser.add_argument(
+    "--joint_traj_csv_always",
+    action="store_true",
+    default=False,
+    help="With --joint_traj_csv: keep recording for the full play session. If unset, logging stops after the "
+    "first reach (same test as reward ``reach_success_bonus`` / event ``resample_ee_pose_on_reach`` params).",
 )
 parser.add_argument(
     "--joint_traj_csv_dir",
@@ -94,9 +101,25 @@ from isaaclab.utils.pretrained_checkpoint import get_published_pretrained_checkp
 from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper, export_policy_as_jit, export_policy_as_onnx
 
 import isaaclab_tasks  # noqa: F401
+from isaaclab_tasks.manager_based.manipulation.reach.mdp.rewards import reach_success_criteria
 from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg
 
 # PLACEHOLDER: Extension template (do not remove this comment)
+
+
+def _joint_csv_reach_params_from_env_cfg(base: ManagerBasedRLEnv) -> dict[str, Any] | None:
+    """Build kwargs for :func:`reach_success_criteria` from task cfg (reward term, else resample event)."""
+    rewards_cfg = getattr(base.cfg, "rewards", None)
+    if rewards_cfg is not None:
+        term = getattr(rewards_cfg, "reach_success_bonus", None)
+        if term is not None and getattr(term, "params", None):
+            return dict(term.params)
+    events_cfg = getattr(base.cfg, "events", None)
+    if events_cfg is not None:
+        term = getattr(events_cfg, "resample_ee_pose_on_reach", None)
+        if term is not None and getattr(term, "params", None):
+            return dict(term.params)
+    return None
 
 
 def _open_joint_traj_csv_writers_rl(
@@ -386,6 +409,8 @@ def main():
     joint_csv_files: dict[int, IO[str]] | None = None
     joint_csv_writers: dict[int, csv.DictWriter] | None = None
     joint_traj_log_active: torch.Tensor | None = None
+    joint_reach_params: dict[str, Any] | None = None
+    joint_csv_first_reach_notice_printed = False
     print(
         "[INFO] Tracking episode ends: time_out vs reach vs OVF (mutually exclusive; "
         "priority if multiple: time_out > reach > OVF). Counters accumulate until you close the app."
@@ -398,7 +423,7 @@ def main():
     if args_cli.joint_traj_csv:
         print(
             f"[INFO] Joint q/qd/CRI CSV: enabled → {os.path.abspath(joint_traj_csv_dir)}/env_*_joint_q_qd.csv "
-            "(columns: global_step, sim_time_s, q_*, qd_*, CRI_*; per env until first **reach** unless legacy)"
+            "(default: stop after first ``reach_success_criteria`` in any env; use --joint_traj_csv_always for full run)"
         )
     else:
         print("[INFO] Joint q/qd/CRI CSV: disabled (use --joint_traj_csv to record per-env trajectories)")
@@ -453,16 +478,21 @@ def main():
                     joint_traj_csv_dir, base.num_envs, list(robot.joint_names)
                 )
                 joint_traj_log_active = torch.ones(base.num_envs, device=base.device, dtype=torch.bool)
-                if use_three_way_stats:
-                    print(
-                        f"[INFO] Writing joint q/qd/CRI (until **reach** per env) to "
-                        f"{os.path.abspath(joint_traj_csv_dir)}/env_*_joint_q_qd.csv"
-                    )
+                joint_reach_params = _joint_csv_reach_params_from_env_cfg(base)
+                print(f"[INFO] Writing joint q/qd/CRI to {os.path.abspath(joint_traj_csv_dir)}/env_*_joint_q_qd.csv")
+                if not args_cli.joint_traj_csv_always:
+                    if joint_reach_params is None:
+                        print(
+                            "[WARN] joint_traj_csv: no ``reach_success_bonus`` / ``resample_ee_pose_on_reach`` "
+                            "params in env cfg — cannot detect first reach; logging all steps."
+                        )
+                    else:
+                        print(
+                            "[INFO] joint_traj_csv: will stop **all** env CSVs after the first step where "
+                            "``reach_success_criteria`` is true for any env (params from env cfg)."
+                        )
                 else:
-                    print(
-                        f"[INFO] Writing joint q/qd/CRI (all control steps) to {os.path.abspath(joint_traj_csv_dir)}/"
-                        "env_*_joint_q_qd.csv — [WARN] reach-until not applied (time_out/reach/OVF terms missing)"
-                    )
+                    print("[INFO] joint_traj_csv: --joint_traj_csv_always — logging all control steps for all envs.")
             play_step += 1
             if (
                 joint_csv_writers is not None
@@ -481,13 +511,26 @@ def main():
                 for f in joint_csv_files.values():
                     f.flush()
             if args_cli.joint_traj_csv and joint_traj_log_active is not None and isinstance(base, ManagerBasedRLEnv):
-                rmask = reach_termination_excl
-                if rmask is not None and use_three_way_stats:
-                    reset_ = base.reset_buf.bool()
-                    # After time_out or OVF (not reach bucket), a new episode should log again.
-                    joint_traj_log_active[reset_ & ~rmask] = True
-                    # After reach: stop this env (do not re-enable on the same reset).
-                    joint_traj_log_active[rmask] = False
+                if (
+                    not args_cli.joint_traj_csv_always
+                    and joint_reach_params is not None
+                    and bool(joint_traj_log_active.any().item())
+                ):
+                    crit = reach_success_criteria(base, **joint_reach_params)
+                    if bool(crit.any().item()):
+                        joint_traj_log_active[:] = False
+                        if not joint_csv_first_reach_notice_printed:
+                            print(
+                                "[INFO] joint_traj_csv: first ``reach_success_criteria`` satisfied — "
+                                "no further rows will be written (close files on exit as usual)."
+                            )
+                            joint_csv_first_reach_notice_printed = True
+                elif args_cli.joint_traj_csv_always:
+                    rmask = reach_termination_excl
+                    if rmask is not None and use_three_way_stats:
+                        reset_ = base.reset_buf.bool()
+                        joint_traj_log_active[reset_ & ~rmask] = True
+                        joint_traj_log_active[rmask] = False
             interval = args_cli.termination_stats_interval
             if interval > 0 and play_step % interval == 0:
                 if use_three_way_stats:

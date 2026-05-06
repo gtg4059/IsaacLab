@@ -196,7 +196,7 @@ class RewardsCfg:
     #     weight=4.0,
     #     params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     # )
-    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-1000.0)
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-2000.0)
     # alive = RewTerm(func=mdp.is_alive, weight=1.2)
 
     # action penalty (initial weight; curriculum ramps toward stronger penalty)
