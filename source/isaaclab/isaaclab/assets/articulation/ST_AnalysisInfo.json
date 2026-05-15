@@ -158,7 +158,7 @@
           "ColliJoint": 1,
           "ColliPos": "0 0 160",
           "ColliShape": 5,
-          "ColliRadi": 10,
+          "ColliRadi": 5,
           "ColliFillet": 2,
           "ExposureDir": "-4.531142929634924e-14 7.814596798843623e-14 50",
           "ColliRotation": "0 0 0",
