@@ -1,0 +1,236 @@
+{
+  "SafeticsAnalysisInfo": {
+    "Version": {
+      "AnalysisInfo": "2.0.0",
+      "SafetyCore": "1.7.0",
+      "Plot_CRI": "1.5.1",
+      "AutoReport": "1.0.7"
+    },
+    "AutoReport": {
+      "DocNo": null,
+      "RobotUserName": null,
+      "InstallationSite": null,
+      "ProcessName": null,
+      "IssuingCompany": null,
+      "Issuer": null,
+      "Purpose": null,
+      "Standard": null,
+      "Language": null,
+      "RobotSerialNumber": null,
+      "BaseSerialNumber": null,
+      "TotalMotionTime": 0
+    },
+    "EquipmentInfo": [],
+    "AdditionalAxisInfo": [],
+    "BasicInfo": {
+      "AnalysisRecommend": "SPEED",
+      "StepTime": 0.1,
+      "SaveVideo": 1,
+      "ColliPointImageDivision": 10,
+      "VelocityMaximumMultiple": 2,
+      "VelocityConvergenceValue": 1,
+      "OptimizeMotionCRIThreshold": 0,
+      "EffectiveMassLimit": "0.5 250",
+      "BodyProperty": "KHU",
+      "DrawingPosition": "0 0",
+      "DrawingScale": 0,
+      "LayoutOption": 2,
+      "OvershootLimit": 5000
+    },
+    "BaseInfo": {
+      "CollisionPoint": [],
+      "Manufacturer": "",
+      "BaseModel": "",
+      "Position": "",
+      "Rotation": "",
+      "MotionName": ""
+    },
+    "RobotInfo": {
+      "CollisionPoint": [
+        {
+          "RecommendCover": false,
+          "Index": 1,
+          "ColliJoint": 1,
+          "ColliPos": "0 80 0",
+          "ColliShape": 5,
+          "ColliRadi": 75,
+          "ColliFillet": 18,
+          "ExposureDir": "0 1 0",
+          "ColliRotation": "0 0 0",
+          "CoverInfo": 0,
+          "Color": "#00FFB2",
+          "Opacity": 0.9,
+          "Name": "RobotColliPoint1"
+        },
+        {
+          "RecommendCover": false,
+          "Index": 2,
+          "ColliJoint": 2,
+          "ColliPos": "612.7 0 255",
+          "ColliShape": 5,
+          "ColliRadi": 75,
+          "ColliFillet": 18,
+          "ExposureDir": "0 0 1",
+          "ColliRotation": "0 0 0",
+          "CoverInfo": 0,
+          "Color": "#C2FF74",
+          "Opacity": 0.9,
+          "Name": "RobotColliPoint2"
+        },
+        {
+          "RecommendCover": false,
+          "Index": 3,
+          "ColliJoint": 2,
+          "ColliPos": "0 0 240",
+          "ColliShape": 5,
+          "ColliRadi": 58,
+          "ColliFillet": 18,
+          "ExposureDir": "0 0 1",
+          "ColliRotation": "0 0 0",
+          "CoverInfo": 0,
+          "Color": "#CD0062",
+          "Opacity": 0.9,
+          "Name": "RobotColliPoint3"
+        },
+        {
+          "RecommendCover": false,
+          "Index": 4,
+          "ColliJoint": 3,
+          "ColliPos": "572.3 0 0",
+          "ColliShape": 5,
+          "ColliRadi": 58,
+          "ColliFillet": 58,
+          "ExposureDir": "1 0 -1",
+          "ColliRotation": "0 0 0",
+          "CoverInfo": 0,
+          "Color": "#FFF067",
+          "Opacity": 0.9,
+          "Name": "RobotColliPoint4"
+        },
+        {
+          "RecommendCover": false,
+          "Index": 5,
+          "ColliJoint": 3,
+          "ColliPos": "0 0 -20",
+          "ColliShape": 5,
+          "ColliRadi": 45,
+          "ColliFillet": 18,
+          "ExposureDir": "0 0 -1",
+          "ColliRotation": "0 0 0",
+          "CoverInfo": 0,
+          "Color": "#88E2FF",
+          "Opacity": 0.9,
+          "Name": "RobotColliPoint5"
+        },
+        {
+          "RecommendCover": false,
+          "Index": 6,
+          "ColliJoint": 4,
+          "ColliPos": "0 0 -55",
+          "ColliShape": 5,
+          "ColliRadi": 45,
+          "ColliFillet": 18,
+          "ExposureDir": "0 0 -1",
+          "ColliRotation": "0 0 0",
+          "CoverInfo": 0,
+          "Color": "#FF5D5C",
+          "Opacity": 0.9,
+          "Name": "RobotColliPoint6"
+        },
+        {
+          "RecommendCover": false,
+          "Index": 7,
+          "ColliJoint": 5,
+          "ColliPos": "0 0 -55",
+          "ColliShape": 5,
+          "ColliRadi": 45,
+          "ColliFillet": 18,
+          "ExposureDir": "0 0 -1",
+          "ColliRotation": "0 0 0",
+          "CoverInfo": 0,
+          "Color": "#FF8E2B",
+          "Opacity": 0.9,
+          "Name": "RobotColliPoint7"
+        }
+      ],
+      "E0CollisionPoint": [
+        {
+          "RecommendCover": false,
+          "Index": 1,
+          "ColliJoint": 6,
+          "ColliPos": "0 0 0",
+          "ColliShape": 5,
+          "ColliRadi": 31,
+          "ColliFillet": 1,
+          "ExposureDir": "0 0 1",
+          "ColliRotation": "0 0 0",
+          "CoverInfo": 0,
+          "Color": "#022B69",
+          "Opacity": 1,
+          "Name": "Flange1"
+        }
+      ],
+      "Manufacturer": "UNIVERSAL ROBOTS",
+      "RobotModel": "UR10e",
+      "Position": "0 0 0",
+      "Rotation": "0 0 0",
+      "MotionName": "ST_MotionInfo.txt"
+    },
+    "EndEffectorInfo": [
+      {
+        "Index": 1,
+        "CollisionPoint": [
+          {
+            "RecommendCover": true,
+            "Index": 1,
+            "ColliJoint": 0,
+            "ColliPos": "0 0 160",
+            "ColliShape": 5,
+            "ColliRadi": 5,
+            "ColliFillet": 2,
+            "ExposureDir": "-2.7186807814624204e-15 4.688761043921543e-15 1",
+            "ColliRotation": "0 0 0",
+            "CoverInfo": 0,
+            "Color": "#022b69",
+            "Opacity": 1,
+            "Name": "Collision Point1"
+          }
+        ],
+        "Mass": 1.16,
+        "STLName": "2FG7.stl",
+        "Position": "0 0 0",
+        "Rotation": "0 0 0",
+        "CenterOfMass": "0 0 75",
+        "I": "2695.4290652432073 -0.22060008095664507 64.82422500577661 -0.22060008095664507 3026.6267061039216 -6.727056682448265 64.82422500577661 -6.727056682448265 1390.6618721952052",
+        "Variable": "1 1",
+        "Name": "2FG7",
+        "AutoCOM": 0,
+        "TCP": "0 0 0"
+      }
+    ],
+    "WorkObjectInfo": [],
+    "RiskSpaceInfo": [
+      {
+        "BodyOrientation": "0 0",
+        "Index": 1,
+        "ColliBodyCloth": 0,
+        "ColliBody": 8,
+        "Hspace": "-1500 1500 3000 3000",
+        "ZaxisDirection": 0,
+        "Color": "#9F4C99",
+        "Opacity": 0.4,
+        "Name": "Co-workspace1"
+      }
+    ],
+    "MotionDivisionInfo": [],
+    "ToolInfo": [
+      {
+        "Index": 0,
+        "Time": 0
+      }
+    ],
+    "ConnectInfo": [
+      "R1 E1"
+    ]
+  }
+}

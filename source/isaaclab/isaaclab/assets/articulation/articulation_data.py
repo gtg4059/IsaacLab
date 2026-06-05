@@ -17,6 +17,16 @@ from isaaclab.utils.buffers import TimestampedBuffer
 # import logger
 logger = logging.getLogger(__name__)
 
+import sys, os
+from pathlib import Path
+cudacri_dir = Path("source/isaaclab/isaaclab/assets/articulation").resolve()
+lib_dir = cudacri_dir / "lib"
+sys.path.insert(0, str(lib_dir))
+torch_lib = Path(torch.__file__).parent / "lib"
+os.environ["LD_LIBRARY_PATH"] = f"{lib_dir}:{torch_lib}:{os.environ.get('LD_LIBRARY_PATH', '')}"
+
+import torch 
+import sfd_coreservice
 
 class ArticulationData:
     """Data container for an articulation.
@@ -67,6 +77,9 @@ class ArticulationData:
         # Initialize history for finite differencing
         self._previous_joint_vel = self._root_physx_view.get_dof_velocities().clone()
 
+        self.solver = sfd_coreservice.CoreService(str(cudacri_dir), self._root_physx_view.count)
+        self.solver.RunSolver_CUDA_LoadAnalysisForCRI(str(cudacri_dir))
+        
         # Initialize the lazy buffers.
         # -- link frame w.r.t. world frame
         self._root_link_pose_w = TimestampedBuffer()
@@ -93,8 +106,11 @@ class ArticulationData:
         self._joint_vel = TimestampedBuffer()
         self._joint_acc = TimestampedBuffer()
         self._body_incoming_joint_wrench_b = TimestampedBuffer()
+        # -- CRI
+        self._CRI = TimestampedBuffer() 
 
     def update(self, dt: float):
+        self._dt = dt
         # update the simulation timestamp
         self._sim_timestamp += dt
         # Trigger an update of the joint acceleration buffer at a higher frequency
@@ -1002,6 +1018,15 @@ class ArticulationData:
         This quantity is the orientation of the principles axes of inertia relative to its body's link frame.
         """
         return self.body_com_pose_b[..., 3:7]
+    
+    @property
+    def CRI(self):
+        """Joint acceleration of all joints. Shape is (num_instances, num_joints)."""
+
+        if self._CRI.timestamp < self._sim_timestamp:
+            self._CRI.data = self.solver.RunSolver_CUDA_CRI_AtMotionState(self._dt, self._root_physx_view.get_dof_positions(), self._root_physx_view.get_dof_velocities())
+            self._CRI.timestamp = self._sim_timestamp
+        return torch.clamp_(self._CRI.data, min=0.0, max=2.0)
 
     ##
     # Backward compatibility.
