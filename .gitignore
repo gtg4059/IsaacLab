@@ -73,3 +73,7 @@ tests/
 # TacSL sensor
 **/tactile_record/*
 **/gelsight_r15_data/*
+
+# Safetics articulation binaries and model files
+source/isaaclab/isaaclab/assets/articulation/lib/*
+source/isaaclab/isaaclab/assets/articulation/Engine/**

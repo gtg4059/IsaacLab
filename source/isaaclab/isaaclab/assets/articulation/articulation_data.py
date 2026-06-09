@@ -19,13 +19,28 @@ logger = logging.getLogger(__name__)
 
 import sys, os
 from pathlib import Path
-cudacri_dir = Path("source/isaaclab/isaaclab/assets/articulation").resolve()
-lib_dir = cudacri_dir / "lib"
-sys.path.insert(0, str(lib_dir))
+import torch  # torch.__file__ 사용 전 필수
+
+_cudacri_dir = Path(__file__).resolve().parent
+_lib_dir = _cudacri_dir / "lib"
+print(f"Adding {_lib_dir} to sys.path and LD_LIBRARY_PATH for CUDA CRI solver.")
+sys.path.insert(0, str(_lib_dir))
+_torch_lib = Path(torch.__file__).parent / "lib"
+os.environ["LD_LIBRARY_PATH"] = (
+    f"{_lib_dir}:{_torch_lib}:{os.environ.get('LD_LIBRARY_PATH', '')}"
+)
+
+_CUDACRI_DIR = Path(__file__).resolve().parent
+if str(_CUDACRI_DIR) not in sys.path:
+    sys.path.insert(0, str(_CUDACRI_DIR))
+
+from sfd_setup import configure_cudacri  # noqa: E402
+
+configure_cudacri(_CUDACRI_DIR)
+
+lib_dir = _cudacri_dir / "lib"          # .../lib/libcrypto++.so.8 위치
 torch_lib = Path(torch.__file__).parent / "lib"
 os.environ["LD_LIBRARY_PATH"] = f"{lib_dir}:{torch_lib}:{os.environ.get('LD_LIBRARY_PATH', '')}"
-
-import torch 
 import sfd_coreservice
 
 class ArticulationData:
@@ -77,8 +92,8 @@ class ArticulationData:
         # Initialize history for finite differencing
         self._previous_joint_vel = self._root_physx_view.get_dof_velocities().clone()
 
-        self.solver = sfd_coreservice.CoreService(str(cudacri_dir), self._root_physx_view.count)
-        self.solver.RunSolver_CUDA_LoadAnalysisForCRI(str(cudacri_dir))
+        self.solver = sfd_coreservice.CoreService(str(_cudacri_dir), self._root_physx_view.count)
+        self.solver.RunSolver_CUDA_LoadAnalysisForCRI(str(_cudacri_dir))
         
         # Initialize the lazy buffers.
         # -- link frame w.r.t. world frame
@@ -1026,7 +1041,7 @@ class ArticulationData:
         if self._CRI.timestamp < self._sim_timestamp:
             self._CRI.data = self.solver.RunSolver_CUDA_CRI_AtMotionState(self._dt, self._root_physx_view.get_dof_positions(), self._root_physx_view.get_dof_velocities())
             self._CRI.timestamp = self._sim_timestamp
-        return torch.clamp_(self._CRI.data, min=0.0, max=2.0)
+        return torch.clamp_(self._CRI.data.float(), min=0.0, max=2.0)
 
     ##
     # Backward compatibility.

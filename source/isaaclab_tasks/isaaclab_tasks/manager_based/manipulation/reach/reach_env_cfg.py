@@ -107,6 +107,7 @@ class ObservationsCfg:
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
         pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "ee_pose"})
         actions = ObsTerm(func=mdp.last_action)
+        CRI = ObsTerm(func=mdp.collision_risk_index)
 
         def __post_init__(self):
             self.enable_corruption = True
