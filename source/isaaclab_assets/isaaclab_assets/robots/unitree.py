@@ -24,8 +24,167 @@ import isaaclab.sim as sim_utils
 from isaaclab.actuators import ActuatorNetMLPCfg, DCMotorCfg, IdealPDActuatorCfg, ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
+from pathlib import Path
+from isaaclab.utils.configclass import configclass
+
 
 HEALTHCARE_S3 = "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/Healthcare/0.5.0/132c82d"
+
+_G1_USD_REL_PATHS: dict[str, Path] = {
+    "g1_29dof_rev_1_0": Path("assets") / "robots" / "g1" / "g1_29dof_rev_1_0" / "g1_29dof_rev_1_0.usd",
+}
+
+G1_29DOF_JOINT_ORDER: list[str] = [
+    "left_hip_pitch_joint",
+    "left_hip_roll_joint",
+    "left_hip_yaw_joint",
+    "left_knee_joint",
+    "left_ankle_pitch_joint",
+    "left_ankle_roll_joint",
+    "right_hip_pitch_joint",
+    "right_hip_roll_joint",
+    "right_hip_yaw_joint",
+    "right_knee_joint",
+    "right_ankle_pitch_joint",
+    "right_ankle_roll_joint",
+    "waist_yaw_joint",
+    "waist_roll_joint",
+    "waist_pitch_joint",
+    "left_shoulder_pitch_joint",
+    "left_shoulder_roll_joint",
+    "left_shoulder_yaw_joint",
+    "left_elbow_joint",
+    "left_wrist_roll_joint",
+    "left_wrist_pitch_joint",
+    "left_wrist_yaw_joint",
+    "right_shoulder_pitch_joint",
+    "right_shoulder_roll_joint",
+    "right_shoulder_yaw_joint",
+    "right_elbow_joint",
+    "right_wrist_roll_joint",
+    "right_wrist_pitch_joint",
+    "right_wrist_yaw_joint",
+]
+
+def _resolve_g1_usd_path(model_name: str) -> str:
+    """Resolve the G1 USD path independent of the current working directory."""
+    try:
+        usd_rel_path = _G1_USD_REL_PATHS[model_name]
+    except KeyError as err:
+        supported = ", ".join(sorted(_G1_USD_REL_PATHS))
+        raise ValueError(f"Unsupported G1 model '{model_name}'. Expected one of: {supported}") from err
+
+    for parent in Path(__file__).resolve().parents:
+        candidate = parent / usd_rel_path
+        if candidate.is_file():
+            return str(candidate)
+    return str(usd_rel_path)
+
+@configclass
+class UnitreeArticulationCfg(ArticulationCfg):
+    """Configuration for Unitree articulations."""
+
+    joint_sdk_names: list[str] | None = None
+    soft_joint_pos_limit_factor: float = 0.9
+
+@configclass
+class UnitreeUsdFileCfg(sim_utils.UsdFileCfg):
+    activate_contact_sensors: bool = True
+    rigid_props: sim_utils.RigidBodyPropertiesCfg = sim_utils.RigidBodyPropertiesCfg(
+        disable_gravity=False,
+        retain_accelerations=False,
+        linear_damping=0.0,
+        angular_damping=0.0,
+        max_linear_velocity=1000.0,
+        max_angular_velocity=1000.0,
+        max_depenetration_velocity=1.0,
+    )
+    articulation_props: sim_utils.ArticulationRootPropertiesCfg = sim_utils.ArticulationRootPropertiesCfg(
+        enabled_self_collisions=True,
+        solver_position_iteration_count=8,
+        solver_velocity_iteration_count=4,
+    )
+
+UNITREE_G1_29DOF_CFG = UnitreeArticulationCfg(
+    spawn=UnitreeUsdFileCfg(
+        usd_path=_resolve_g1_usd_path("g1_29dof_rev_1_0"),
+    ),
+    init_state=ArticulationCfg.InitialStateCfg(
+        pos=(0.0, 0.0, 0.8),
+        # default arm pose history:
+        #   ~2026-05-19: elbow 0.97 / shoulder_roll ±0.25 / wrist_roll ±0.15 / shoulder_pitch 0.3 (V2 baseline)
+        #   2026-05-20:  elbow 1.25 / shoulder_roll ±0.22 — sim2real 정합 강화
+        #                (real robot ros2_control.xacro: elbow 1.28 / shoulder_roll ±0.20)
+        #                deploy/robots/g1_29dof/config/config.yaml FixStand pose 도 동시 변경.
+        #                기존 V2 ckpt 와 _비호환_ (action zero-point shift). C10 cycle 부터 적용.
+        #   2026-06-02:  shoulder_pitch 0.3 → 0 — MuJoCo FixStand pose 와 정합 (deploy/robots/
+        #                g1_29dof/config/config.yaml 의 shoulder_pitch=0 과 일치). C16 sim2sim
+        #                평가에서 학습 정책 swing 중심이 +0.3 부근 정착 (사용자 spec [-0.3, +0.3] 대비
+        #                +0.3 뒤쪽 bias) 발견 → default 자체를 0 으로 이동, 학습 path 의 zero point
+        #                일치시킴. C15/C16 ckpt 와 _비호환_ (action zero-point shift).
+        joint_pos={
+            "left_hip_pitch_joint": -0.1,
+            "right_hip_pitch_joint": -0.1,
+            ".*_knee_joint": 0.3,
+            ".*_ankle_pitch_joint": -0.2,
+            ".*_shoulder_pitch_joint": 0.0,
+            "left_shoulder_roll_joint": 0.22,
+            "right_shoulder_roll_joint": -0.22,
+            ".*_elbow_joint": 1.25,
+            "left_wrist_roll_joint": 0.15,
+            "right_wrist_roll_joint": -0.15,
+        },
+        joint_vel={".*": 0.0},
+    ),
+    actuators={
+        "N7520-14.3": ImplicitActuatorCfg(
+            joint_names_expr=[".*_hip_pitch_.*", ".*_hip_yaw_.*", "waist_yaw_joint"],
+            effort_limit_sim=88,
+            velocity_limit_sim=32.0,
+            stiffness={".*_hip_.*": 100.0, "waist_yaw_joint": 200.0},
+            damping={".*_hip_.*": 2.0, "waist_yaw_joint": 5.0},
+            armature=0.01,
+        ),
+        "N7520-22.5": ImplicitActuatorCfg(
+            joint_names_expr=[".*_hip_roll_.*", ".*_knee_.*"],
+            effort_limit_sim=139,
+            velocity_limit_sim=20.0,
+            stiffness={".*_hip_roll_.*": 100.0, ".*_knee_.*": 150.0},
+            damping={".*_hip_roll_.*": 2.0, ".*_knee_.*": 4.0},
+            armature=0.01,
+        ),
+        "N5020-16": ImplicitActuatorCfg(
+            joint_names_expr=[
+                ".*_shoulder_.*",
+                ".*_elbow_.*",
+                ".*_wrist_roll.*",
+                ".*_ankle_.*",
+                "waist_roll_joint",
+                "waist_pitch_joint",
+            ],
+            effort_limit_sim=25,
+            velocity_limit_sim=37,
+            stiffness=40.0,
+            damping={
+                ".*_shoulder_.*": 1.0,
+                ".*_elbow_.*": 1.0,
+                ".*_wrist_roll.*": 1.0,
+                ".*_ankle_.*": 2.0,
+                "waist_.*_joint": 5.0,
+            },
+            armature=0.01,
+        ),
+        "W4010-25": ImplicitActuatorCfg(
+            joint_names_expr=[".*_wrist_pitch.*", ".*_wrist_yaw.*"],
+            effort_limit_sim=5,
+            velocity_limit_sim=22,
+            stiffness=40.0,
+            damping=1.0,
+            armature=0.01,
+        ),
+    },
+    joint_sdk_names=list(G1_29DOF_JOINT_ORDER),
+)
 
 ##
 # Configuration - Actuators.

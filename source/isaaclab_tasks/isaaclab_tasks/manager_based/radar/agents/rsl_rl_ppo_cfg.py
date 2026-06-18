@@ -5,25 +5,34 @@
 
 from isaaclab.utils.configclass import configclass
 
-from isaaclab_rl.rsl_rl import RslRlMLPModelCfg, RslRlOnPolicyRunnerCfg, RslRlPpoAlgorithmCfg
+from isaaclab_rl.rsl_rl import RslRlMLPModelCfg, RslRlOnPolicyRunnerCfg, RslRlPpoAlgorithmCfg, RslRlRNNModelCfg
 
 
 @configclass
 class PPORunnerCfg(RslRlOnPolicyRunnerCfg):
-    num_steps_per_env = 16
-    max_iterations = 150
-    save_interval = 50
-    experiment_name = "cartpole_direct"
-    actor = RslRlMLPModelCfg(
-        hidden_dims=[32, 32],
+    num_steps_per_env = 48
+    max_iterations = 9000000
+    save_interval = 100
+    clip_actions = 50.0
+    empirical_normalization = False
+    experiment_name = "g1_radar_oracle"
+    obs_groups = {"actor": ["policy"], "critic": ["critic"]}
+    actor = RslRlRNNModelCfg(
+        hidden_dims=[64],
         activation="elu",
         obs_normalization=False,
-        distribution_cfg=RslRlMLPModelCfg.GaussianDistributionCfg(init_std=1.0),
+        distribution_cfg=RslRlMLPModelCfg.GaussianDistributionCfg(init_std=0.8),
+        rnn_hidden_dim=128,
+        rnn_num_layers=1,
+        rnn_type="lstm",
     )
-    critic = RslRlMLPModelCfg(
-        hidden_dims=[32, 32],
+    critic = RslRlRNNModelCfg(
+        hidden_dims=[64],
         activation="elu",
         obs_normalization=False,
+        rnn_hidden_dim=128,
+        rnn_num_layers=1,
+        rnn_type="lstm",
     )
     algorithm = RslRlPpoAlgorithmCfg(
         value_loss_coef=1.0,
