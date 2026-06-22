@@ -21,26 +21,25 @@ import sys, os
 from pathlib import Path
 import torch  # torch.__file__ 사용 전 필수
 
+# 1. 기준 경로 및 라이브러리 경로 설정
 _cudacri_dir = Path(__file__).resolve().parent
-_lib_dir = _cudacri_dir / "lib"
-print(f"Adding {_lib_dir} to sys.path and LD_LIBRARY_PATH for CUDA CRI solver.")
-sys.path.insert(0, str(_lib_dir))
+_lib_dir = _cudacri_dir / "lib"                  # .../lib/libcrypto++.so.8 위치
 _torch_lib = Path(torch.__file__).parent / "lib"
-os.environ["LD_LIBRARY_PATH"] = (
-    f"{_lib_dir}:{_torch_lib}:{os.environ.get('LD_LIBRARY_PATH', '')}"
-)
 
-_CUDACRI_DIR = Path(__file__).resolve().parent
-if str(_CUDACRI_DIR) not in sys.path:
-    sys.path.insert(0, str(_CUDACRI_DIR))
+# 2. sys.path에 경로 추가 (중복 방지 및 최우선 순위 삽입)
+for path in [_cudacri_dir, _lib_dir]:
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 
+# 3. 환경 변수(LD_LIBRARY_PATH) 설정
+current_ld_path = os.environ.get('LD_LIBRARY_PATH', '')
+os.environ["LD_LIBRARY_PATH"] = f"{_lib_dir}:{_torch_lib}:{current_ld_path}".strip(":")
+
+# 4. 모듈 Import 및 초기화
 from sfd_setup import configure_cudacri  # noqa: E402
 
-configure_cudacri(_CUDACRI_DIR)
+configure_cudacri(_cudacri_dir)
 
-lib_dir = _cudacri_dir / "lib"          # .../lib/libcrypto++.so.8 위치
-torch_lib = Path(torch.__file__).parent / "lib"
-os.environ["LD_LIBRARY_PATH"] = f"{lib_dir}:{torch_lib}:{os.environ.get('LD_LIBRARY_PATH', '')}"
 import sfd_coreservice
 
 class ArticulationData:
