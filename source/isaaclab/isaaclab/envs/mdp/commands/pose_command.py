@@ -13,14 +13,14 @@ from typing import TYPE_CHECKING
 import torch
 
 from isaaclab.assets import Articulation
-from isaaclab.managers import CommandTerm
+from isaaclab.managers import CommandTerm, CommandTrigTerm
 from isaaclab.markers import VisualizationMarkers
 from isaaclab.utils.math import combine_frame_transforms, compute_pose_error, quat_from_euler_xyz, quat_unique
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv
 
-    from .commands_cfg import UniformPoseCommandCfg
+    from .commands_cfg import UniformPoseCommandCfg, UniformPoseTrigCommandCfg
 
 
 class UniformPoseCommand(CommandTerm):
@@ -154,3 +154,85 @@ class UniformPoseCommand(CommandTerm):
         # -- current body pose
         body_link_pose_w = self.robot.data.body_link_pose_w[:, self.body_idx]
         self.current_pose_visualizer.visualize(body_link_pose_w[:, :3], body_link_pose_w[:, 3:7])
+
+
+class UniformPoseTrigCommand(CommandTrigTerm):
+    """Pose command generator that samples targets in polar coordinates (r, theta, z)."""
+
+    cfg: UniformPoseTrigCommandCfg
+
+    def __init__(self, cfg: UniformPoseTrigCommandCfg, env: ManagerBasedEnv):
+        super().__init__(cfg, env)
+        self.robot: Articulation = env.scene[cfg.asset_name]
+        self.body_idx = self.robot.find_bodies(cfg.body_name)[0][0]
+        self.pose_command_b = torch.zeros(self.num_envs, 7, device=self.device)
+        self.pose_command_b[:, 3] = 1.0
+        self.pose_command_w = torch.zeros_like(self.pose_command_b)
+        self.metrics["error"] = torch.zeros(self.num_envs, device=self.device)
+
+    def __str__(self) -> str:
+        msg = "UniformPoseTrigCommand:\n"
+        msg += f"\tCommand dimension: {tuple(self.command.shape[1:])}\n"
+        return msg
+
+    @property
+    def command(self) -> torch.Tensor:
+        return self.pose_command_b
+
+    def _resample_command(self, env_ids: Sequence[int]):
+        r = torch.empty(len(env_ids), device=self.device)
+        theta = torch.empty(len(env_ids), device=self.device)
+        z = torch.empty(len(env_ids), device=self.device)
+        r.uniform_(*self.cfg.ranges.pos_r)
+        theta.uniform_(*self.cfg.ranges.pos_th)
+        z.uniform_(*self.cfg.ranges.pos_z)
+        x = r * torch.cos(theta)
+        y = r * torch.sin(theta)
+        self.pose_command_b[env_ids, 0] = x
+        self.pose_command_b[env_ids, 1] = y
+        self.pose_command_b[env_ids, 2] = z
+
+        euler_angles = torch.zeros_like(self.pose_command_b[env_ids, :3])
+        euler_angles[:, 0].uniform_(*self.cfg.ranges.roll)
+        euler_angles[:, 1].uniform_(*self.cfg.ranges.pitch)
+        euler_angles[:, 2].uniform_(*self.cfg.ranges.yaw)
+        self.pose_command_b[env_ids, 3:] = quat_from_euler_xyz(
+            euler_angles[:, 0], euler_angles[:, 1], euler_angles[:, 2]
+        )
+
+    def _update_command(self):
+        pass
+
+    def _update_metrics(self):
+        self.pose_command_w[:, :3], self.pose_command_w[:, 3:] = combine_frame_transforms(
+            self.robot.data.root_pos_w,
+            self.robot.data.root_quat_w,
+            self.pose_command_b[:, :3],
+            self.pose_command_b[:, 3:],
+        )
+        pos_error, rot_error = compute_pose_error(
+            self.pose_command_w[:, :3],
+            self.pose_command_w[:, 3:],
+            self.robot.data.body_pos_w[:, self.body_idx],
+            self.robot.data.body_quat_w[:, self.body_idx],
+        )
+        self.metrics["error"] = torch.norm(pos_error + rot_error, dim=-1)
+
+    def _set_debug_vis_impl(self, debug_vis: bool):
+        if debug_vis:
+            if not hasattr(self, "goal_pose_visualizer"):
+                self.goal_pose_visualizer = VisualizationMarkers(self.cfg.goal_pose_visualizer_cfg)
+                self.current_pose_visualizer = VisualizationMarkers(self.cfg.current_pose_visualizer_cfg)
+            self.goal_pose_visualizer.set_visibility(True)
+            self.current_pose_visualizer.set_visibility(True)
+        else:
+            if hasattr(self, "goal_pose_visualizer"):
+                self.goal_pose_visualizer.set_visibility(False)
+                self.current_pose_visualizer.set_visibility(False)
+
+    def _debug_vis_callback(self, event):
+        if not self.robot.is_initialized:
+            return
+        self.goal_pose_visualizer.visualize(self.pose_command_w[:, :3], self.pose_command_w[:, 3:])
+        body_pose_w = self.robot.data.body_state_w[:, self.body_idx]
+        self.current_pose_visualizer.visualize(body_pose_w[:, :3], body_pose_w[:, 3:7])

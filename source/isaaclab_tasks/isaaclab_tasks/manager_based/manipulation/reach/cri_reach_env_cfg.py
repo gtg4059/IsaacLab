@@ -1,0 +1,201 @@
+# Copyright (c) 2022-2026, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
+# All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+"""CRI-aware reach environment (UR_CRI_recurr style)."""
+
+from dataclasses import MISSING
+
+import isaaclab.sim as sim_utils
+from isaaclab.assets import ArticulationCfg, AssetBaseCfg
+from isaaclab.envs import ManagerBasedRLEnvCfg
+from isaaclab.managers import ActionTermCfg as ActionTerm
+from isaaclab.managers import EventTermCfg as EventTerm
+from isaaclab.managers import ObservationGroupCfg as ObsGroup
+from isaaclab.managers import ObservationTermCfg as ObsTerm
+from isaaclab.managers import RewardTermCfg as RewTerm
+from isaaclab.managers import SceneEntityCfg
+from isaaclab.managers import TerminationTermCfg as DoneTerm
+from isaaclab.scene import InteractiveSceneCfg
+from isaaclab.utils import configclass
+from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
+from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
+
+import isaaclab_tasks.manager_based.manipulation.reach.mdp as mdp
+
+REACH_SUCCESS_MAX_DISTANCE = 0.03
+REACH_SUCCESS_MAX_ANGLE_RAD = 0.1
+REACH_SUCCESS_MAX_LIN_VEL = 0.01
+REACH_SUCCESS_MAX_ANG_VEL = 0.1
+REACH_SUCCESS_MAX_LIN_ACC = 0.01
+REACH_SUCCESS_MAX_ANG_ACC = 0.1
+
+
+@configclass
+class CRIReachSceneCfg(InteractiveSceneCfg):
+    """Scene for CRI reach training."""
+
+    ground = AssetBaseCfg(
+        prim_path="/World/defaultGroundPlane",
+        spawn=sim_utils.GroundPlaneCfg(),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, -1.05)),
+    )
+
+    dome_light = AssetBaseCfg(
+        prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=3000.0, color=(0.75, 0.75, 0.75))
+    )
+
+    table = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/Table",
+        spawn=sim_utils.UsdFileCfg(
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_instanceable.usd", scale=(2.0, 2.0, 2.0)
+        ),
+    )
+
+    robot: ArticulationCfg = MISSING
+
+
+@configclass
+class CRICommandsCfg:
+    """Polar pose commands for CRI reach."""
+
+    ee_pose = mdp.UniformPoseTrigCommandCfg(
+        asset_name="robot",
+        body_name="ee_link",
+        debug_vis=True,
+        resampling_time_range=(24, 24),
+        ranges=mdp.UniformPoseTrigCommandCfg.PolarRanges(
+            pos_th=MISSING,
+            pos_r=(0.4, 0.8),
+            pos_z=(0.4, 0.8),
+            roll=MISSING,
+            pitch=MISSING,
+            yaw=MISSING,
+        ),
+    )
+
+
+@configclass
+class CRIActionsCfg:
+    arm_action: ActionTerm = MISSING
+    gripper_action: ActionTerm | None = None
+
+
+@configclass
+class CRIObservationsCfg:
+    @configclass
+    class PolicyCfg(ObsGroup):
+        ee_pose_error = ObsTerm(
+            func=mdp.ee_pose_error_to_command,
+            params={"command_name": "ee_pose", "asset_cfg": SceneEntityCfg("robot", body_names="ee_link")},
+        )
+        CRI = ObsTerm(func=mdp.collision_risk_index)
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.001, n_max=0.001))
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.001, n_max=0.001))
+        pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "ee_pose"})
+        actions = ObsTerm(func=mdp.last_action)
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+            self.history_length = 5
+
+    policy: PolicyCfg = PolicyCfg()
+
+
+@configclass
+class CRIEventCfg:
+    reset_robot_joints = EventTerm(
+        func=mdp.reset_robot_joints_two_groups_by_offset,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "primary_joint_names": ["shoulder_lift_joint"],
+            "primary_position_range": (0.0, 0.0),
+            "primary_velocity_range": (0.0, 0.0),
+            "secondary_joint_names": [
+                "shoulder_pan_joint",
+                "elbow_joint",
+                "wrist_1_joint",
+                "wrist_2_joint",
+                "wrist_3_joint",
+            ],
+            "secondary_position_range": (0.0, 0.0),
+            "secondary_velocity_range": (0.0, 0.0),
+        },
+    )
+
+    resample_ee_pose_on_reach = EventTerm(
+        func=mdp.resample_ee_pose_command_on_reach,
+        mode="interval",
+        interval_range_s=(0.0, 0.0),
+        is_global_time=True,
+        params={
+            "command_name": "ee_pose",
+            "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
+            "max_distance": REACH_SUCCESS_MAX_DISTANCE,
+            "max_angle_rad": REACH_SUCCESS_MAX_ANGLE_RAD,
+            "max_lin_vel": REACH_SUCCESS_MAX_LIN_VEL,
+            "max_ang_vel": REACH_SUCCESS_MAX_ANG_VEL,
+            "max_lin_acc": REACH_SUCCESS_MAX_LIN_ACC,
+            "max_ang_acc": REACH_SUCCESS_MAX_ANG_ACC,
+        },
+    )
+
+
+@configclass
+class CRIRewardsCfg:
+    end_effector_position_tracking = RewTerm(
+        func=mdp.position_command_error,
+        weight=-1.0,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
+    )
+    end_effector_pos_orientation_tracking = RewTerm(
+        func=mdp.position_orientation_command_error,
+        weight=1.0,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
+    )
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-2000.0)
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.1)
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-5)
+    reach_success_bonus = RewTerm(
+        func=mdp.reach_success_criteria,
+        weight=600.0,
+        params={
+            "command_name": "ee_pose",
+            "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
+            "max_distance": REACH_SUCCESS_MAX_DISTANCE,
+            "max_angle_rad": REACH_SUCCESS_MAX_ANGLE_RAD,
+            "max_lin_vel": REACH_SUCCESS_MAX_LIN_VEL,
+            "max_ang_vel": REACH_SUCCESS_MAX_ANG_VEL,
+            "max_lin_acc": REACH_SUCCESS_MAX_LIN_ACC,
+            "max_ang_acc": REACH_SUCCESS_MAX_ANG_ACC,
+        },
+    )
+
+
+@configclass
+class CRITerminationsCfg:
+    time_out = DoneTerm(func=mdp.time_out, time_out=True)
+    OVF = DoneTerm(func=mdp.CRI_OVF)
+
+
+@configclass
+class CRIReachEnvCfg(ManagerBasedRLEnvCfg):
+    """Reach environment with CRI observation/termination (UR_CRI_recurr)."""
+
+    scene: CRIReachSceneCfg = CRIReachSceneCfg(num_envs=4096, env_spacing=2.5)
+    observations: CRIObservationsCfg = CRIObservationsCfg()
+    actions: CRIActionsCfg = CRIActionsCfg()
+    commands: CRICommandsCfg = CRICommandsCfg()
+    rewards: CRIRewardsCfg = CRIRewardsCfg()
+    terminations: CRITerminationsCfg = CRITerminationsCfg()
+    events: CRIEventCfg = CRIEventCfg()
+
+    def __post_init__(self):
+        self.decimation = 4
+        self.sim.render_interval = self.decimation
+        self.episode_length_s = 24.0
+        self.viewer.eye = (3.5, 3.5, 3.5)
+        self.sim.dt = 1.0 / 60.0

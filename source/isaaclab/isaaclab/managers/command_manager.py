@@ -19,7 +19,7 @@ from prettytable import PrettyTable
 import omni.kit.app
 
 from .manager_base import ManagerBase, ManagerTermBase
-from .manager_term_cfg import CommandTermCfg
+from .manager_term_cfg import CommandTermCfg, CommandTrigTermCfg
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -223,6 +223,92 @@ class CommandTerm(ManagerTermBase):
         raise NotImplementedError(f"Debug visualization is not implemented for {self.__class__.__name__}.")
 
 
+class CommandTrigTerm(ManagerTermBase):
+    """Base class for command terms that resample on a fixed timer."""
+
+    def __init__(self, cfg: CommandTrigTermCfg, env: ManagerBasedRLEnv):
+        super().__init__(cfg, env)
+        self.metrics = dict()
+        self.trigger = torch.zeros(self.num_envs, device=self.device)
+        self.time_left = torch.zeros(self.num_envs, device=self.device)
+        self.command_counter = torch.zeros(self.num_envs, device=self.device, dtype=torch.long)
+        self._debug_vis_handle = None
+        self.set_debug_vis(self.cfg.debug_vis)
+
+    def __del__(self):
+        if self._debug_vis_handle:
+            self._debug_vis_handle.unsubscribe()
+            self._debug_vis_handle = None
+
+    @property
+    @abstractmethod
+    def command(self) -> torch.Tensor:
+        raise NotImplementedError
+
+    @property
+    def has_debug_vis_implementation(self) -> bool:
+        source_code = inspect.getsource(self._set_debug_vis_impl)
+        return "NotImplementedError" not in source_code
+
+    def set_debug_vis(self, debug_vis: bool) -> bool:
+        if not self.has_debug_vis_implementation:
+            return False
+        self._set_debug_vis_impl(debug_vis)
+        if debug_vis:
+            if self._debug_vis_handle is None:
+                app_interface = omni.kit.app.get_app_interface()
+                self._debug_vis_handle = app_interface.get_post_update_event_stream().create_subscription_to_pop(
+                    lambda event, obj=weakref.proxy(self): obj._debug_vis_callback(event)
+                )
+        else:
+            if self._debug_vis_handle is not None:
+                self._debug_vis_handle.unsubscribe()
+                self._debug_vis_handle = None
+        return True
+
+    def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, float]:
+        if env_ids is None:
+            env_ids = slice(None)
+        self.command_counter[env_ids] = 0
+        self._resample(env_ids)
+        extras = {}
+        for metric_name, metric_value in self.metrics.items():
+            extras[metric_name] = torch.mean(metric_value[env_ids]).item()
+            metric_value[env_ids] = 0.0
+        return extras
+
+    def compute(self, dt: float):
+        self._update_metrics()
+        self.time_left -= dt
+        resample_env_ids = (self.time_left <= 0.0).nonzero().flatten()
+        if len(resample_env_ids) > 0:
+            self._resample(resample_env_ids)
+        self._update_command()
+
+    def _resample(self, env_ids: Sequence[int]):
+        self.time_left[env_ids] = self.time_left[env_ids].uniform_(*self.cfg.resampling_time_range)
+        self.command_counter[env_ids] += 1
+        self._resample_command(env_ids)
+
+    @abstractmethod
+    def _resample_command(self, env_ids: Sequence[int]):
+        raise NotImplementedError
+
+    @abstractmethod
+    def _update_command(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def _update_metrics(self):
+        raise NotImplementedError
+
+    def _set_debug_vis_impl(self, debug_vis: bool):
+        raise NotImplementedError(f"Debug visualization is not implemented for {self.__class__.__name__}.")
+
+    def _debug_vis_callback(self, event):
+        raise NotImplementedError(f"Debug visualization is not implemented for {self.__class__.__name__}.")
+
+
 class CommandManager(ManagerBase):
     """Manager for generating commands.
 
@@ -410,7 +496,7 @@ class CommandManager(ManagerBase):
             if term_cfg is None:
                 continue
             # check for valid config type
-            if not isinstance(term_cfg, CommandTermCfg):
+            if not isinstance(term_cfg, (CommandTermCfg, CommandTrigTermCfg)):
                 raise TypeError(
                     f"Configuration for the term '{term_name}' is not of type CommandTermCfg."
                     f" Received: '{type(term_cfg)}'."
@@ -418,7 +504,7 @@ class CommandManager(ManagerBase):
             # create the action term
             term = term_cfg.class_type(term_cfg, self._env)
             # sanity check if term is valid type
-            if not isinstance(term, CommandTerm):
+            if not isinstance(term, (CommandTerm, CommandTrigTerm)):
                 raise TypeError(f"Returned object for the term '{term_name}' is not of type CommandType.")
             # add class to dict
             self._terms[term_name] = term
