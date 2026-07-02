@@ -46,6 +46,8 @@ def ee_pose_error_to_command(
 def collision_risk_index(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Collision Risk Index from Safetics CRI solver (via sfd_coreservice)."""
     asset: Articulation = env.scene[asset_cfg.name]
+    # print("qd:", asset.data.joint_vel)
+    # print("CRI:", asset.data.CRI)
     return asset.data.CRI
 
 

@@ -28,7 +28,9 @@ class UR10ReachEnvCfg(CRIReachEnvCfg):
 
         self.scene.robot = UR10_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.commands.ee_pose.body_name = "ee_link"
-        self.actions.arm_action = mdp.JointVelocityActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5)
+        self.actions.arm_action = mdp.JointVelocityActionCfg(
+            asset_name="robot", joint_names=[".*"], scale=0.4, use_default_offset=True
+        )
 
         self.events.reset_robot_joints.params["primary_position_range"] = (-math.pi / 2, math.pi / 2)
         self.events.reset_robot_joints.params["secondary_position_range"] = (-math.pi * 0.8, math.pi * 0.8)

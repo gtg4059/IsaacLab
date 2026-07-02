@@ -9,6 +9,7 @@
 The following configuration parameters are available:
 
 * :obj:`UR10_CFG`: The UR10 arm without a gripper.
+* :obj:`UR10_DC_MOTOR_CFG`: The UR10 arm with explicit DC motor actuators for velocity RL.
 * :obj:`UR10E_ROBOTIQ_GRIPPER_CFG`: The UR10E arm with Robotiq_2f_140 gripper.
 * :obj:`UR10e_ROBOTIQ_2F_85_CFG`: The UR10E arm with Robotiq 2F-85 gripper.
 
@@ -16,7 +17,7 @@ Reference: https://github.com/ros-industrial/universal_robot
 """
 
 import isaaclab.sim as sim_utils
-from isaaclab.actuators import ImplicitActuatorCfg
+from isaaclab.actuators import DCMotorCfg, ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 
@@ -62,6 +63,54 @@ UR10_CFG = ArticulationCfg(
         ),
     },
 )
+
+# UR10 joint limits (Universal Robots datasheet): max torque [Nm], max speed [rad/s].
+_UR10_SHOULDER_EFFORT = 330.0
+_UR10_ELBOW_EFFORT = 150.0
+_UR10_WRIST_EFFORT = 56.0
+_UR10_BASE_VEL = 2.0943951023931953  # 120 deg/s
+_UR10_WRIST_VEL = 3.141592653589793  # 180 deg/s
+
+UR10_DC_MOTOR_CFG = UR10_CFG.copy()
+UR10_DC_MOTOR_CFG.spawn = UR10_CFG.spawn.copy()
+UR10_DC_MOTOR_CFG.spawn.articulation_props = sim_utils.ArticulationRootPropertiesCfg(
+    enabled_self_collisions=False,
+    solver_position_iteration_count=8,
+    solver_velocity_iteration_count=1,
+)
+UR10_DC_MOTOR_CFG.actuators = {
+    "shoulder": DCMotorCfg(
+        joint_names_expr=["shoulder_.*"],
+        effort_limit=_UR10_SHOULDER_EFFORT,
+        saturation_effort=_UR10_SHOULDER_EFFORT,
+        velocity_limit=_UR10_BASE_VEL,
+        stiffness=1320.0,
+        damping=72.6636085,
+        armature=0.01,
+        friction=0.0,
+    ),
+    "elbow": DCMotorCfg(
+        joint_names_expr=["elbow_joint"],
+        effort_limit=_UR10_ELBOW_EFFORT,
+        saturation_effort=_UR10_ELBOW_EFFORT,
+        velocity_limit=_UR10_BASE_VEL,
+        stiffness=600.0,
+        damping=34.64101615,
+        armature=0.01,
+        friction=0.0,
+    ),
+    "wrist": DCMotorCfg(
+        joint_names_expr=["wrist_.*"],
+        effort_limit=_UR10_WRIST_EFFORT,
+        saturation_effort=_UR10_WRIST_EFFORT,
+        velocity_limit=_UR10_WRIST_VEL,
+        stiffness=216.0,
+        damping=29.39387691,
+        armature=0.01,
+        friction=0.0,
+    ),
+}
+"""Configuration of UR-10 arm with explicit DC motor actuators (per-joint torque/speed limits)."""
 
 UR10e_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(

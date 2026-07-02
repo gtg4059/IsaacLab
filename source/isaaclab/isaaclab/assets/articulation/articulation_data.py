@@ -1038,7 +1038,7 @@ class ArticulationData:
         """Joint acceleration of all joints. Shape is (num_instances, num_joints)."""
 
         if self._CRI.timestamp < self._sim_timestamp:
-            self._CRI.data = self.solver.RunSolver_CUDA_CRI_AtMotionState(self._dt, self._root_physx_view.get_dof_positions(), self._root_physx_view.get_dof_velocities())
+            self._CRI.data = self.solver.RunSolver_CUDA_CRI_AtMotionState(self._root_physx_view.get_dof_positions(), self._root_physx_view.get_dof_velocities())
             self._CRI.timestamp = self._sim_timestamp
         return torch.clamp_(self._CRI.data.float(), min=0.0, max=2.0)
 

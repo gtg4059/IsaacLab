@@ -60,6 +60,8 @@ def reset_robot_joints_two_groups_by_offset(
     joint_vel = joint_vel.clamp_(-joint_vel_limits, joint_vel_limits)
 
     asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
+    asset.set_joint_position_target(joint_pos, env_ids=env_ids)
+    asset.set_joint_velocity_target(joint_vel, env_ids=env_ids)
 
 
 def resample_ee_pose_command_on_reach(

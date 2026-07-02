@@ -97,6 +97,25 @@ def position_orientation_command_error(
     return torch.exp(-2 * distance) * torch.exp(-0.5 * quat_error_magnitude(curr_quat_w, des_quat_w))
 
 
+def position_orientation_command_error_fine_grained(
+    env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg
+) -> torch.Tensor:
+    """Reward fine-grained tracking of position and orientation using tighter exponential kernels."""
+    asset: RigidObject = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+
+    des_pos_b = command[:, :3]
+    des_pos_w, _ = combine_frame_transforms(asset.data.root_pos_w, asset.data.root_quat_w, des_pos_b)
+    bid = _body_idx_single(env, asset_cfg)
+    curr_pos_w = asset.data.body_pos_w[:, bid]
+    distance = torch.norm(curr_pos_w - des_pos_w, dim=1)
+
+    des_quat_b = command[:, 3:7]
+    des_quat_w = quat_mul(asset.data.root_quat_w, des_quat_b)
+    curr_quat_w = asset.data.body_quat_w[:, bid]
+    return torch.exp(-10 * distance) * torch.exp(-2 * quat_error_magnitude(curr_quat_w, des_quat_w))
+
+
 def position_command_error_tanh(
     env: ManagerBasedRLEnv, std: float, command_name: str, asset_cfg: SceneEntityCfg
 ) -> torch.Tensor:

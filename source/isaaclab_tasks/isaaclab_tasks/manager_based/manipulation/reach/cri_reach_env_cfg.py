@@ -11,6 +11,7 @@ import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
 from isaaclab.managers import ActionTermCfg as ActionTerm
+from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
@@ -134,12 +135,12 @@ class CRIEventCfg:
         params={
             "command_name": "ee_pose",
             "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
-            "max_distance": REACH_SUCCESS_MAX_DISTANCE,
-            "max_angle_rad": REACH_SUCCESS_MAX_ANGLE_RAD,
-            "max_lin_vel": REACH_SUCCESS_MAX_LIN_VEL,
-            "max_ang_vel": REACH_SUCCESS_MAX_ANG_VEL,
-            "max_lin_acc": REACH_SUCCESS_MAX_LIN_ACC,
-            "max_ang_acc": REACH_SUCCESS_MAX_ANG_ACC,
+            "max_distance": 0.03,
+            "max_angle_rad": 0.1,
+            "max_lin_vel": 0.01,
+            "max_ang_vel": 0.1,
+            "max_lin_acc": 0.01,
+            "max_ang_acc": 0.1,
         },
     )
 
@@ -151,27 +152,50 @@ class CRIRewardsCfg:
         weight=-1.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
-    end_effector_pos_orientation_tracking = RewTerm(
-        func=mdp.position_orientation_command_error,
-        weight=1.0,
+    end_effector_pos_orientation_tracking_fine_grained = RewTerm(
+        func=mdp.position_orientation_command_error_fine_grained,
+        weight=8.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
-    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-2000.0)
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.1)
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-5)
+    # end_effector_pos_orientation_tracking = RewTerm(
+    #     func=mdp.position_orientation_command_error,
+    #     weight=1.0,
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
+    # )
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-500.0)
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-8)
+    # alive = RewTerm(func=mdp.is_alive, weight=1.0)
+    # CRI_OVF = RewTerm(func=mdp.CRI_OVF, weight=-5.0)
     reach_success_bonus = RewTerm(
         func=mdp.reach_success_criteria,
-        weight=600.0,
+        weight=0.0,
         params={
             "command_name": "ee_pose",
             "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
-            "max_distance": REACH_SUCCESS_MAX_DISTANCE,
-            "max_angle_rad": REACH_SUCCESS_MAX_ANGLE_RAD,
-            "max_lin_vel": REACH_SUCCESS_MAX_LIN_VEL,
-            "max_ang_vel": REACH_SUCCESS_MAX_ANG_VEL,
-            "max_lin_acc": REACH_SUCCESS_MAX_LIN_ACC,
-            "max_ang_acc": REACH_SUCCESS_MAX_ANG_ACC,
+            "max_distance": 0.03,
+            "max_angle_rad": 0.1,
+            "max_lin_vel": 0.01,
+            "max_ang_vel": 0.1,
+            "max_lin_acc": 0.01,
+            "max_ang_acc": 0.1,
         },
+    )
+
+
+@configclass
+class CRICurriculumCfg:
+    termination_penalty = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "termination_penalty", "weight": -2000.0, "num_steps": 24*40000},
+    )
+    action_rate = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "action_rate", "weight": -0.1, "num_steps": 24*40000},
+    )
+    dof_acc_l2 = CurrTerm(
+        func=mdp.modify_reward_weight,
+        params={"term_name": "dof_acc_l2", "weight": -1.0e-5, "num_steps": 24*40000},
     )
 
 
@@ -192,6 +216,7 @@ class CRIReachEnvCfg(ManagerBasedRLEnvCfg):
     rewards: CRIRewardsCfg = CRIRewardsCfg()
     terminations: CRITerminationsCfg = CRITerminationsCfg()
     events: CRIEventCfg = CRIEventCfg()
+    curriculum: CRICurriculumCfg = CRICurriculumCfg()
 
     def __post_init__(self):
         self.decimation = 4
