@@ -4,7 +4,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import logging
+import os
+import time
 import weakref
+from pathlib import Path
 
 import torch
 
@@ -17,30 +20,9 @@ from isaaclab.utils.buffers import TimestampedBuffer
 # import logger
 logger = logging.getLogger(__name__)
 
-import sys, os
-from pathlib import Path
-import torch  # torch.__file__ 사용 전 필수
-
-# 1. 기준 경로 및 라이브러리 경로 설정
-_cudacri_dir = Path(__file__).resolve().parent
-_lib_dir = _cudacri_dir / "lib"                  # .../lib/libcrypto++.so.8 위치
-_torch_lib = Path(torch.__file__).parent / "lib"
-
-# 2. sys.path에 경로 추가 (중복 방지 및 최우선 순위 삽입)
-for path in [_cudacri_dir, _lib_dir]:
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
-
-# 3. 환경 변수(LD_LIBRARY_PATH) 설정
-current_ld_path = os.environ.get('LD_LIBRARY_PATH', '')
-os.environ["LD_LIBRARY_PATH"] = f"{_lib_dir}:{_torch_lib}:{current_ld_path}".strip(":")
-
-# 4. 모듈 Import 및 초기화
-from sfd_setup import configure_cudacri  # noqa: E402
-
-configure_cudacri(_cudacri_dir)
-
 import sfd_coreservice
+
+_cudacri_dir = Path(__file__).resolve().parent
 
 class ArticulationData:
     """Data container for an articulation.
@@ -91,8 +73,21 @@ class ArticulationData:
         # Initialize history for finite differencing
         self._previous_joint_vel = self._root_physx_view.get_dof_velocities().clone()
 
+        # -- CRI (buffers before solver warm-up)
+        self._CRI = TimestampedBuffer()
+        self._CRI_float = TimestampedBuffer()
+        self._cri_q_f64: torch.Tensor | None = None
+        self._cri_qd_f64: torch.Tensor | None = None
+        self._cri_inference_time_s = 0.0
+        self._cri_inference_count = 0
+        self._cri_inference_time_total_s = 0.0
+        self._cri_inference_time_min_s = float("inf")
+        self._cri_inference_time_max_s = 0.0
+        self._cri_inference_samples_s: list[float] = []
+
         self.solver = sfd_coreservice.CoreService(str(_cudacri_dir), self._root_physx_view.count)
         self.solver.RunSolver_CUDA_LoadAnalysisForCRI(str(_cudacri_dir))
+        self._warmup_cri_solver()
         
         # Initialize the lazy buffers.
         # -- link frame w.r.t. world frame
@@ -120,8 +115,6 @@ class ArticulationData:
         self._joint_vel = TimestampedBuffer()
         self._joint_acc = TimestampedBuffer()
         self._body_incoming_joint_wrench_b = TimestampedBuffer()
-        # -- CRI
-        self._CRI = TimestampedBuffer() 
 
     def update(self, dt: float):
         self._dt = dt
@@ -784,19 +777,43 @@ class ArticulationData:
     def joint_pos(self):
         """Joint positions of all joints. Shape is (num_instances, num_joints)."""
         if self._joint_pos.timestamp < self._sim_timestamp:
-            # read data from simulation and set the buffer data and timestamp
-            self._joint_pos.data = self._root_physx_view.get_dof_positions()
-            self._joint_pos.timestamp = self._sim_timestamp
+            self._refresh_joint_kinematics()
         return self._joint_pos.data
 
     @property
     def joint_vel(self):
         """Joint velocities of all joints. Shape is (num_instances, num_joints)."""
         if self._joint_vel.timestamp < self._sim_timestamp:
-            # read data from simulation and set the buffer data and timestamp
-            self._joint_vel.data = self._root_physx_view.get_dof_velocities()
-            self._joint_vel.timestamp = self._sim_timestamp
+            self._refresh_joint_kinematics()
         return self._joint_vel.data
+
+    def _refresh_joint_kinematics(self) -> None:
+        """Read DOF state from PhysX once; keep float64 cache for CRI hot path."""
+        q = self._root_physx_view.get_dof_positions()
+        qd = self._root_physx_view.get_dof_velocities()
+        self._joint_pos.data = q
+        self._joint_vel.data = qd
+        self._joint_pos.timestamp = self._sim_timestamp
+        self._joint_vel.timestamp = self._sim_timestamp
+        if q.dtype == torch.float64 and q.is_contiguous():
+            self._cri_q_f64 = q
+        else:
+            if self._cri_q_f64 is None or self._cri_q_f64.shape != q.shape:
+                self._cri_q_f64 = torch.empty(q.shape, device=q.device, dtype=torch.float64)
+            self._cri_q_f64.copy_(q)
+        if qd.dtype == torch.float64 and qd.is_contiguous():
+            self._cri_qd_f64 = qd
+        else:
+            if self._cri_qd_f64 is None or self._cri_qd_f64.shape != qd.shape:
+                self._cri_qd_f64 = torch.empty(qd.shape, device=qd.device, dtype=torch.float64)
+            self._cri_qd_f64.copy_(qd)
+
+    def _cri_input_tensors(self) -> tuple[torch.Tensor, torch.Tensor]:
+        if self._joint_pos.timestamp < self._sim_timestamp:
+            self._refresh_joint_kinematics()
+        if self._cri_q_f64 is None or self._cri_qd_f64 is None:
+            raise RuntimeError("CRI input buffers are not initialized")
+        return self._cri_q_f64, self._cri_qd_f64
 
     @property
     def joint_acc(self):
@@ -1032,15 +1049,108 @@ class ArticulationData:
         This quantity is the orientation of the principles axes of inertia relative to its body's link frame.
         """
         return self.body_com_pose_b[..., 3:7]
+
+    def _cri_motion_tensors_f64(self) -> tuple[torch.Tensor, torch.Tensor]:
+        """Contiguous float64 q/qd for pybind (updated with joint_pos/joint_vel refresh)."""
+        return self._cri_input_tensors()
+
+    def warmup_cri_solver_rounds(self, rounds: int | None = None) -> None:
+        """Extra GPU warm-up after env reset (tail-spike mitigation)."""
+        if rounds is None:
+            rounds = int(os.environ.get("SFD_ALLOC_WARMUP_ROUNDS", "15"))
+        if rounds <= 0:
+            return
+        q_in, qd_in = self._cri_input_tensors()
+        for _ in range(rounds):
+            self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
+        if self.device.startswith("cuda"):
+            torch.cuda.synchronize()
+        print(f"[CRI] warm-up complete: {rounds} rounds", flush=True)
+
+    def _warmup_cri_solver(self) -> None:
+        """Allocator/TRT tail-spike mitigation at articulation init."""
+        rounds = int(os.environ.get("SFD_ALLOC_WARMUP_ROUNDS", "15"))
+        if rounds <= 0:
+            return
+        q = self._root_physx_view.get_dof_positions()
+        qd = self._root_physx_view.get_dof_velocities()
+        if q.dtype != torch.float64 or not q.is_contiguous():
+            q = q.to(dtype=torch.float64).contiguous()
+        if qd.dtype != torch.float64 or not qd.is_contiguous():
+            qd = qd.to(dtype=torch.float64).contiguous()
+        self._cri_q_f64 = q
+        self._cri_qd_f64 = qd
+        for _ in range(rounds):
+            self.solver.RunSolver_CUDA_CRI_AtMotionState(q, qd)
+        if self.device.startswith("cuda"):
+            torch.cuda.synchronize()
+        print(f"[CRI] init warm-up: {rounds} rounds (SFD_ALLOC_WARMUP_ROUNDS)", flush=True)
     
     @property
     def CRI(self):
-        """Joint acceleration of all joints. Shape is (num_instances, num_joints)."""
+        """Collision Risk Index from Safetics CRI solver. Shape is (num_instances, num_collision_points)."""
 
         if self._CRI.timestamp < self._sim_timestamp:
-            self._CRI.data = self.solver.RunSolver_CUDA_CRI_AtMotionState(self._root_physx_view.get_dof_positions(), self._root_physx_view.get_dof_velocities())
+            track_timing = os.environ.get("SFD_CRI_TIMING", "0") == "1"
+            if track_timing and self.device.startswith("cuda"):
+                torch.cuda.synchronize()
+            start_time = time.perf_counter() if track_timing else 0.0
+            q_in, qd_in = self._cri_input_tensors()
+            self._CRI.data = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
+            if track_timing:
+                if self.device.startswith("cuda"):
+                    torch.cuda.synchronize()
+                elapsed = time.perf_counter() - start_time
+                self._cri_inference_time_s = elapsed
+                self._cri_inference_count += 1
+                self._cri_inference_time_total_s += elapsed
+                self._cri_inference_time_min_s = min(self._cri_inference_time_min_s, elapsed)
+                self._cri_inference_time_max_s = max(self._cri_inference_time_max_s, elapsed)
+                self._cri_inference_samples_s.append(elapsed)
+            if self._CRI_float.data is None or self._CRI_float.data.shape != self._CRI.data.shape:
+                self._CRI_float.data = torch.clamp(self._CRI.data.float(), min=0.0, max=2.0)
+            else:
+                self._CRI_float.data.copy_(self._CRI.data)
+                self._CRI_float.data.clamp_(min=0.0, max=2.0)
             self._CRI.timestamp = self._sim_timestamp
-        return torch.clamp_(self._CRI.data.float(), min=0.0, max=2.0)
+        return self._CRI_float.data
+
+    @property
+    def cri_last_inference_time_s(self) -> float:
+        """Wall-clock time of the most recent CRI solver call (seconds)."""
+        return self._cri_inference_time_s
+
+    def get_cri_inference_stats(self) -> dict[str, float | int]:
+        """Return aggregated CRI solver inference timing statistics."""
+        count = self._cri_inference_count
+        out: dict[str, float | int] = {
+            "count": count,
+            "last_s": self._cri_inference_time_s,
+            "mean_s": self._cri_inference_time_total_s / count if count else 0.0,
+            "min_s": self._cri_inference_time_min_s if count else 0.0,
+            "max_s": self._cri_inference_time_max_s if count else 0.0,
+            "total_s": self._cri_inference_time_total_s,
+        }
+        if count and self._cri_inference_samples_s:
+            import numpy as np
+
+            arr = np.asarray(self._cri_inference_samples_s, dtype=np.float64)
+            out["p95_s"] = float(np.percentile(arr, 95))
+            out["p99_s"] = float(np.percentile(arr, 99))
+        return out
+
+    def cri_inference_samples_ms(self) -> list[float]:
+        """Per-invocation CRI wall times in milliseconds (when SFD_CRI_TIMING=1)."""
+        return [s * 1000.0 for s in self._cri_inference_samples_s]
+
+    def reset_cri_inference_stats(self) -> None:
+        """Reset accumulated CRI solver inference timing statistics."""
+        self._cri_inference_time_s = 0.0
+        self._cri_inference_count = 0
+        self._cri_inference_time_total_s = 0.0
+        self._cri_inference_time_min_s = float("inf")
+        self._cri_inference_time_max_s = 0.0
+        self._cri_inference_samples_s.clear()
 
     ##
     # Backward compatibility.
