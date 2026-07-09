@@ -190,21 +190,21 @@ class CRICurriculumCfg:
     cri_ovf_reward_weight = CurrTerm(
         func=mdp.modify_term_cfg,
         params={
-            "address": "reward_manager.cfg.CRI_OVF.weight",
+            "address": "rewards.CRI_OVF.weight",
             "modify_fn": mdp.cri_ovf_reward_weight_by_step,
         },
     )
     cri_ovf_term_threshold = CurrTerm(
         func=mdp.modify_term_cfg,
         params={
-            "address": "termination_manager.cfg.OVF.params.threshold",
+            "address": "terminations.OVF.params.threshold",
             "modify_fn": mdp.cri_ovf_threshold_by_step,
         },
     )
     termination_penalty = CurrTerm(
         func=mdp.modify_term_cfg,
         params={
-            "address": "reward_manager.cfg.termination_penalty.weight",
+            "address": "rewards.termination_penalty.weight",
             "modify_fn": mdp.termination_penalty_weight_by_step,
         },
     )
