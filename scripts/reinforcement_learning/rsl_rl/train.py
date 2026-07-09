@@ -111,6 +111,40 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 
+def _wrap_runner_save_with_curriculum_state(runner, env) -> None:
+    """Persist ``common_step_counter`` in checkpoint ``infos`` for curriculum resume."""
+
+    original_save = runner.save
+
+    def save_with_curriculum_state(path: str, infos: dict | None = None) -> None:
+        if infos is None:
+            infos = {}
+        isaac_env = env.unwrapped
+        if hasattr(isaac_env, "common_step_counter"):
+            infos["common_step_counter"] = int(isaac_env.common_step_counter)
+        original_save(path, infos)
+
+    runner.save = save_with_curriculum_state
+
+
+def _resume_curriculum_from_checkpoint(
+    env, runner, agent_cfg: RslRlBaseRunnerCfg, resume_infos: dict | None = None
+) -> None:
+    """Restore ``common_step_counter`` and re-apply curriculum terms after checkpoint load."""
+    isaac_env = env.unwrapped
+    if not hasattr(isaac_env, "curriculum_manager") or isaac_env.curriculum_manager is None:
+        return
+
+    if resume_infos is not None and "common_step_counter" in resume_infos:
+        resumed_steps = int(resume_infos["common_step_counter"])
+    else:
+        resumed_steps = runner.current_learning_iteration * agent_cfg.num_steps_per_env
+
+    isaac_env.common_step_counter = resumed_steps
+    isaac_env.curriculum_manager.compute()
+    print(f"[INFO] Resumed curriculum at common_step_counter={resumed_steps}")
+
+
 @hydra_task_config(args_cli.task, args_cli.agent)
 def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     """Train with RSL-RL agent."""
@@ -206,11 +240,13 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         raise ValueError(f"Unsupported runner class: {agent_cfg.class_name}")
     # write git state to logs
     runner.add_git_repo_to_log(__file__)
+    _wrap_runner_save_with_curriculum_state(runner, env)
     # load the checkpoint
     if agent_cfg.resume or agent_cfg.algorithm.class_name == "Distillation":
         print(f"[INFO]: Loading model checkpoint from: {resume_path}")
         # load previously trained model
-        runner.load(resume_path)
+        resume_infos = runner.load(resume_path)
+        _resume_curriculum_from_checkpoint(env, runner, agent_cfg, resume_infos)
 
     # dump the configuration into log-directory
     dump_yaml(os.path.join(log_dir, "params", "env.yaml"), env_cfg)
