@@ -35,3 +35,8 @@ class UR10ReachPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         desired_kl=0.016,
         max_grad_norm=1.0,
     )
+
+
+@configclass
+class UR10ReachP2PPPORunnerCfg(UR10ReachPPORunnerCfg):
+    experiment_name = "reach_ur10_p2p"
