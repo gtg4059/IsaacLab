@@ -19,4 +19,4 @@ def CRI_OVF(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("
     """Terminate when any collision point CRI exceeds 1.0."""
     asset: Articulation = env.scene[asset_cfg.name]
     result, _ = torch.max(asset.data.CRI, dim=1)
-    return result > 1
+    return result > 0.96

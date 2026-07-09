@@ -12,12 +12,11 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
 class UR10ReachPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_iterations = 10000000
-    save_interval = 100
+    save_interval = 200
     experiment_name = "reach_ur10"
+    empirical_normalization = True
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
-        actor_obs_normalization=True,
-        critic_obs_normalization=True,
         actor_hidden_dims=[1024, 512, 256, 128],
         critic_hidden_dims=[1024, 512, 256, 128],
         activation="elu",

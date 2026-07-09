@@ -141,10 +141,8 @@ class TerminationManager(ManagerBase):
             env_ids = slice(None)
         # add to episode dict
         extras = {}
-        last_episode_done_stats = self._last_episode_dones.float().mean(dim=0)
         for i, key in enumerate(self._term_names):
-            # store information
-            extras["Episode_Termination/" + key] = last_episode_done_stats[i].item()
+            extras["Episode_Termination/" + key] = torch.count_nonzero(self._term_dones[env_ids, i]).item()
         # reset all the reward terms
         for term_cfg in self._class_term_cfgs:
             term_cfg.func.reset(env_ids=env_ids)
