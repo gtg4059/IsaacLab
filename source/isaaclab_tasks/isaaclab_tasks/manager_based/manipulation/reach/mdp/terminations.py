@@ -15,8 +15,12 @@ if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
 
-def CRI_OVF(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
-    """Terminate when any collision point CRI exceeds 1.0."""
+def CRI_OVF(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    threshold: float = 0.96,
+) -> torch.Tensor:
+    """Terminate when any collision point CRI exceeds ``threshold``."""
     asset: Articulation = env.scene[asset_cfg.name]
     result, _ = torch.max(asset.data.CRI, dim=1)
-    return result > 0.96
+    return result > threshold

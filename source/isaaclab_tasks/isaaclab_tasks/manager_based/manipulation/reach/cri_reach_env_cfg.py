@@ -153,12 +153,14 @@ class CRIRewardsCfg:
         weight=2.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
-    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-2000.0)
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     action_rate = RewTerm(func=mdp.action_rate_l2_clamped, weight=-0.1)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-5)
-    # dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-6)
-    # alive = RewTerm(func=mdp.is_alive, weight=1.0)
-    # CRI_OVF = RewTerm(func=mdp.CRI_OVF, weight=-20.0)
+    CRI_OVF = RewTerm(
+        func=mdp.CRI_OVF,
+        weight=0.0,
+        params={"threshold": 0.96},
+    )
     reach_success_bonus = RewTerm(
         func=mdp.reach_success_criteria,
         weight=600.0,
@@ -177,54 +179,44 @@ class CRIRewardsCfg:
 
 @configclass
 class CRICurriculumCfg:
-    # termination_penalty = CurrTerm(
-    #     func=mdp.modify_reward_weight,
-    #     params={"term_name": "termination_penalty", "weight": -2000.0, "num_steps": 24*40000},
-    # )
-    # action_rate = CurrTerm(
-    #     func=mdp.modify_reward_weight,
-    #     params={"term_name": "action_rate", "weight": -0.1, "num_steps": 24*40000},
-    # )
-    # dof_acc_l2 = CurrTerm(
-    #     func=mdp.modify_reward_weight,
-    #     params={"term_name": "dof_acc_l2", "weight": -1.0e-5, "num_steps": 24*40000},
-    # )
-    termination_penalty = CurrTerm(
-        func=mdp.modify_reward_weight_linear,
+    reach_success_criteria = CurrTerm(
+        func=mdp.reach_success_criteria_curriculum,
         params={
-            "term_name": "termination_penalty",
-            "initial_weight": -1000.0,
-            "max_weight": -2000.0,
-            "start_step": 24 * 100,
-            "num_steps": 24 * 12100,
+            "ease_factor": 5.0,
+            "start_step": 24 * 3000,
+            "num_steps": 24 * 4000,
         },
     )
-    # CRI_OVF = CurrTerm(
-    #     func=mdp.modify_reward_weight_linear,
-    #     params={
-    #         "term_name": "CRI_OVF",
-    #         "initial_weight": -20.0,
-    #         "max_weight": -800.0,
-    #         # reach_success_criteria: start 24*1000 + duration 24*5000
-    #         "start_step": 24 * 8000,
-    #         "num_steps": 24 * 8000,
-    #     },
-    # )
-    # reach_success_criteria = CurrTerm(
-    #     func=mdp.reach_success_criteria_curriculum,
-    #     params={
-    #         # Reward/event cfg values are finals; curriculum eases in over this many env steps.
-    #         "num_steps": 24 * 4000,
-    #         "ease_factor": 5.0,
-    #         "start_step": 24 * 2000,
-    #     },
-    # )
+    cri_ovf_reward_weight = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "reward_manager.cfg.CRI_OVF.weight",
+            "modify_fn": mdp.cri_ovf_reward_weight_by_step,
+        },
+    )
+    cri_ovf_term_threshold = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "termination_manager.cfg.OVF.params.threshold",
+            "modify_fn": mdp.cri_ovf_threshold_by_step,
+        },
+    )
+    termination_penalty = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "reward_manager.cfg.termination_penalty.weight",
+            "modify_fn": mdp.termination_penalty_weight_by_step,
+        },
+    )
 
 
 @configclass
 class CRITerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    OVF = DoneTerm(func=mdp.CRI_OVF)
+    OVF = DoneTerm(
+        func=mdp.CRI_OVF,
+        params={"threshold": 2.0},
+    )
 
 
 @configclass
@@ -238,7 +230,7 @@ class CRIReachEnvCfg(ManagerBasedRLEnvCfg):
     rewards: CRIRewardsCfg = CRIRewardsCfg()
     terminations: CRITerminationsCfg = CRITerminationsCfg()
     events: CRIEventCfg = CRIEventCfg()
-    # curriculum: CRICurriculumCfg = CRICurriculumCfg()
+    curriculum: CRICurriculumCfg = CRICurriculumCfg()
 
     def __post_init__(self):
         self.decimation = 4

@@ -83,6 +83,7 @@ class ArticulationData:
         self._cri_inference_time_total_s = 0.0
         self._cri_inference_time_min_s = float("inf")
         self._cri_inference_time_max_s = 0.0
+        self._cri_inference_samples_s: list[float] = []
 
         self.solver = sfd_coreservice.CoreService(str(_cudacri_dir), self._root_physx_view.count)
         self.solver.RunSolver_CUDA_LoadAnalysisForCRI(str(_cudacri_dir))
@@ -1105,6 +1106,7 @@ class ArticulationData:
                 self._cri_inference_time_total_s += elapsed
                 self._cri_inference_time_min_s = min(self._cri_inference_time_min_s, elapsed)
                 self._cri_inference_time_max_s = max(self._cri_inference_time_max_s, elapsed)
+                self._cri_inference_samples_s.append(elapsed)
             if self._CRI_float.data is None or self._CRI_float.data.shape != self._CRI.data.shape:
                 self._CRI_float.data = torch.clamp(self._CRI.data.float(), min=0.0, max=2.0)
             else:
@@ -1121,7 +1123,7 @@ class ArticulationData:
     def get_cri_inference_stats(self) -> dict[str, float | int]:
         """Return aggregated CRI solver inference timing statistics."""
         count = self._cri_inference_count
-        return {
+        out: dict[str, float | int] = {
             "count": count,
             "last_s": self._cri_inference_time_s,
             "mean_s": self._cri_inference_time_total_s / count if count else 0.0,
@@ -1129,6 +1131,17 @@ class ArticulationData:
             "max_s": self._cri_inference_time_max_s if count else 0.0,
             "total_s": self._cri_inference_time_total_s,
         }
+        if count and self._cri_inference_samples_s:
+            import numpy as np
+
+            arr = np.asarray(self._cri_inference_samples_s, dtype=np.float64)
+            out["p95_s"] = float(np.percentile(arr, 95))
+            out["p99_s"] = float(np.percentile(arr, 99))
+        return out
+
+    def cri_inference_samples_ms(self) -> list[float]:
+        """Per-invocation CRI wall times in milliseconds (when SFD_CRI_TIMING=1)."""
+        return [s * 1000.0 for s in self._cri_inference_samples_s]
 
     def reset_cri_inference_stats(self) -> None:
         """Reset accumulated CRI solver inference timing statistics."""
@@ -1137,6 +1150,7 @@ class ArticulationData:
         self._cri_inference_time_total_s = 0.0
         self._cri_inference_time_min_s = float("inf")
         self._cri_inference_time_max_s = 0.0
+        self._cri_inference_samples_s.clear()
 
     ##
     # Backward compatibility.

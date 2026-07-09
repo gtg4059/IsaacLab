@@ -21,7 +21,7 @@ def apply_spike_mitigation_env_early() -> None:
         return
     os.environ.setdefault(
         "PYTORCH_CUDA_ALLOC_CONF",
-        "expandable_segments:True,max_split_size_mb:128,garbage_collection_threshold:0.8",
+        "expandable_segments:True,max_split_size_mb:128,garbage_collection_threshold:0.9",
     )
     os.environ.setdefault("CUDA_MODULE_LOADING", "EAGER")
     os.environ.setdefault("CUDA_DEVICE_MAX_CONNECTIONS", "32")

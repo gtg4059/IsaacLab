@@ -15,6 +15,23 @@ from isaaclab.managers import CurriculumTermCfg, ManagerTermBase
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
+# Unified curriculum schedule (env steps; 1 PPO iter = 24 steps).
+REACH_CRITERIA_HOLD_END = 24 * 3000
+REACH_CRITERIA_DECAY_STEPS = 24 * 4000
+CRI_OVF_REWARD_START = 24 * 7000
+CRI_OVF_REWARD_STEPS = 24 * 8000
+CRI_OVF_CROSSFADE_START = 24 * 15000
+CRI_OVF_CROSSFADE_STEPS = 24 * 2000
+CRI_OVF_THRESHOLD_FINAL = 0.96
+CRI_OVF_THRESHOLD_INITIAL = 2.0
+TERM_PENALTY_OVF_WEIGHT = -400.0
+TERM_PENALTY_PRE_OVF_WEIGHT = -200.0
+TERM_PENALTY_OVF_START = 24 * 17000
+TERM_PENALTY_DEEP_START = 24 * 44500
+# 2026-07-08_00-08-13 rate: 600 / 290400 per step; extended to -2000.
+TERM_PENALTY_DEEP_STEPS = 774400
+TERM_PENALTY_FINAL_WEIGHT = -2000.0
+
 _REACH_CRITERIA_PARAM_KEYS = (
     "max_distance",
     "max_angle_rad",
@@ -141,3 +158,81 @@ class modify_reward_weight_linear(ManagerTermBase):
         weight = self._compute_weight(env.common_step_counter)
         self._apply_weight(weight)
         return weight
+
+
+def _linear_schedule(step: int, start_step: int, num_steps: int, initial_value: float, final_value: float) -> float:
+    if step < start_step:
+        return initial_value
+    progress = min(1.0, (step - start_step) / num_steps)
+    return initial_value + progress * (final_value - initial_value)
+
+
+def linear_interpolate_by_step(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    data: float,
+    initial_value: float,
+    final_value: float,
+    start_step: int,
+    num_steps: int,
+) -> float:
+    """``modify_term_cfg`` helper that linearly interpolates a scalar by ``common_step_counter``."""
+    return _linear_schedule(env.common_step_counter, start_step, num_steps, initial_value, final_value)
+
+
+def cri_ovf_reward_weight_by_step(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    data: float,
+) -> float:
+    """Piecewise CRI_OVF reward weight: inactive, ramp-up, then fade-out to zero."""
+    step = env.common_step_counter
+    if step < CRI_OVF_REWARD_START:
+        return 0.0
+    if step < CRI_OVF_CROSSFADE_START:
+        return _linear_schedule(step, CRI_OVF_REWARD_START, CRI_OVF_REWARD_STEPS, -20.0, -800.0)
+    if step < CRI_OVF_CROSSFADE_START + CRI_OVF_CROSSFADE_STEPS:
+        return _linear_schedule(step, CRI_OVF_CROSSFADE_START, CRI_OVF_CROSSFADE_STEPS, -800.0, 0.0)
+    return 0.0
+
+
+def cri_ovf_threshold_by_step(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    data: float,
+) -> float:
+    """Piecewise OVF termination threshold: disabled, then tighten to the final CRI limit."""
+    step = env.common_step_counter
+    if step < CRI_OVF_CROSSFADE_START:
+        return CRI_OVF_THRESHOLD_INITIAL
+    if step < CRI_OVF_CROSSFADE_START + CRI_OVF_CROSSFADE_STEPS:
+        return _linear_schedule(
+            step,
+            CRI_OVF_CROSSFADE_START,
+            CRI_OVF_CROSSFADE_STEPS,
+            CRI_OVF_THRESHOLD_INITIAL,
+            CRI_OVF_THRESHOLD_FINAL,
+        )
+    return CRI_OVF_THRESHOLD_FINAL
+
+
+def termination_penalty_weight_by_step(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    data: float,
+) -> float:
+    """Piecewise termination penalty: pre-OVF, OVF plateau, then deep ramp to -2000."""
+    step = env.common_step_counter
+    if step < TERM_PENALTY_OVF_START:
+        return TERM_PENALTY_PRE_OVF_WEIGHT
+    if step < TERM_PENALTY_DEEP_START:
+        return TERM_PENALTY_OVF_WEIGHT
+    if step < TERM_PENALTY_DEEP_START + TERM_PENALTY_DEEP_STEPS:
+        return _linear_schedule(
+            step,
+            TERM_PENALTY_DEEP_START,
+            TERM_PENALTY_DEEP_STEPS,
+            TERM_PENALTY_OVF_WEIGHT,
+            TERM_PENALTY_FINAL_WEIGHT,
+        )
+    return TERM_PENALTY_FINAL_WEIGHT
