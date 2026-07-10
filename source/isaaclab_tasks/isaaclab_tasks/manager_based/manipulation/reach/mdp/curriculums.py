@@ -184,15 +184,21 @@ def cri_ovf_reward_weight_by_step(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],
     data: float,
+    reward_start: int = CRI_OVF_REWARD_START,
+    reward_steps: int = CRI_OVF_REWARD_STEPS,
+    crossfade_start: int = CRI_OVF_CROSSFADE_START,
+    crossfade_steps: int = CRI_OVF_CROSSFADE_STEPS,
+    initial_weight: float = -20.0,
+    peak_weight: float = -800.0,
 ) -> float:
     """Piecewise CRI_OVF reward weight: inactive, ramp-up, then fade-out to zero."""
     step = env.common_step_counter
-    if step < CRI_OVF_REWARD_START:
+    if step < reward_start:
         return 0.0
-    if step < CRI_OVF_CROSSFADE_START:
-        return _linear_schedule(step, CRI_OVF_REWARD_START, CRI_OVF_REWARD_STEPS, -20.0, -800.0)
-    if step < CRI_OVF_CROSSFADE_START + CRI_OVF_CROSSFADE_STEPS:
-        return _linear_schedule(step, CRI_OVF_CROSSFADE_START, CRI_OVF_CROSSFADE_STEPS, -800.0, 0.0)
+    if step < crossfade_start:
+        return _linear_schedule(step, reward_start, reward_steps, initial_weight, peak_weight)
+    if step < crossfade_start + crossfade_steps:
+        return _linear_schedule(step, crossfade_start, crossfade_steps, peak_weight, 0.0)
     return 0.0
 
 
@@ -200,20 +206,24 @@ def cri_ovf_threshold_by_step(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],
     data: float,
+    crossfade_start: int = CRI_OVF_CROSSFADE_START,
+    crossfade_steps: int = CRI_OVF_CROSSFADE_STEPS,
+    threshold_initial: float = CRI_OVF_THRESHOLD_INITIAL,
+    threshold_final: float = CRI_OVF_THRESHOLD_FINAL,
 ) -> float:
     """Piecewise OVF termination threshold: disabled, then tighten to the final CRI limit."""
     step = env.common_step_counter
-    if step < CRI_OVF_CROSSFADE_START:
-        return CRI_OVF_THRESHOLD_INITIAL
-    if step < CRI_OVF_CROSSFADE_START + CRI_OVF_CROSSFADE_STEPS:
+    if step < crossfade_start:
+        return threshold_initial
+    if step < crossfade_start + crossfade_steps:
         return _linear_schedule(
             step,
-            CRI_OVF_CROSSFADE_START,
-            CRI_OVF_CROSSFADE_STEPS,
-            CRI_OVF_THRESHOLD_INITIAL,
-            CRI_OVF_THRESHOLD_FINAL,
+            crossfade_start,
+            crossfade_steps,
+            threshold_initial,
+            threshold_final,
         )
-    return CRI_OVF_THRESHOLD_FINAL
+    return threshold_final
 
 
 def termination_penalty_weight_by_step(

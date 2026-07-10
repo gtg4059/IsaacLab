@@ -173,6 +173,8 @@ class modify_env_param(ManagerTermBase):
         # note: if the modify_fn return NO_CHANGE signal, we do not invoke self.set_fn
         if new_val is not self.NO_CHANGE:
             self._set_fn(new_val)
+            return new_val
+        return data
 
     """
     Helper functions.
