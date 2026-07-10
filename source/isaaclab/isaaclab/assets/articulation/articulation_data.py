@@ -795,18 +795,13 @@ class ArticulationData:
         self._joint_vel.data = qd
         self._joint_pos.timestamp = self._sim_timestamp
         self._joint_vel.timestamp = self._sim_timestamp
-        if q.dtype == torch.float64 and q.is_contiguous():
-            self._cri_q_f64 = q
-        else:
-            if self._cri_q_f64 is None or self._cri_q_f64.shape != q.shape:
-                self._cri_q_f64 = torch.empty(q.shape, device=q.device, dtype=torch.float64)
-            self._cri_q_f64.copy_(q)
-        if qd.dtype == torch.float64 and qd.is_contiguous():
-            self._cri_qd_f64 = qd
-        else:
-            if self._cri_qd_f64 is None or self._cri_qd_f64.shape != qd.shape:
-                self._cri_qd_f64 = torch.empty(qd.shape, device=qd.device, dtype=torch.float64)
-            self._cri_qd_f64.copy_(qd)
+        # PhysX DOF 텐서와 storage 공유(alias)하면 GPU CRI 계산 중 in-place 갱신으로 0/깨진 값이 난다.
+        if self._cri_q_f64 is None or self._cri_q_f64.shape != q.shape:
+            self._cri_q_f64 = torch.empty(q.shape, device=q.device, dtype=torch.float64)
+        self._cri_q_f64.copy_(q)
+        if self._cri_qd_f64 is None or self._cri_qd_f64.shape != qd.shape:
+            self._cri_qd_f64 = torch.empty(qd.shape, device=qd.device, dtype=torch.float64)
+        self._cri_qd_f64.copy_(qd)
 
     def _cri_input_tensors(self) -> tuple[torch.Tensor, torch.Tensor]:
         if self._joint_pos.timestamp < self._sim_timestamp:
@@ -1096,7 +1091,10 @@ class ArticulationData:
                 torch.cuda.synchronize()
             start_time = time.perf_counter() if track_timing else 0.0
             q_in, qd_in = self._cri_input_tensors()
-            self._CRI.data = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
+            cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
+            if self.device.startswith("cuda"):
+                torch.cuda.synchronize()
+            self._CRI.data = cri_gpu.clone() if cri_gpu is not None else cri_gpu
             if track_timing:
                 if self.device.startswith("cuda"):
                     torch.cuda.synchronize()
