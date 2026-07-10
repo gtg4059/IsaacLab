@@ -25,6 +25,14 @@ from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 import isaaclab_tasks.manager_based.manipulation.reach.mdp as mdp
 
+# CRI OVF curriculum schedule (env steps; 1 PPO iter = 24 steps).
+CRI_OVF_REWARD_START = 24 * 7000
+CRI_OVF_REWARD_STEPS = 24 * 8000
+CRI_OVF_CROSSFADE_START = 24 * 15000
+CRI_OVF_CROSSFADE_STEPS = 24 * 2000
+CRI_OVF_THRESHOLD_INITIAL = 2.0
+CRI_OVF_THRESHOLD_FINAL = 0.96
+
 @configclass
 class CRIReachSceneCfg(InteractiveSceneCfg):
     """Scene for CRI reach training."""
@@ -192,6 +200,12 @@ class CRICurriculumCfg:
         params={
             "address": "rewards.CRI_OVF.weight",
             "modify_fn": mdp.cri_ovf_reward_weight_by_step,
+            "modify_params": {
+                "reward_start": CRI_OVF_REWARD_START,
+                "reward_steps": CRI_OVF_REWARD_STEPS,
+                "crossfade_start": CRI_OVF_CROSSFADE_START,
+                "crossfade_steps": CRI_OVF_CROSSFADE_STEPS,
+            },
         },
     )
     cri_ovf_term_threshold = CurrTerm(
@@ -199,6 +213,12 @@ class CRICurriculumCfg:
         params={
             "address": "terminations.OVF.params.threshold",
             "modify_fn": mdp.cri_ovf_threshold_by_step,
+            "modify_params": {
+                "crossfade_start": CRI_OVF_CROSSFADE_START,
+                "crossfade_steps": CRI_OVF_CROSSFADE_STEPS,
+                "threshold_initial": CRI_OVF_THRESHOLD_INITIAL,
+                "threshold_final": CRI_OVF_THRESHOLD_FINAL,
+            },
         },
     )
     termination_penalty = CurrTerm(
