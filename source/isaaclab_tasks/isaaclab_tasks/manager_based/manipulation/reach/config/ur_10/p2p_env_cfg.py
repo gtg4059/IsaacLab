@@ -28,6 +28,12 @@ CRI_OVF_REWARD_STEPS = 24 * 2000
 CRI_OVF_CROSSFADE_START = 24 * 3500
 CRI_OVF_CROSSFADE_STEPS = 24 * 2000
 
+# termination_penalty: hold -200, then ramp to -2000.
+TERM_PENALTY_INITIAL_WEIGHT = -200.0
+TERM_PENALTY_FINAL_WEIGHT = -2000.0
+TERM_PENALTY_RAMP_START = 24 * 12000
+TERM_PENALTY_RAMP_STEPS = 24 * 2000
+
 
 @configclass
 class P2PRewardsCfg:
@@ -41,22 +47,18 @@ class P2PRewardsCfg:
         weight=1.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
-    end_effector_pos_orientation_tracking_fine_grained = RewTerm(
-        func=mdp.position_orientation_command_error_fine_grained,
-        weight=16.0,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
-    )
-    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-5.0)
-    action_rate = RewTerm(func=mdp.action_rate_l2_clamped, weight=-0.1)
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-5)
-    # CRI_OVF = RewTerm(
-    #     func=mdp.CRI_OVF,
-    #     weight=-200.0,
-    #     params={"threshold": 0.96},
+    # end_effector_pos_orientation_tracking_fine_grained = RewTerm(
+    #     func=mdp.position_orientation_command_error_fine_grained,
+    #     weight=16.0,
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     # )
+    # Final weight; curriculum holds TERM_PENALTY_INITIAL_WEIGHT then ramps here.
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=TERM_PENALTY_FINAL_WEIGHT)
+    action_rate = RewTerm(func=mdp.action_rate_l2_clamped, weight=-0.01)
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-5)
     reach_success_bonus = RewTerm(
         func=mdp.reach_success_criteria,
-        weight=600.0,
+        weight=1200.0,
         params={
             "command_name": "ee_pose",
             "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
@@ -119,37 +121,16 @@ class P2PCurriculumCfg:
             "num_steps": 24 * 2000,
         },
     )
-    # cri_ovf_reward_weight = CurrTerm(
-    #     func=mdp.modify_term_cfg,
-    #     params={
-    #         "address": "rewards.CRI_OVF.weight",
-    #         "modify_fn": mdp.cri_ovf_reward_weight_by_step,
-    #         "modify_params": {
-    #             "reward_start": CRI_OVF_REWARD_START,
-    #             "reward_steps": CRI_OVF_REWARD_STEPS,
-    #             "crossfade_start": CRI_OVF_CROSSFADE_START,
-    #             "crossfade_steps": CRI_OVF_CROSSFADE_STEPS,
-    #         },
-    #     },
-    # )
-    # cri_ovf_term_threshold = CurrTerm(
-    #     func=mdp.modify_term_cfg,
-    #     params={
-    #         "address": "terminations.OVF.params.threshold",
-    #         "modify_fn": mdp.cri_ovf_threshold_by_step,
-    #         "modify_params": {
-    #             "crossfade_start": CRI_OVF_CROSSFADE_START,
-    #             "crossfade_steps": CRI_OVF_CROSSFADE_STEPS,
-    #         },
-    #     },
-    # )
-    # termination_penalty = CurrTerm(
-    #     func=mdp.modify_term_cfg,
-    #     params={
-    #         "address": "rewards.termination_penalty.weight",
-    #         "modify_fn": mdp.termination_penalty_weight_by_step,
-    #     },
-    # )
+    termination_penalty = CurrTerm(
+        func=mdp.modify_reward_weight_linear,
+        params={
+            "term_name": "termination_penalty",
+            "initial_weight": TERM_PENALTY_INITIAL_WEIGHT,
+            "final_weight": TERM_PENALTY_FINAL_WEIGHT,
+            "start_step": TERM_PENALTY_RAMP_START,
+            "num_steps": TERM_PENALTY_RAMP_STEPS,
+        },
+    )
 
 
 @configclass
@@ -180,7 +161,7 @@ class UR10ReachP2PEnvCfg(UR10ReachEnvCfg):
             spawn=UR10_CFG.spawn.replace(
                 articulation_props=sim_utils.ArticulationRootPropertiesCfg(
                     enabled_self_collisions=True,
-                    solver_position_iteration_count=8,   # Franka/Kinova 참고
+                    solver_position_iteration_count=4,   # Franka/Kinova 참고
                     solver_velocity_iteration_count=0,
                 ),
             ),
@@ -191,6 +172,8 @@ class UR10ReachP2PEnvCfg(UR10ReachEnvCfg):
         self.events.reset_robot_joints.params["primary_velocity_range"] = (0.0, 0.0)
         self.events.reset_robot_joints.params["secondary_velocity_range"] = (0.0, 0.0)
 
+        self.commands.ee_pose.ranges.pos_r= (0.6, 0.6)
+        self.commands.ee_pose.ranges.pos_z = (0.6, 0.6)
         self.commands.ee_pose.ranges.pos_th = (0.0, 0.0)
         self.commands.ee_pose.ranges.roll = (0.0, 0.0)
         self.commands.ee_pose.ranges.pitch = (0.0, 0.0)
@@ -205,3 +188,6 @@ class UR10ReachP2PEnvCfg_PLAY(UR10ReachP2PEnvCfg):
         self.scene.env_spacing = 2.5
         self.viewer.eye = (4.5, 4.5, 4.5)
         self.observations.policy.enable_corruption = False
+        # Keep final (strict) reach thresholds; do not ease them for evaluation.
+        self.curriculum.reach_success_criteria = None
+        self.curriculum.termination_penalty = None
