@@ -5,25 +5,28 @@
 
 """Play a reach-task RSL-RL checkpoint and export per-env trajectory CSV (q, qd, CRI, reach_event).
 
-Example::
+Evaluation protocol matches ``Isaac-Reach-UR10-P2P-Play-v0`` semantics:
+
+* one target per env attempt (in-episode ``resample_ee_pose_on_reach`` disabled)
+* strict final reach thresholds (curriculum easing disabled)
+* trajectory logged only until first strict reach (inclusive), or until episode failure
+* attempt outcome: ``success`` on reach; ``fail_timeout`` / ``fail_ovf`` / ``fail_other`` if the
+  episode ends without reach (same idea as P2P: reach terminates success, timeout is failure)
+* stops after every env finishes exactly one attempt
+
+Example (continuous-reach policy, P2P-style one-shot scoring)::
 
     ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/play_reach_csv.py \\
         --task Isaac-Reach-UR10-Play-v0 \\
         --num_envs 4 \\
-        --checkpoint logs/rsl_rl/reach_ur10/2026-07-09_19-01-03/model_322200.pt \\
-        --export_csv_dir logs/rsl_rl/reach_ur10/2026-07-09_19-01-03/joint_trajectory \\
-        --headless --max_steps 5000
+        --checkpoint logs/rsl_rl/reach_ur10/<run>/model_*.pt \\
+        --export_csv_dir /path/to/out \\
+        --headless
+
+For a P2P-trained policy use ``--task Isaac-Reach-UR10-P2P-Play-v0`` (env already ends on reach).
 
 CSV columns: ``global_step``, ``sim_time_s``, ``reach_event``, ``max_CRI``, ``q_*``, ``qd_*``, ``CRI_<i>``
-(``CRI_*`` are collision-point indices from ``robot.data.CRI``, not joint names).
-
-Also writes ``episode_reach.csv`` with one row per finished episode:
-``env_idx``, ``episode_id``, ``ended_at_step``, ``reached`` (bool: strict reach ever True in that episode).
-Also writes ``reach_summary.csv`` with ``total_episodes``, ``reached_episodes``, ``reach_percent``.
-Play stops after every env finishes exactly one episode.
-
-Reach stop uses **final** thresholds from the env cfg (e.g. ``max_distance=0.03``), not curriculum-relaxed
-runtime values. Each env stops logging after its first strict ``reach_success_criteria`` (inclusive row).
+Also writes ``episode_reach.csv`` and ``reach_summary.csv``.
 """
 
 from __future__ import annotations
@@ -67,13 +70,19 @@ parser.add_argument(
     "--export_csv_always",
     action="store_true",
     default=False,
-    help="Keep logging after each env's first strict reach_success_criteria (default: stop per env at reach).",
+    help="Keep logging after first strict reach (default: stop per env at reach, P2P-style).",
+)
+parser.add_argument(
+    "--keep_resample_on_reach",
+    action="store_true",
+    default=False,
+    help="Keep mid-episode target resample (default: disabled for P2P-style one-target attempts).",
 )
 parser.add_argument(
     "--max_steps",
     type=int,
     default=0,
-    help="Exit after this many env steps (0 = run until the app closes). Useful with --headless.",
+    help="Exit after this many env steps (0 = run until all envs finish one attempt).",
 )
 cli_args.add_rsl_rl_args(parser)
 AppLauncher.add_app_launcher_args(parser)
@@ -113,201 +122,17 @@ from isaaclab_rl.rsl_rl import (
 from isaaclab_rl.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
 
 import isaaclab_tasks  # noqa: F401
-from isaaclab_tasks.manager_based.manipulation.reach.mdp.rewards import reach_success_criteria
 from isaaclab_tasks.utils import get_checkpoint_path
 from isaaclab_tasks.utils.hydra import hydra_task_config
+
+import reach_traj_csv_utils as csv_utils
 
 installed_version = metadata.version("rsl-rl-lib")
 
 
-_REACH_CRITERIA_PARAM_KEYS = (
-    "max_distance",
-    "max_angle_rad",
-    "max_lin_vel",
-    "max_ang_vel",
-    "max_lin_acc",
-    "max_ang_acc",
-)
-
-
-def _strict_reach_params_from_env_cfg(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg) -> dict[str, Any] | None:
-    """Final reach thresholds from env cfg **before** the sim starts.
-
-    Curriculum terms mutate runtime reward/event params to relaxed values at env init; capture the
-    design-time finals here so CSV stop / ``reach_event`` / terminations use strict criteria.
-    """
-    rewards_cfg = getattr(env_cfg, "rewards", None)
-    if rewards_cfg is not None:
-        term = getattr(rewards_cfg, "reach_success_bonus", None)
-        if term is not None and getattr(term, "params", None):
-            return dict(term.params)
-    events_cfg = getattr(env_cfg, "events", None)
-    if events_cfg is not None:
-        term = getattr(events_cfg, "resample_ee_pose_on_reach", None)
-        if term is not None and getattr(term, "params", None):
-            return dict(term.params)
-    return None
-
-
-def _disable_reach_criteria_curriculum(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg) -> None:
-    """Prevent play-time easing of reach thresholds (reward / event / termination)."""
-    curriculum_cfg = getattr(env_cfg, "curriculum", None)
-    if curriculum_cfg is None:
-        return
-    if hasattr(curriculum_cfg, "reach_success_criteria"):
-        curriculum_cfg.reach_success_criteria = None
-
-
-def _apply_strict_reach_params_to_env(env: ManagerBasedRLEnv, strict_params: dict[str, Any]) -> None:
-    """Force reward/event reach thresholds to the captured strict finals."""
-    criteria = {key: strict_params[key] for key in _REACH_CRITERIA_PARAM_KEYS if key in strict_params}
-    if not criteria:
-        return
-
-    if "reach_success_bonus" in env.reward_manager.active_terms:
-        reward_cfg = env.reward_manager.get_term_cfg("reach_success_bonus")
-        reward_cfg.params.update(criteria)
-        env.reward_manager.set_term_cfg("reach_success_bonus", reward_cfg)
-
-    event_names = [
-        name for names in env.event_manager.active_terms.values() for name in names
-    ]
-    if "resample_ee_pose_on_reach" in event_names:
-        event_cfg = env.event_manager.get_term_cfg("resample_ee_pose_on_reach")
-        event_cfg.params.update(criteria)
-        env.event_manager.set_term_cfg("resample_ee_pose_on_reach", event_cfg)
-
-
-def _open_traj_csv_writers(
-    csv_dir: str,
-    num_envs: int,
-    joint_names: list[str],
-    num_cri_points: int,
-) -> tuple[dict[int, IO[str]], dict[int, csv.DictWriter]]:
-    """Open one CSV per sub-environment."""
-    os.makedirs(csv_dir, exist_ok=True)
-    fieldnames = (
-        ["global_step", "sim_time_s", "reach_event", "max_CRI"]
-        + [f"q_{name}" for name in joint_names]
-        + [f"qd_{name}" for name in joint_names]
-        + [f"CRI_{i}" for i in range(num_cri_points)]
-    )
-    files: dict[int, IO[str]] = {}
-    writers: dict[int, csv.DictWriter] = {}
-    for env_idx in range(num_envs):
-        path = os.path.join(csv_dir, f"env_{env_idx}_traj.csv")
-        handle = open(path, "w", newline="", encoding="utf-8")
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        handle.flush()
-        files[env_idx] = handle
-        writers[env_idx] = writer
-    return files, writers
-
-
-def _open_episode_reach_csv(csv_dir: str) -> tuple[IO[str], csv.DictWriter]:
-    """Open summary CSV: one row per finished episode with reached bool."""
-    os.makedirs(csv_dir, exist_ok=True)
-    path = os.path.join(csv_dir, "episode_reach.csv")
-    handle = open(path, "w", newline="", encoding="utf-8")
-    writer = csv.DictWriter(handle, fieldnames=["env_idx", "episode_id", "ended_at_step", "reached"])
-    writer.writeheader()
-    handle.flush()
-    return handle, writer
-
-
-def _reach_percent(reached: int, total: int) -> float:
-    """Return reach success rate in percent (0–100)."""
-    if total <= 0:
-        return 0.0
-    return 100.0 * float(reached) / float(total)
-
-
-def _write_reach_summary_csv(csv_dir: str, reached: int, total: int) -> str:
-    """Write aggregate reach rate to ``reach_summary.csv``; return absolute path."""
-    os.makedirs(csv_dir, exist_ok=True)
-    path = os.path.join(csv_dir, "reach_summary.csv")
-    with open(path, "w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(
-            handle,
-            fieldnames=["total_episodes", "reached_episodes", "reach_percent"],
-        )
-        writer.writeheader()
-        writer.writerow(
-            {
-                "total_episodes": total,
-                "reached_episodes": reached,
-                "reach_percent": round(_reach_percent(reached, total), 4),
-            }
-        )
-    return os.path.abspath(path)
-
-
-def _append_traj_rows(
-    writers: dict[int, csv.DictWriter],
-    robot,
-    global_step: int,
-    sim_time_s: float,
-    env_log_mask: torch.Tensor,
-    reach_event: torch.Tensor | None,
-) -> None:
-    """Append one row per env from ``robot`` buffers (call after ``env.step``)."""
-    joint_names = robot.joint_names
-    with torch.inference_mode():
-        joint_pos = robot.data.joint_pos.detach().cpu().numpy()
-        joint_vel = robot.data.joint_vel.detach().cpu().numpy()
-        cri = robot.data.CRI.detach().cpu().numpy()
-        if reach_event is not None:
-            reach_np = reach_event.detach().cpu().numpy()
-        else:
-            reach_np = None
-
-    mask = env_log_mask.detach().bool().cpu()
-    num_cri = int(cri.shape[1]) if cri.ndim == 2 else 0
-
-    for env_idx, writer in writers.items():
-        if env_idx >= int(mask.shape[0]) or not bool(mask[env_idx].item()):
-            continue
-        row: dict[str, Any] = {
-            "global_step": global_step,
-            "sim_time_s": sim_time_s,
-            "reach_event": int(bool(reach_np[env_idx])) if reach_np is not None else 0,
-            "max_CRI": float(cri[env_idx].max()) if num_cri > 0 else float("nan"),
-        }
-        for joint_idx, name in enumerate(joint_names):
-            row[f"q_{name}"] = float(joint_pos[env_idx, joint_idx])
-            row[f"qd_{name}"] = float(joint_vel[env_idx, joint_idx])
-        for cri_idx in range(num_cri):
-            row[f"CRI_{cri_idx}"] = float(cri[env_idx, cri_idx])
-        writer.writerow(row)
-
-
-def _record_finished_episodes(
-    writer: csv.DictWriter,
-    handle: IO[str],
-    done_mask: torch.Tensor,
-    episode_ids: torch.Tensor,
-    episode_reached: torch.Tensor,
-    ended_at_step: int,
-) -> None:
-    """Write one ``episode_reach.csv`` row per env that just finished an episode."""
-    done_idxs = done_mask.nonzero(as_tuple=False).view(-1).tolist()
-    for env_idx in done_idxs:
-        writer.writerow(
-            {
-                "env_idx": int(env_idx),
-                "episode_id": int(episode_ids[env_idx].item()),
-                "ended_at_step": ended_at_step,
-                "reached": int(bool(episode_reached[env_idx].item())),
-            }
-        )
-    if done_idxs:
-        handle.flush()
-
-
 @hydra_task_config(args_cli.task, args_cli.agent)
 def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
-    """Play with RSL-RL agent and write trajectory CSV."""
+    """Play with RSL-RL agent and write trajectory CSV under P2P-style one-shot eval."""
     task_name = args_cli.task.split(":")[-1]
     train_task_name = task_name.replace("-Play", "")
 
@@ -334,14 +159,15 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     export_csv_dir = args_cli.export_csv_dir or os.path.join(log_dir, "joint_trajectory")
     env_cfg.log_dir = log_dir
 
-    strict_reach_params = _strict_reach_params_from_env_cfg(env_cfg)
+    strict_reach_params = csv_utils.strict_reach_params_from_env_cfg(env_cfg)
     if strict_reach_params is None:
         raise ValueError(
             "Could not read strict reach_success_criteria params from env cfg "
             "(expected rewards.reach_success_bonus or events.resample_ee_pose_on_reach)."
         )
-    # Curriculum eases thresholds at env init; disable it so play uses strict finals.
-    _disable_reach_criteria_curriculum(env_cfg)
+
+    disable_resample = not args_cli.keep_resample_on_reach
+    csv_utils.configure_p2p_style_eval(env_cfg, disable_resample=disable_resample)
 
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
 
@@ -384,9 +210,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     if not isinstance(base_env, ManagerBasedRLEnv):
         raise TypeError(
             f"Trajectory CSV export requires ManagerBasedRLEnv; got {type(base_env).__name__}. "
-            "Use a reach Play task (e.g. Isaac-Reach-UR10-Play-v0)."
+            "Use a reach Play task (e.g. Isaac-Reach-UR10-Play-v0 or Isaac-Reach-UR10-P2P-Play-v0)."
         )
-    _apply_strict_reach_params_to_env(base_env, strict_reach_params)
+    csv_utils.apply_strict_reach_params_to_env(base_env, strict_reach_params)
 
     dt = base_env.step_dt
     obs = env.get_observations()
@@ -397,17 +223,24 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     csv_writers: dict[int, csv.DictWriter] | None = None
     episode_reach_file: IO[str] | None = None
     episode_reach_writer: csv.DictWriter | None = None
+    # Per-env: still logging / still scoring this one-shot attempt (P2P-style).
     log_active: torch.Tensor | None = None
-    episode_reached: torch.Tensor | None = None
+    attempt_active: torch.Tensor | None = None
     episode_ids: torch.Tensor | None = None
     total_episodes = 0
     total_reached_episodes = 0
 
+    has_reach_term = "reach_success" in base_env.termination_manager.active_terms
     print(f"[INFO] Trajectory CSV output: {os.path.abspath(export_csv_dir)}/env_*_traj.csv")
     print(f"[INFO] Episode reach summary: {os.path.abspath(export_csv_dir)}/episode_reach.csv")
-    print("[INFO] Will exit after each env finishes 1 episode.")
     print(
-        "[INFO] Strict reach thresholds (reward/event/termination + CSV): "
+        "[INFO] P2P-style one-shot eval: log until first strict reach; "
+        "no reach before episode end => failure."
+    )
+    print(f"[INFO] Env has reach_success termination: {has_reach_term}")
+    print(f"[INFO] Mid-episode target resample: {'enabled' if args_cli.keep_resample_on_reach else 'disabled'}")
+    print(
+        "[INFO] Strict reach thresholds: "
         f"max_distance={strict_reach_params['max_distance']}, "
         f"max_angle_rad={strict_reach_params['max_angle_rad']}, "
         f"max_lin_vel={strict_reach_params['max_lin_vel']}, "
@@ -416,9 +249,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         f"max_ang_acc={strict_reach_params['max_ang_acc']}"
     )
     if args_cli.export_csv_always:
-        print("[INFO] export_csv_always: keep logging after strict reach (reach_event still uses strict criteria).")
-    else:
-        print("[INFO] Each env CSV ends at the first step where strict reach_success_criteria is true.")
+        print("[INFO] export_csv_always: keep traj rows after reach (outcome still one-shot).")
     if args_cli.max_steps > 0:
         print(f"[INFO] Will exit after {args_cli.max_steps} env steps.")
 
@@ -444,67 +275,86 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
                 if csv_writers is None:
                     robot = base_env.scene["robot"]
                     num_cri = int(robot.data.CRI.shape[1])
-                    csv_files, csv_writers = _open_traj_csv_writers(
+                    csv_files, csv_writers = csv_utils.open_traj_csv_writers(
                         export_csv_dir, base_env.num_envs, list(robot.joint_names), num_cri
                     )
-                    episode_reach_file, episode_reach_writer = _open_episode_reach_csv(export_csv_dir)
+                    episode_reach_file, episode_reach_writer = csv_utils.open_episode_reach_csv(export_csv_dir)
                     log_active = torch.ones(base_env.num_envs, device=base_env.device, dtype=torch.bool)
-                    episode_reached = torch.zeros(base_env.num_envs, device=base_env.device, dtype=torch.bool)
+                    attempt_active = torch.ones(base_env.num_envs, device=base_env.device, dtype=torch.bool)
                     episode_ids = torch.zeros(base_env.num_envs, device=base_env.device, dtype=torch.long)
 
-                # step() resets done envs before returning, so post-step EE pose no longer
-                # satisfies reach criteria. Use the termination buffer computed pre-reset.
-                if "reach_success" in base_env.termination_manager.active_terms:
-                    reach_ev = base_env.termination_manager.get_term("reach_success")
-                else:
-                    reach_ev = reach_success_criteria(
-                        base_env, command_b=reach_cmd_snapshot, **strict_reach_params
-                    )
-                assert episode_reached is not None and episode_ids is not None
-                episode_reached |= reach_ev
+                assert (
+                    csv_writers is not None
+                    and log_active is not None
+                    and attempt_active is not None
+                    and episode_ids is not None
+                    and episode_reach_writer is not None
+                    and episode_reach_file is not None
+                )
 
-                assert csv_writers is not None and log_active is not None
-                _append_traj_rows(
+                reach_ev = csv_utils.resolve_reach_event(base_env, reach_cmd_snapshot, strict_reach_params)
+                done_mask = dones.detach().bool().view(-1)
+
+                # Traj rows only while attempt/log active (includes the reach success row).
+                csv_utils.append_traj_rows(
                     csv_writers,
                     base_env.scene["robot"],
                     play_step,
                     float(play_step) * dt,
-                    log_active,
+                    log_active & attempt_active,
                     reach_ev,
                 )
                 if csv_files is not None:
                     for handle in csv_files.values():
                         handle.flush()
 
-                done_mask = dones.detach().bool().view(-1)
-                if bool(done_mask.any().item()):
-                    assert episode_reach_writer is not None and episode_reach_file is not None
-                    _record_finished_episodes(
-                        episode_reach_writer,
-                        episode_reach_file,
-                        done_mask,
-                        episode_ids,
-                        episode_reached,
-                        play_step,
-                    )
-                    n_done = int(done_mask.sum().item())
-                    n_reached = int((done_mask & episode_reached).sum().item())
-                    total_episodes += n_done
-                    total_reached_episodes += n_reached
-                    episode_ids[done_mask] += 1
-                    episode_reached[done_mask] = False
-                    if bool((episode_ids >= 1).all().item()):
-                        pct = _reach_percent(total_reached_episodes, total_episodes)
-                        print(
-                            f"[INFO] All envs finished 1 episode; reach rate "
-                            f"{total_reached_episodes}/{total_episodes} ({pct:.2f}%). Stopping."
+                # 1) Success: first strict reach ends the attempt (P2P reach_success equivalent).
+                sim_time_s = float(play_step) * dt
+                newly_success = attempt_active & reach_ev
+                if bool(newly_success.any().item()):
+                    for env_idx in newly_success.nonzero(as_tuple=False).view(-1).tolist():
+                        csv_utils.record_attempt(
+                            episode_reach_writer,
+                            episode_reach_file,
+                            int(env_idx),
+                            int(episode_ids[env_idx].item()),
+                            sim_time_s,
+                            reached=True,
+                            outcome="success",
                         )
-                        break
+                    total_episodes += int(newly_success.sum().item())
+                    total_reached_episodes += int(newly_success.sum().item())
+                    episode_ids[newly_success] += 1
+                    attempt_active &= ~newly_success
+                    if not args_cli.export_csv_always:
+                        log_active &= ~newly_success
 
-                if not args_cli.export_csv_always and bool(log_active.any().item()):
-                    newly_done = log_active & reach_ev
-                    if bool(newly_done.any().item()):
-                        log_active &= ~reach_ev
+                # 2) Failure: episode ended without prior success (timeout / OVF / other).
+                newly_fail = attempt_active & done_mask
+                if bool(newly_fail.any().item()):
+                    for env_idx in newly_fail.nonzero(as_tuple=False).view(-1).tolist():
+                        outcome = csv_utils.classify_failure_outcome(base_env, int(env_idx))
+                        csv_utils.record_attempt(
+                            episode_reach_writer,
+                            episode_reach_file,
+                            int(env_idx),
+                            int(episode_ids[env_idx].item()),
+                            sim_time_s,
+                            reached=False,
+                            outcome=outcome,
+                        )
+                    total_episodes += int(newly_fail.sum().item())
+                    episode_ids[newly_fail] += 1
+                    attempt_active &= ~newly_fail
+                    log_active &= ~newly_fail
+
+                if not bool(attempt_active.any().item()):
+                    pct = csv_utils.reach_percent(total_reached_episodes, total_episodes)
+                    print(
+                        f"[INFO] All envs finished 1 attempt; reach rate "
+                        f"{total_reached_episodes}/{total_episodes} ({pct:.2f}%). Stopping."
+                    )
+                    break
 
             if args_cli.video:
                 video_step += 1
@@ -526,13 +376,11 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             print(f"[INFO] Closed trajectory CSV files under {os.path.abspath(export_csv_dir)}")
         if episode_reach_file is not None:
             episode_reach_file.close()
-            pct = _reach_percent(total_reached_episodes, total_episodes)
-            summary_path = _write_reach_summary_csv(
-                export_csv_dir, total_reached_episodes, total_episodes
-            )
+            pct = csv_utils.reach_percent(total_reached_episodes, total_episodes)
+            summary_path = csv_utils.write_reach_summary_csv(export_csv_dir, total_reached_episodes, total_episodes)
             print(
                 f"[INFO] Episode reach summary: {total_reached_episodes}/{total_episodes} "
-                f"reached ({pct:.2f}%)"
+                f"reached ({pct:.2f}%); failed={total_episodes - total_reached_episodes}"
             )
             print(f"[INFO] Per-episode CSV: {os.path.abspath(export_csv_dir)}/episode_reach.csv")
             print(f"[INFO] Aggregate CSV: {summary_path}")
