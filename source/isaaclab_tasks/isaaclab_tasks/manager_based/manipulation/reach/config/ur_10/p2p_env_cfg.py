@@ -188,6 +188,9 @@ class UR10ReachP2PEnvCfg_PLAY(UR10ReachP2PEnvCfg):
         self.scene.env_spacing = 2.5
         self.viewer.eye = (4.5, 4.5, 4.5)
         self.observations.policy.enable_corruption = False
-        # Keep final (strict) reach thresholds; do not ease them for evaluation.
+        # Keep final (strict) reach / CRI thresholds; do not ease them for evaluation.
         self.curriculum.reach_success_criteria = None
         self.curriculum.termination_penalty = None
+        self.terminations.OVF.params["threshold"] = 0.96
+        if hasattr(self.rewards, "CRI_OVF"):
+            self.rewards.CRI_OVF.params["threshold"] = 0.96

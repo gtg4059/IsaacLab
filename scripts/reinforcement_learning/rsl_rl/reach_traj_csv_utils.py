@@ -51,14 +51,31 @@ def configure_p2p_style_eval(
 ) -> None:
     """Align play eval with P2P-Play: strict thresholds, optional one target per attempt."""
     curriculum_cfg = getattr(env_cfg, "curriculum", None)
-    if curriculum_cfg is not None and hasattr(curriculum_cfg, "reach_success_criteria"):
-        curriculum_cfg.reach_success_criteria = None
+    if curriculum_cfg is not None:
+        if hasattr(curriculum_cfg, "reach_success_criteria"):
+            curriculum_cfg.reach_success_criteria = None
+        # Prevent play-time OVF threshold from starting at 2.0 via curriculum schedule.
+        if hasattr(curriculum_cfg, "cri_ovf_term_threshold"):
+            curriculum_cfg.cri_ovf_term_threshold = None
+        if hasattr(curriculum_cfg, "cri_ovf_reward_weight"):
+            curriculum_cfg.cri_ovf_reward_weight = None
+
+    terminations_cfg = getattr(env_cfg, "terminations", None)
+    if terminations_cfg is not None and hasattr(terminations_cfg, "OVF"):
+        ovf = terminations_cfg.OVF
+        if ovf is not None and getattr(ovf, "params", None) is not None:
+            ovf.params["threshold"] = 0.96
+
+    rewards_cfg = getattr(env_cfg, "rewards", None)
+    if rewards_cfg is not None and hasattr(rewards_cfg, "CRI_OVF"):
+        cri_ovf = rewards_cfg.CRI_OVF
+        if cri_ovf is not None and getattr(cri_ovf, "params", None) is not None:
+            cri_ovf.params["threshold"] = 0.96
 
     if disable_resample:
         events_cfg = getattr(env_cfg, "events", None)
         if events_cfg is not None and hasattr(events_cfg, "resample_ee_pose_on_reach"):
             events_cfg.resample_ee_pose_on_reach = None
-
 
 def apply_strict_reach_params_to_env(env: ManagerBasedRLEnv, strict_params: dict[str, Any]) -> None:
     """Force reward/event reach thresholds to the captured strict finals."""
