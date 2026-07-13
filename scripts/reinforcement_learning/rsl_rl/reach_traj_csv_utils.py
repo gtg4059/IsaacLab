@@ -168,15 +168,24 @@ def append_traj_rows(
     env_log_mask: torch.Tensor,
     reach_event: torch.Tensor,
 ) -> None:
+    """Append one CSV row per active env using the pre-reset CRI motion snapshot.
+
+    ``env.step`` may reset terminated envs before the play loop logs. Reading live
+    ``joint_pos`` / ``joint_vel`` then pairs post-reset ``qd=0`` with a stale CRI.
+    ``get_cri_trajectory_state`` keeps the (q, qd, CRI) from the first CRI eval at
+    this physics step (termination/reward), which is the state that must be exported.
+    """
     joint_names = robot.joint_names
     with torch.inference_mode():
-        joint_pos = robot.data.joint_pos.detach().cpu().numpy()
-        joint_vel = robot.data.joint_vel.detach().cpu().numpy()
-        cri = robot.data.CRI.detach().cpu().numpy()
+        joint_pos, joint_vel, cri = robot.data.get_cri_trajectory_state()
+        joint_pos = joint_pos.detach().cpu().numpy()
+        joint_vel = joint_vel.detach().cpu().numpy()
+        cri = cri.detach().cpu().numpy()
         reach_np = reach_event.detach().cpu().numpy()
 
     mask = env_log_mask.detach().bool().cpu()
     num_cri = int(cri.shape[1]) if cri.ndim == 2 else 0
+    num_joints = min(len(joint_names), int(joint_pos.shape[1]) if joint_pos.ndim == 2 else 0)
 
     for env_idx, writer in writers.items():
         if env_idx >= int(mask.shape[0]) or not bool(mask[env_idx].item()):
@@ -187,7 +196,8 @@ def append_traj_rows(
             "reach_event": int(bool(reach_np[env_idx])),
             "max_CRI": float(cri[env_idx].max()) if num_cri > 0 else float("nan"),
         }
-        for joint_idx, name in enumerate(joint_names):
+        for joint_idx in range(num_joints):
+            name = joint_names[joint_idx]
             row[f"q_{name}"] = float(joint_pos[env_idx, joint_idx])
             row[f"qd_{name}"] = float(joint_vel[env_idx, joint_idx])
         for cri_idx in range(num_cri):

@@ -26,6 +26,9 @@ Example (continuous-reach policy, P2P-style one-shot scoring)::
 For a P2P-trained policy use ``--task Isaac-Reach-UR10-P2P-Play-v0`` (env already ends on reach).
 
 CSV columns: ``global_step``, ``sim_time_s``, ``reach_event``, ``max_CRI``, ``q_*``, ``qd_*``, ``CRI_<i>``
+
+Trajectory rows use the first CRI evaluation at each env step (pre-reset motion state), so OVF
+termination does not pair post-reset ``qd=0`` with the pre-reset CRI that caused the reset.
 Also writes ``episode_reach.csv`` and ``reach_summary.csv``.
 """
 

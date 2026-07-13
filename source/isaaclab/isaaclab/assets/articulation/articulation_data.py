@@ -78,6 +78,11 @@ class ArticulationData:
         self._CRI_float = TimestampedBuffer()
         self._cri_q_f64: torch.Tensor | None = None
         self._cri_qd_f64: torch.Tensor | None = None
+        # First CRI eval at the current sim timestamp (survives mid-step joint writes / env reset).
+        self._traj_cri_timestamp = -1.0
+        self._traj_q: torch.Tensor | None = None
+        self._traj_qd: torch.Tensor | None = None
+        self._traj_cri: torch.Tensor | None = None
         self._cri_inference_time_s = 0.0
         self._cri_inference_count = 0
         self._cri_inference_time_total_s = 0.0
@@ -810,6 +815,19 @@ class ArticulationData:
             raise RuntimeError("CRI input buffers are not initialized")
         return self._cri_q_f64, self._cri_qd_f64
 
+    def _sync_cri_inputs_from_joint_buffers(self) -> None:
+        """Copy current joint buffers into float64 CRI inputs after an in-place joint write."""
+        q = self._joint_pos.data
+        qd = self._joint_vel.data
+        if q is None or qd is None:
+            return
+        if self._cri_q_f64 is None or self._cri_q_f64.shape != q.shape:
+            self._cri_q_f64 = torch.empty(q.shape, device=q.device, dtype=torch.float64)
+        self._cri_q_f64.copy_(q)
+        if self._cri_qd_f64 is None or self._cri_qd_f64.shape != qd.shape:
+            self._cri_qd_f64 = torch.empty(qd.shape, device=qd.device, dtype=torch.float64)
+        self._cri_qd_f64.copy_(qd)
+
     @property
     def joint_acc(self):
         """Joint acceleration of all joints. Shape is (num_instances, num_joints)."""
@@ -1081,6 +1099,36 @@ class ArticulationData:
             torch.cuda.synchronize()
         print(f"[CRI] init warm-up: {rounds} rounds (SFD_ALLOC_WARMUP_ROUNDS)", flush=True)
     
+    def _invalidate_cri_cache(self) -> None:
+        """Force next :attr:`CRI` access to recompute (e.g. after joint write / env reset)."""
+        self._CRI.timestamp = -1.0
+
+    def _store_cri_traj_snapshot(self, q_in: torch.Tensor, qd_in: torch.Tensor, cri_float: torch.Tensor) -> None:
+        """Keep the first (q, qd, CRI) at this sim timestamp for trajectory CSV export."""
+        if self._traj_cri_timestamp >= self._sim_timestamp:
+            return
+        if self._traj_q is None or self._traj_q.shape != q_in.shape:
+            self._traj_q = q_in.detach().to(dtype=torch.float32).clone()
+            self._traj_qd = qd_in.detach().to(dtype=torch.float32).clone()
+            self._traj_cri = cri_float.detach().clone()
+        else:
+            self._traj_q.copy_(q_in.detach().to(dtype=torch.float32))
+            self._traj_qd.copy_(qd_in.detach().to(dtype=torch.float32))
+            self._traj_cri.copy_(cri_float.detach())
+        self._traj_cri_timestamp = self._sim_timestamp
+
+    def get_cri_trajectory_state(self) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Return (q, qd, CRI) from the first CRI eval at the current physics step.
+
+        Env reset may rewrite joint buffers after termination/reward CRI is computed. Trajectory
+        export must use this snapshot so CSV rows stay consistent with the CRI that triggered
+        OVF / logging, not the post-reset ``qd=0`` state.
+        """
+        if self._traj_cri_timestamp < self._sim_timestamp or self._traj_cri is None:
+            _ = self.CRI
+        assert self._traj_q is not None and self._traj_qd is not None and self._traj_cri is not None
+        return self._traj_q, self._traj_qd, self._traj_cri
+
     @property
     def CRI(self):
         """Collision Risk Index from Safetics CRI solver. Shape is (num_instances, num_collision_points)."""
@@ -1110,6 +1158,7 @@ class ArticulationData:
             else:
                 self._CRI_float.data.copy_(self._CRI.data)
                 self._CRI_float.data.clamp_(min=0.0, max=2.0)
+            self._store_cri_traj_snapshot(q_in, qd_in, self._CRI_float.data)
             self._CRI.timestamp = self._sim_timestamp
         return self._CRI_float.data
 

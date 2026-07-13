@@ -614,6 +614,9 @@ class Articulation(AssetBase):
         self._data._body_com_state_w.timestamp = -1.0
         # set into simulation
         self.root_physx_view.set_dof_positions(self._data.joint_pos, indices=physx_env_ids)
+        # Keep CRI float64 inputs / cache coherent with the written joint state (env reset).
+        self._data._sync_cri_inputs_from_joint_buffers()
+        self._data._invalidate_cri_cache()
 
     def write_joint_velocity_to_sim(
         self,
@@ -644,6 +647,9 @@ class Articulation(AssetBase):
         self._data.joint_acc[env_ids, joint_ids] = 0.0
         # set into simulation
         self.root_physx_view.set_dof_velocities(self._data.joint_vel, indices=physx_env_ids)
+        # Keep CRI float64 inputs / cache coherent with the written joint state (env reset → qd=0).
+        self._data._sync_cri_inputs_from_joint_buffers()
+        self._data._invalidate_cri_cache()
 
     """
     Operations - Simulation Parameters Writers.

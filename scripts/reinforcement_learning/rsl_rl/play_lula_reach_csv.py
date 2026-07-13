@@ -8,6 +8,7 @@
 Exports the same CSV schema as :mod:`play_reach_csv`:
 
 * ``env_<id>_traj.csv`` — ``global_step``, ``sim_time_s``, ``reach_event``, ``max_CRI``, ``q_*``, ``qd_*``, ``CRI_<i>``
+  (q/qd/CRI from the first CRI eval at each env step — pre-reset if the env terminated)
 * ``episode_reach.csv`` — per-attempt ``reached`` / ``outcome``
 * ``reach_summary.csv`` — aggregate reach rate
 
