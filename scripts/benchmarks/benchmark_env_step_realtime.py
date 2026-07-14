@@ -29,21 +29,29 @@ Example (isolated deploy, RSL-RL checkpoint):
         --checkpoint logs/rsl_rl/reach_ur10/2026-07-06_17-36-07/model_0.pt \\
         --num_envs 1 --headless --warmup 50 --steps 1000 --burn-in 50
 
-Example (isolated deploy, exported JIT):
-    SFD_SPIKE_MITIGATION=1 SFD_CRI_TIMING=1 SFD_ALLOC_WARMUP_ROUNDS=15 \\
+Example (isolated deploy, exported JIT + host realtime tuning):
+    SFD_LOCK_GPU_CLOCK=1 SFD_SPIKE_MITIGATION=1 SFD_CRI_TIMING=1 SFD_ALLOC_WARMUP_ROUNDS=15 \\
     ./isaaclab.sh -p scripts/benchmarks/benchmark_env_step_realtime.py \\
         --mode isolated-deploy \\
         --task Isaac-Reach-UR10-Play-v0 \\
-        --checkpoint logs/rsl_rl/reach_ur10/2026-07-06_17-36-07/exported/policy.pt \\
+        --checkpoint /path/to/exported/policy.pt \\
         --num_envs 1 --headless --warmup 50 --steps 1000 --burn-in 50
+
+``SFD_LOCK_GPU_CLOCK=1`` also enables CPU ``performance`` governor, host memory
+reclaim, and **keeps swap disabled** for the whole run so Isaac warmup cannot
+refill it (override with ``SFD_DISABLE_SWAP=0`` / ``SFD_RECLAIM_MEMORY=0``).
+Needs root / sudo. On exit: ``nvidia-smi -rgc``, CPU governor restore, ``swapon``.
+Measurement freezes Python GC and settles GPU after PhysX.
 """
 
 """Launch Isaac Sim Simulator first."""
 
 import argparse
+import gc
 import os
 import sys
 import time
+from pathlib import Path
 
 os.environ.setdefault("SFD_CRI_TIMING", "1")
 
@@ -55,6 +63,22 @@ if os.environ.get("SFD_SPIKE_MITIGATION", "1") not in ("0", "false", "FALSE"):
     os.environ.setdefault("CUDA_MODULE_LOADING", "EAGER")
     os.environ.setdefault("CUDA_DEVICE_MAX_CONNECTIONS", "32")
     os.environ.setdefault("SAFETICS_USE_TENSOR_CALC_LOOP", "1")
+    os.environ.setdefault("MALLOC_ARENA_MAX", "2")
+
+# Host realtime tuning before AppLauncher/CUDA (SafeGiver + Isaac residual spikes).
+# Import sfd_setup by path so articulation/__init__ (torch + CUDACRI) is not pulled in early.
+_art_dir = str(Path(__file__).resolve().parents[2] / "source/isaaclab/isaaclab/assets/articulation")
+if _art_dir not in sys.path:
+    sys.path.insert(0, _art_dir)
+from sfd_setup import (  # noqa: E402
+    apply_realtime_host_tuning,
+    print_gpu_runtime_snapshot,
+    restore_realtime_host,
+    try_reclaim_host_memory,
+)
+
+print_gpu_runtime_snapshot()
+apply_realtime_host_tuning()
 
 import numpy as np
 from isaaclab.app import AppLauncher
@@ -214,6 +238,23 @@ def _drain_gpu(device: str) -> None:
         torch.cuda.synchronize()
 
 
+def _env_flag(name: str, default: str = "0") -> bool:
+    return os.environ.get(name, default).strip().lower() not in ("0", "false", "no", "")
+
+
+def _settle_after_physx(device: str) -> None:
+    """Keep PhysX/Kit GPU work out of the timed deploy window (untimed gap)."""
+    if not _env_flag("SFD_BENCH_PHYSX_SETTLE", "1" if _env_flag("SFD_SPIKE_MITIGATION", "1") else "0"):
+        return
+    _drain_gpu(device)
+    settle_us = int(os.environ.get("SFD_BENCH_PHYSX_SETTLE_US", "1000"))
+    if settle_us <= 0 or not device.startswith("cuda"):
+        return
+    deadline = time.perf_counter() + settle_us * 1e-6
+    while time.perf_counter() < deadline:
+        torch.cuda.synchronize()
+
+
 def _advance_physics(env: RslRlVecEnvWrapper, actions: torch.Tensor) -> None:
     """Advance sim between 50Hz ticks (untimed — real robot motion is off-RT path)."""
     base = env.unwrapped
@@ -330,27 +371,37 @@ def _bench_obs_policy(
     use_policy: bool,
     zero_actions: torch.Tensor,
     obs_td: TensorDict | None = None,
+    freeze_gc: bool = False,
 ) -> tuple[torch.Tensor, TensorDict | None]:
     """Isolated deploy path — identical to benchmark_cri_policy_inference._bench_obs_policy."""
     last_actions = actions
-    for i in range(steps):
-        _advance_physics(env, last_actions)
-        _drain_gpu(device)
-        t0 = time.perf_counter()
-        obs_dict = env.unwrapped.observation_manager.compute(update_history=True)
-        if obs_td is None:
-            obs_td = TensorDict(obs_dict, batch_size=[env.unwrapped.num_envs])
-        else:
-            obs_td.update(obs_dict)
-        if use_policy:
-            last_actions = policy(obs_td)
-        else:
-            last_actions = zero_actions
-        _sync_device(device)
-        deploy_rec.record(time.perf_counter() - t0, i)
-        cri_rec.record(robot.data.cri_last_inference_time_s, i)
-        if not simulation_app.is_running():
-            break
+    gc_was_enabled = gc.isenabled()
+    if freeze_gc:
+        gc.collect()
+        gc.disable()
+    try:
+        for i in range(steps):
+            _advance_physics(env, last_actions)
+            _drain_gpu(device)
+            _settle_after_physx(device)
+            t0 = time.perf_counter()
+            obs_dict = env.unwrapped.observation_manager.compute(update_history=True)
+            if obs_td is None:
+                obs_td = TensorDict(obs_dict, batch_size=[env.unwrapped.num_envs])
+            else:
+                obs_td.update(obs_dict)
+            if use_policy:
+                last_actions = policy(obs_td)
+            else:
+                last_actions = zero_actions
+            _sync_device(device)
+            deploy_rec.record(time.perf_counter() - t0, i)
+            cri_rec.record(robot.data.cri_last_inference_time_s, i)
+            if not simulation_app.is_running():
+                break
+    finally:
+        if freeze_gc and gc_was_enabled:
+            gc.enable()
     return last_actions, obs_td
 
 
@@ -377,15 +428,23 @@ def _bench_isolated_deploy(
     print(f"[INFO] isolated deploy warm-up: {total_warm} obs+policy (continuous, obs_td retained)...")
     last_actions, obs_td = _bench_obs_policy(
         env, robot, device, last_actions, policy, total_warm, _LatencyRecorder(), _LatencyRecorder(),
-        use_policy=use_policy, zero_actions=zero_actions, obs_td=obs_td,
+        use_policy=use_policy, zero_actions=zero_actions, obs_td=obs_td, freeze_gc=False,
     )
     _drain_gpu(device)
+    gc.collect()
+    print("[INFO] pre-measure drop_caches (no swap abort)...", flush=True)
+    try_reclaim_host_memory(clear_swap=False, keep_swap_off=False)
     robot.data.reset_cri_inference_stats()
 
-    print(f"[INFO] measuring isolated deploy x{steps} (burn-in={burn_in}, steady verdict)...")
+    freeze_gc = _env_flag("SFD_BENCH_FREEZE_GC", "1" if _env_flag("SFD_SPIKE_MITIGATION", "1") else "0")
+    settle_on = _env_flag("SFD_BENCH_PHYSX_SETTLE", "1" if _env_flag("SFD_SPIKE_MITIGATION", "1") else "0")
+    print(
+        f"[INFO] measuring isolated deploy x{steps} (burn-in={burn_in}, steady verdict, "
+        f"freeze_gc={int(freeze_gc)}, physx_settle={int(settle_on)})..."
+    )
     last_actions, obs_td = _bench_obs_policy(
         env, robot, device, last_actions, policy, steps, deploy_rec, cri_rec,
-        use_policy=use_policy, zero_actions=zero_actions, obs_td=obs_td,
+        use_policy=use_policy, zero_actions=zero_actions, obs_td=obs_td, freeze_gc=freeze_gc,
     )
     _drain_gpu(device)
     return deploy_rec, cri_rec, last_actions
@@ -442,6 +501,7 @@ def _bench_deploy_tick(
     for tick_idx in range(steps):
         _advance_physics(env, last_actions)
         _drain_gpu(device)
+        _settle_after_physx(device)
 
         _sync_device(device)
         t0 = time.perf_counter()
@@ -733,5 +793,8 @@ def main(env_cfg, agent_cfg: RslRlBaseRunnerCfg):
 
 
 if __name__ == "__main__":
-    main()
-    simulation_app.close()
+    try:
+        main()
+    finally:
+        restore_realtime_host()
+        simulation_app.close()

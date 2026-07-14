@@ -6,13 +6,42 @@ lib/ 번들에는 libcrypto++.so.8, libjsoncpp.so.25 등이 포함된다.
 TensorRT: Engine/.../model_fp16.engine 우선, deserialize 실패 시 같은 폴더 model.onnx 로 런타임 빌드.
 Isaac Sim: export SAFETICS_TRT_PREFER_ONNX=1 로 engine 건너뛰기 가능.
 cmake --build build --target isaaclab_deploy 로 patchelf 적용 lib/·Engine/ 을 IsaacLab articulation 에 배포.
+
+Realtime tail-spike mitigation (SafeGiver SFD_CoreService_Test + Isaac host tuning):
+    SFD_LOCK_GPU_CLOCK=1     → nvidia-smi -pm 1 + -lgc MAX,MAX
+    SFD_LOCK_CPU_GOVERNOR=1  → cpufreq governor=performance (auto with GPU lock unless =0)
+    SFD_RECLAIM_MEMORY=1     → sync + drop_caches + clear swap when hot
+                               (auto with GPU lock / SFD_REALTIME_HOST unless =0)
+    SFD_DISABLE_SWAP=1       → leave swap off for the whole run (auto with GPU lock)
+                               so Isaac warmup cannot refill swap; swapon on exit
+    SFD_REQUIRE_SWAP_HEADROOM=1 → abort only at startup if swap cannot be cleared
+    종료 시 GPU -rgc + CPU governor 원복 + swapon
 """
 
 from __future__ import annotations
 
+import atexit
 import os
+import shutil
+import subprocess
 import sys
 from pathlib import Path
+
+_gpu_clock_locked: bool = False
+_gpu_clock_device: int = 0
+_gpu_clock_used_sudo: bool = False
+
+_cpu_governor_locked: bool = False
+_cpu_governor_saved: str | None = None
+_cpu_governor_used_sudo: bool = False
+
+_realtime_cleanup_registered: bool = False
+_realtime_signals_registered: bool = False
+_swap_disabled_by_us: bool = False
+
+
+def _env_truthy(name: str, default: str = "0") -> bool:
+    return os.environ.get(name, default).strip().lower() not in ("0", "false", "no", "")
 
 
 def apply_spike_mitigation_env_early() -> None:
@@ -26,12 +55,590 @@ def apply_spike_mitigation_env_early() -> None:
     os.environ.setdefault("CUDA_MODULE_LOADING", "EAGER")
     os.environ.setdefault("CUDA_DEVICE_MAX_CONNECTIONS", "32")
     os.environ.setdefault("SAFETICS_USE_TENSOR_CALC_LOOP", "1")
+    os.environ.setdefault("MALLOC_ARENA_MAX", "2")
+
+
+def _needs_nvidia_priv(args: list[str]) -> bool:
+    return any(flag in args for flag in ("-lgc", "-rgc", "-pm", "-pl"))
+
+
+def _run_privileged(
+    argv: list[str],
+    *,
+    allow_interactive_sudo: bool = False,
+    sudo_flag: str = "_gpu_clock_used_sudo",
+) -> subprocess.CompletedProcess[str]:
+    """Run argv; on failure retry with sudo -n, then optional interactive sudo."""
+    global _gpu_clock_used_sudo, _cpu_governor_used_sudo
+
+    result = subprocess.run(argv, capture_output=True, text=True, check=False)
+    if result.returncode == 0:
+        return result
+
+    sudo = shutil.which("sudo")
+    if sudo is None:
+        return result
+
+    sudo_n = subprocess.run([sudo, "-n", *argv], capture_output=True, text=True, check=False)
+    if sudo_n.returncode == 0:
+        if sudo_flag == "_cpu_governor_used_sudo":
+            _cpu_governor_used_sudo = True
+        else:
+            _gpu_clock_used_sudo = True
+        return sudo_n
+    if sudo_n.stderr.strip():
+        result = sudo_n
+
+    if (
+        allow_interactive_sudo
+        and _env_truthy("SFD_LOCK_GPU_SUDO", "1")
+        and sys.stdin.isatty()
+        and sys.stdout.isatty()
+    ):
+        print(f"[spike] needs privileges for {' '.join(argv[:2])}...; prompting sudo...", flush=True)
+        sudo_i = subprocess.run([sudo, *argv], check=False)
+        if sudo_i.returncode == 0:
+            if sudo_flag == "_cpu_governor_used_sudo":
+                _cpu_governor_used_sudo = True
+            else:
+                _gpu_clock_used_sudo = True
+            return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+        result = subprocess.CompletedProcess(argv, sudo_i.returncode, stdout="", stderr="interactive sudo failed")
+    return result
+
+
+def _run_nvidia_smi(
+    args: list[str], *, check: bool = False, allow_interactive_sudo: bool = False
+) -> subprocess.CompletedProcess[str]:
+    """Run nvidia-smi; on permission failure retry with sudo."""
+    nvidia_smi = shutil.which("nvidia-smi")
+    if nvidia_smi is None:
+        raise FileNotFoundError("nvidia-smi not found on PATH")
+
+    cmd = [nvidia_smi, *args]
+    if not _needs_nvidia_priv(args):
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    else:
+        result = _run_privileged(cmd, allow_interactive_sudo=allow_interactive_sudo)
+
+    if check and result.returncode != 0:
+        raise subprocess.CalledProcessError(result.returncode, cmd, result.stdout, result.stderr)
+    return result
+
+
+def _query_gpu_clock_mhz(device_index: int, query: str) -> int | None:
+    result = _run_nvidia_smi(
+        [
+            f"-i={device_index}",
+            f"--query-gpu={query}",
+            "--format=csv,noheader,nounits",
+        ]
+    )
+    if result.returncode != 0:
+        return None
+    text = (result.stdout or "").strip().splitlines()
+    if not text:
+        return None
+    try:
+        return int(float(text[0].strip().split(",")[0]))
+    except ValueError:
+        return None
+
+
+def _cpu_governor_paths() -> list[Path]:
+    root = Path("/sys/devices/system/cpu")
+    if not root.is_dir():
+        return []
+    return sorted(root.glob("cpu[0-9]*/cpufreq/scaling_governor"))
+
+
+def _read_cpu_governor() -> str | None:
+    paths = _cpu_governor_paths()
+    if not paths:
+        return None
+    try:
+        return paths[0].read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+
+
+def _read_meminfo() -> dict[str, int] | None:
+    """Return selected /proc/meminfo fields in KiB."""
+    keys = ("MemTotal", "MemAvailable", "MemFree", "SwapTotal", "SwapFree")
+    out: dict[str, int] = {}
+    try:
+        with open("/proc/meminfo", encoding="utf-8") as fh:
+            for line in fh:
+                name = line.split(":", 1)[0]
+                if name in keys:
+                    out[name] = int(line.split()[1])
+    except OSError:
+        return None
+    return out if out else None
+
+
+def _swap_used_pct(info: dict[str, int]) -> float:
+    total = info.get("SwapTotal", 0)
+    if total <= 0:
+        return 0.0
+    used = total - info.get("SwapFree", 0)
+    return 100.0 * used / total
+
+
+def _print_mem_swap_line(info: dict[str, int], *, prefix: str = "[spike]") -> None:
+    avail_mib = info.get("MemAvailable", 0) // 1024
+    swap_total = info.get("SwapTotal", 0)
+    swap_used = swap_total - info.get("SwapFree", 0)
+    pct = _swap_used_pct(info)
+    print(
+        f"{prefix} MemAvailable={avail_mib} MiB  "
+        f"Swap used={swap_used // 1024}/{swap_total // 1024} MiB ({pct:.0f}%)",
+        flush=True,
+    )
+
+
+def print_gpu_runtime_snapshot() -> None:
+    """Print GPU / host pressure when spike mitigation or SFD_PRINT_GPU_INFO is on."""
+    if not (_env_truthy("SFD_PRINT_GPU_INFO") or _env_truthy("SFD_SPIKE_MITIGATION", "1")):
+        return
+    try:
+        name = _run_nvidia_smi(["--query-gpu=name,driver_version", "--format=csv,noheader", "-i=0"])
+        clocks = _run_nvidia_smi(
+            [
+                "--query-gpu=clocks.current.graphics,clocks.max.graphics",
+                "--format=csv,noheader,nounits",
+                "-i=0",
+            ]
+        )
+    except FileNotFoundError:
+        return
+    if name.returncode == 0 and name.stdout.strip():
+        line = f"[spike] GPU: {name.stdout.strip()}"
+        if clocks.returncode == 0 and clocks.stdout.strip():
+            line += f" clocks(cur,max MHz): {clocks.stdout.strip()}"
+        print(line, flush=True)
+    alloc = os.environ.get("PYTORCH_CUDA_ALLOC_CONF")
+    if alloc:
+        print(f"[spike] PYTORCH_CUDA_ALLOC_CONF={alloc}", flush=True)
+
+    gov = _read_cpu_governor()
+    if gov:
+        print(f"[spike] CPU governor: {gov}", flush=True)
+        if gov == "powersave":
+            print(
+                "[spike] WARN: CPU governor=powersave (Isaac warning). "
+                "Set SFD_LOCK_CPU_GOVERNOR=1 or SFD_LOCK_GPU_CLOCK=1 to force performance.",
+                flush=True,
+            )
+
+    info = _read_meminfo()
+    if info is not None:
+        _print_mem_swap_line(info, prefix="[spike]")
+
+
+def _realtime_bundle_enabled() -> bool:
+    return _env_truthy("SFD_LOCK_GPU_CLOCK") or _env_truthy("SFD_REALTIME_HOST")
+
+
+def _reclaim_memory_enabled() -> bool:
+    if "SFD_RECLAIM_MEMORY" in os.environ:
+        return _env_truthy("SFD_RECLAIM_MEMORY")
+    return _realtime_bundle_enabled()
+
+
+def _require_swap_headroom_enabled() -> bool:
+    if "SFD_REQUIRE_SWAP_HEADROOM" in os.environ:
+        return _env_truthy("SFD_REQUIRE_SWAP_HEADROOM")
+    return _realtime_bundle_enabled()
+
+
+def _disable_swap_enabled() -> bool:
+    """Keep swap offline for the whole process (prevents Isaac warmup refill)."""
+    if "SFD_DISABLE_SWAP" in os.environ:
+        return _env_truthy("SFD_DISABLE_SWAP")
+    return _realtime_bundle_enabled()
+
+
+def _cpu_governor_enabled() -> bool:
+    if "SFD_LOCK_CPU_GOVERNOR" in os.environ:
+        return _env_truthy("SFD_LOCK_CPU_GOVERNOR")
+    return _realtime_bundle_enabled()
+
+
+def restore_swap() -> None:
+    """Re-enable swap if we disabled it for this process."""
+    global _swap_disabled_by_us
+    if not _swap_disabled_by_us:
+        return
+    result = _run_privileged(
+        ["swapon", "-a"],
+        allow_interactive_sudo=_cpu_governor_used_sudo and sys.stdin.isatty(),
+        sudo_flag="_cpu_governor_used_sudo",
+    )
+    if result.returncode == 0:
+        print("[spike] swap re-enabled (swapon -a)", flush=True)
+    else:
+        print(
+            f"[spike] swapon restore failed rc={result.returncode} (sudo swapon -a)",
+            flush=True,
+        )
+    _swap_disabled_by_us = False
+
+
+def unlock_gpu_clocks() -> None:
+    """Release graphics clock lock previously taken by :func:`try_lock_gpu_clocks`."""
+    global _gpu_clock_locked
+    if not _gpu_clock_locked:
+        return
+    try:
+        result = _run_nvidia_smi([f"-i={_gpu_clock_device}", "-rgc"], allow_interactive_sudo=False)
+        if result.returncode != 0 and _gpu_clock_used_sudo and sys.stdin.isatty():
+            result = _run_nvidia_smi([f"-i={_gpu_clock_device}", "-rgc"], allow_interactive_sudo=True)
+        if result.returncode == 0:
+            print(f"[spike] GPU clock lock released (device={_gpu_clock_device})", flush=True)
+        else:
+            print(
+                f"[spike] GPU clock unlock failed rc={result.returncode} "
+                f"(sudo nvidia-smi -i {_gpu_clock_device} -rgc)",
+                flush=True,
+            )
+    except FileNotFoundError:
+        pass
+    _gpu_clock_locked = False
+
+
+def restore_cpu_governor() -> None:
+    """Restore CPU governor saved by :func:`try_lock_cpu_governor`."""
+    global _cpu_governor_locked, _cpu_governor_saved
+    if not _cpu_governor_locked:
+        return
+    target = _cpu_governor_saved or "powersave"
+    current = _read_cpu_governor()
+    if current == target:
+        print(f"[spike] CPU governor restored '{target}'", flush=True)
+        _cpu_governor_locked = False
+        _cpu_governor_saved = None
+        return
+
+    cpupower = shutil.which("cpupower")
+    if cpupower is not None:
+        result = _run_privileged(
+            [cpupower, "frequency-set", "-g", target],
+            allow_interactive_sudo=_cpu_governor_used_sudo and sys.stdin.isatty(),
+            sudo_flag="_cpu_governor_used_sudo",
+        )
+    else:
+        paths = _cpu_governor_paths()
+        joined = " ".join(str(p) for p in paths)
+        result = _run_privileged(
+            ["bash", "-c", f"echo {target} | tee {joined} >/dev/null"],
+            allow_interactive_sudo=_cpu_governor_used_sudo and sys.stdin.isatty(),
+            sudo_flag="_cpu_governor_used_sudo",
+        )
+
+    after = _read_cpu_governor()
+    if result.returncode == 0 and after == target:
+        print(f"[spike] CPU governor restored '{target}'", flush=True)
+    else:
+        print(
+            f"[spike] CPU governor restore failed (want={target}, now={after}) "
+            f"(sudo cpupower frequency-set -g {target})",
+            flush=True,
+        )
+    _cpu_governor_locked = False
+    _cpu_governor_saved = None
+
+
+def restore_realtime_host() -> None:
+    """Release GPU clock lock, restore CPU governor, re-enable swap (idempotent)."""
+    unlock_gpu_clocks()
+    restore_cpu_governor()
+    restore_swap()
+
+
+def _register_realtime_cleanup() -> None:
+    """Ensure host realtime tweaks are reverted on exit / SIGINT / SIGTERM."""
+    global _realtime_cleanup_registered, _realtime_signals_registered
+
+    if not _realtime_cleanup_registered:
+        atexit.register(restore_realtime_host)
+        _realtime_cleanup_registered = True
+
+    if _realtime_signals_registered:
+        return
+
+    import signal
+
+    def _on_signal(signum, _frame):  # noqa: ANN001
+        restore_realtime_host()
+        signal.signal(signum, signal.SIG_DFL)
+        os.kill(os.getpid(), signum)
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            signal.signal(sig, _on_signal)
+        except (ValueError, OSError):
+            pass
+    _realtime_signals_registered = True
+
+
+def try_reclaim_host_memory(*, clear_swap: bool = True, keep_swap_off: bool | None = None) -> bool:
+    """Drop page cache and optionally clear/disable swap (needs sudo)."""
+    global _swap_disabled_by_us
+
+    if not _reclaim_memory_enabled():
+        return False
+    if keep_swap_off is None:
+        keep_swap_off = _disable_swap_enabled()
+
+    before = _read_meminfo()
+    if before is None:
+        print("[spike] memory reclaim skipped: cannot read /proc/meminfo", flush=True)
+        return False
+
+    print("[spike] memory reclaim: before", flush=True)
+    _print_mem_swap_line(before, prefix="[spike]  ")
+
+    drop = _run_privileged(
+        ["bash", "-c", "sync; echo 3 > /proc/sys/vm/drop_caches"],
+        allow_interactive_sudo=True,
+        sudo_flag="_cpu_governor_used_sudo",
+    )
+    if drop.returncode != 0:
+        err = (drop.stderr or drop.stdout or "").strip()
+        print(
+            f"[spike] drop_caches failed rc={drop.returncode}"
+            + (f" err={err}" if err else "")
+            + " (sudo bash -c 'sync; echo 3 > /proc/sys/vm/drop_caches')",
+            flush=True,
+        )
+
+    mid = _read_meminfo() or before
+    swap_total = mid.get("SwapTotal", 0)
+    swap_used_kib = swap_total - mid.get("SwapFree", 0)
+    swap_pct = _swap_used_pct(mid)
+    min_clear_pct = float(os.environ.get("SFD_SWAP_CLEAR_MIN_PCT", "25"))
+    margin_kib = int(os.environ.get("SFD_SWAP_CLEAR_MARGIN_MIB", "512")) * 1024
+
+    if keep_swap_off and _swap_disabled_by_us and swap_total == 0:
+        print("[spike] swap already disabled for this run", flush=True)
+        after = _read_meminfo() or mid
+        print("[spike] memory reclaim: after", flush=True)
+        _print_mem_swap_line(after, prefix="[spike]  ")
+        return True
+
+    did_swapoff = False
+    if clear_swap and swap_total > 0 and (swap_used_kib > 0 or keep_swap_off):
+        can_clear = mid.get("MemAvailable", 0) > swap_used_kib + margin_kib
+        need_off = keep_swap_off or (swap_pct >= min_clear_pct)
+        if need_off and (can_clear or swap_used_kib == 0):
+            action = "disabling swap for run" if keep_swap_off else "clearing swap into RAM"
+            print(
+                f"[spike] {action} "
+                f"(used={swap_used_kib // 1024} MiB, MemAvailable={mid.get('MemAvailable', 0) // 1024} MiB)...",
+                flush=True,
+            )
+            off = _run_privileged(
+                ["swapoff", "-a"],
+                allow_interactive_sudo=True,
+                sudo_flag="_cpu_governor_used_sudo",
+            )
+            if off.returncode != 0:
+                err = (off.stderr or off.stdout or "").strip()
+                print(
+                    f"[spike] swapoff failed rc={off.returncode}"
+                    + (f" err={err}" if err else "")
+                    + " (sudo swapoff -a)",
+                    flush=True,
+                )
+            else:
+                did_swapoff = True
+                if keep_swap_off:
+                    _swap_disabled_by_us = True
+                    _register_realtime_cleanup()
+                    print("[spike] swap disabled until process exit (swapon on restore)", flush=True)
+                else:
+                    on = _run_privileged(
+                        ["swapon", "-a"],
+                        allow_interactive_sudo=True,
+                        sudo_flag="_cpu_governor_used_sudo",
+                    )
+                    if on.returncode != 0:
+                        print(
+                            f"[spike] swapon failed rc={on.returncode} — swap may be offline until reboot/swapon",
+                            flush=True,
+                        )
+                    else:
+                        print("[spike] swap cleared and re-enabled", flush=True)
+        elif need_off:
+            print(
+                "[spike] skip swap clear: not enough MemAvailable headroom "
+                f"(need >{(swap_used_kib + margin_kib) // 1024} MiB).",
+                flush=True,
+            )
+
+    after = _read_meminfo() or mid
+    print("[spike] memory reclaim: after", flush=True)
+    _print_mem_swap_line(after, prefix="[spike]  ")
+    return did_swapoff or drop.returncode == 0
+
+
+def ensure_swap_headroom(*, max_pct: float | None = None, abort: bool | None = None) -> bool:
+    """Check swap pressure. Abort only at startup when requested."""
+    if _swap_disabled_by_us:
+        return True
+    info = _read_meminfo()
+    if info is None:
+        return True
+    if info.get("SwapTotal", 0) <= 0:
+        return True
+    if max_pct is None:
+        max_pct = float(os.environ.get("SFD_SWAP_MAX_PCT", "50"))
+    pct = _swap_used_pct(info)
+    if pct <= max_pct:
+        return True
+
+    if abort is None:
+        abort = _require_swap_headroom_enabled()
+    msg = (
+        f"[spike] swap still high after reclaim: {pct:.0f}% used "
+        f"(limit SFD_SWAP_MAX_PCT={max_pct:.0f}). "
+        "Close other apps or free RAM, then retry."
+    )
+    if abort:
+        print(msg + " Aborting (SFD_REQUIRE_SWAP_HEADROOM=1).", flush=True)
+        raise SystemExit(2)
+    print(msg + " Continuing (warn-only).", flush=True)
+    return False
+
+
+def try_lock_gpu_clocks(device_index: int | None = None) -> bool:
+    """Lock GPU graphics clock to max MHz (SafeGiver ``SFD_LOCK_GPU_CLOCK`` path)."""
+    global _gpu_clock_locked, _gpu_clock_device
+
+    if not _env_truthy("SFD_LOCK_GPU_CLOCK"):
+        return False
+    if _gpu_clock_locked:
+        return True
+
+    if device_index is None:
+        device_index = int(os.environ.get("SFD_LOCK_GPU_INDEX", "0"))
+
+    try:
+        _run_nvidia_smi([f"-i={device_index}", "-pm", "1"], allow_interactive_sudo=True)
+        max_mhz = _query_gpu_clock_mhz(device_index, "clocks.max.graphics")
+        if max_mhz is None or max_mhz <= 0:
+            print("[spike] GPU clock lock skipped: could not query max graphics clock", flush=True)
+            return False
+
+        result = _run_nvidia_smi(
+            [f"-i={device_index}", "-lgc", f"{max_mhz},{max_mhz}"],
+            allow_interactive_sudo=True,
+        )
+        if result.returncode != 0:
+            err = (result.stderr or result.stdout or "").strip()
+            print(
+                f"[spike] GPU clock lock failed (need root/sudo?). "
+                f"rc={result.returncode}"
+                + (f" err={err}" if err else ""),
+                flush=True,
+            )
+            print(
+                f"[spike] manual: sudo nvidia-smi -i {device_index} -pm 1 && "
+                f"sudo nvidia-smi -i {device_index} -lgc {max_mhz},{max_mhz}",
+                flush=True,
+            )
+            return False
+
+        cur = _query_gpu_clock_mhz(device_index, "clocks.current.graphics")
+        cur_s = str(cur) if cur is not None else "?"
+        print(
+            f"[spike] GPU clock locked to {max_mhz} MHz "
+            f"(device={device_index}, current={cur_s} MHz); will release with -rgc on exit",
+            flush=True,
+        )
+        _gpu_clock_locked = True
+        _gpu_clock_device = device_index
+        _register_realtime_cleanup()
+        return True
+    except FileNotFoundError as exc:
+        print(f"[spike] GPU clock lock skipped: {exc}", flush=True)
+        return False
+
+
+def try_lock_cpu_governor(governor: str = "performance") -> bool:
+    """Force CPU frequency governor (Isaac warns when host is on powersave)."""
+    global _cpu_governor_locked, _cpu_governor_saved
+
+    if not _cpu_governor_enabled():
+        return False
+    if _cpu_governor_locked:
+        return True
+
+    paths = _cpu_governor_paths()
+    if not paths:
+        print("[spike] CPU governor lock skipped: no cpufreq sysfs", flush=True)
+        return False
+
+    current = _read_cpu_governor()
+    if current == governor:
+        print(f"[spike] CPU governor already '{governor}'", flush=True)
+        _cpu_governor_saved = current
+        _cpu_governor_locked = True
+        _register_realtime_cleanup()
+        return True
+
+    _cpu_governor_saved = current
+    cpupower = shutil.which("cpupower")
+    if cpupower is not None:
+        result = _run_privileged(
+            [cpupower, "frequency-set", "-g", governor],
+            allow_interactive_sudo=True,
+            sudo_flag="_cpu_governor_used_sudo",
+        )
+    else:
+        joined = " ".join(str(p) for p in paths)
+        result = _run_privileged(
+            ["bash", "-c", f"echo {governor} | tee {joined} >/dev/null"],
+            allow_interactive_sudo=True,
+            sudo_flag="_cpu_governor_used_sudo",
+        )
+
+    after = _read_cpu_governor()
+    if result.returncode != 0 or after != governor:
+        err = (result.stderr or result.stdout or "").strip()
+        print(
+            f"[spike] CPU governor lock failed (want={governor}, now={after}, "
+            f"was={current}, rc={result.returncode})"
+            + (f" err={err}" if err else ""),
+            flush=True,
+        )
+        print(f"[spike] manual: sudo cpupower frequency-set -g {governor}", flush=True)
+        return False
+
+    print(
+        f"[spike] CPU governor set '{current}' → '{governor}' (restore on exit)",
+        flush=True,
+    )
+    _cpu_governor_locked = True
+    _register_realtime_cleanup()
+    return True
+
+
+def apply_realtime_host_tuning(*, clear_swap: bool = True, enforce_swap_headroom: bool = True) -> None:
+    """Reclaim memory (swap off for run), then lock GPU clocks + CPU governor."""
+    try_reclaim_host_memory(clear_swap=clear_swap, keep_swap_off=None)
+    try_lock_gpu_clocks()
+    try_lock_cpu_governor()
+    if enforce_swap_headroom:
+        ensure_swap_headroom(abort=True if _require_swap_headroom_enabled() else False)
 
 
 def configure_cudacri(cudacri_dir: str | Path) -> Path:
     import torch
 
     apply_spike_mitigation_env_early()
+    apply_realtime_host_tuning()
 
     root = Path(cudacri_dir).resolve()
     lib_dir = root / "lib"
