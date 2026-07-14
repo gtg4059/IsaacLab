@@ -89,6 +89,8 @@ class ArticulationData:
         self._cri_inference_time_min_s = float("inf")
         self._cri_inference_time_max_s = 0.0
         self._cri_inference_samples_s: list[float] = []
+        self._cri_cuda_start_evt: torch.cuda.Event | None = None
+        self._cri_cuda_end_evt: torch.cuda.Event | None = None
 
         self.solver = sfd_coreservice.CoreService(str(_cudacri_dir), self._root_physx_view.count)
         self.solver.RunSolver_CUDA_LoadAnalysisForCRI(str(_cudacri_dir))
@@ -1123,11 +1125,70 @@ class ArticulationData:
         Env reset may rewrite joint buffers after termination/reward CRI is computed. Trajectory
         export must use this snapshot so CSV rows stay consistent with the CRI that triggered
         OVF / logging, not the post-reset ``qd=0`` state.
+
+        Hot-path CRI skips the snapshot unless ``SFD_CRI_TRAJ_SNAPSHOT=1``; this getter forces
+        a snapshot so CSV export still works.
         """
         if self._traj_cri_timestamp < self._sim_timestamp or self._traj_cri is None:
             _ = self.CRI
+            if self._traj_cri_timestamp < self._sim_timestamp or self._traj_cri is None:
+                q_in, qd_in = self._cri_input_tensors()
+                self._store_cri_traj_snapshot(q_in, qd_in, self._CRI_float.data)
         assert self._traj_q is not None and self._traj_qd is not None and self._traj_cri is not None
         return self._traj_q, self._traj_qd, self._traj_cri
+
+    def _ensure_cri_cuda_events(self) -> None:
+        if self._cri_cuda_start_evt is None:
+            self._cri_cuda_start_evt = torch.cuda.Event(enable_timing=True)
+            self._cri_cuda_end_evt = torch.cuda.Event(enable_timing=True)
+
+    def _record_cri_inference_time(self, elapsed_s: float) -> None:
+        self._cri_inference_time_s = elapsed_s
+        self._cri_inference_count += 1
+        self._cri_inference_time_total_s += elapsed_s
+        self._cri_inference_time_min_s = min(self._cri_inference_time_min_s, elapsed_s)
+        self._cri_inference_time_max_s = max(self._cri_inference_time_max_s, elapsed_s)
+        self._cri_inference_samples_s.append(elapsed_s)
+
+    def _store_cri_output_buffers(self, cri_gpu: torch.Tensor | None) -> None:
+        """Write solver output into preallocated CRI / float caches (no alloc on steady path)."""
+        if cri_gpu is not None:
+            if self._CRI.data is None or self._CRI.data.shape != cri_gpu.shape:
+                self._CRI.data = torch.empty_like(cri_gpu)
+            self._CRI.data.copy_(cri_gpu)
+        else:
+            self._CRI.data = cri_gpu
+        if self._CRI.data is None:
+            return
+        if self._CRI_float.data is None or self._CRI_float.data.shape != self._CRI.data.shape:
+            self._CRI_float.data = torch.clamp(self._CRI.data.float(), min=0.0, max=2.0)
+        else:
+            self._CRI_float.data.copy_(self._CRI.data)
+            self._CRI_float.data.clamp_(min=0.0, max=2.0)
+
+    def run_cri_at_motion_state_hot(self, *, record_timing: bool = False) -> torch.Tensor:
+        """Native-like CRI call: solver + one ``cuda.synchronize`` (SFD_CoreService_Test hot-loop).
+
+        Skips CUDA Event sandwich used by :attr:`CRI` when ``SFD_CRI_TIMING=1``. Always
+        recomputes (ignores cache) so callers can pair with :meth:`_invalidate_cri_cache`
+        for discard-flush patterns.
+        """
+        q_in, qd_in = self._cri_input_tensors()
+        wall0 = time.perf_counter() if record_timing else 0.0
+        cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
+        if self.device.startswith("cuda"):
+            torch.cuda.synchronize()
+        if record_timing:
+            self._record_cri_inference_time(time.perf_counter() - wall0)
+        self._store_cri_output_buffers(cri_gpu)
+        if os.environ.get("SFD_CRI_TRAJ_SNAPSHOT", "0") == "1":
+            self._store_cri_traj_snapshot(q_in, qd_in, self._CRI_float.data)
+        self._CRI.timestamp = self._sim_timestamp
+        return self._CRI_float.data
+
+    def invalidate_cri_cache(self) -> None:
+        """Public wrapper for :meth:`_invalidate_cri_cache` (bench discard-flush)."""
+        self._invalidate_cri_cache()
 
     @property
     def CRI(self):
@@ -1135,30 +1196,35 @@ class ArticulationData:
 
         if self._CRI.timestamp < self._sim_timestamp:
             track_timing = os.environ.get("SFD_CRI_TIMING", "0") == "1"
-            if track_timing and self.device.startswith("cuda"):
-                torch.cuda.synchronize()
-            start_time = time.perf_counter() if track_timing else 0.0
+            use_cuda = self.device.startswith("cuda")
             q_in, qd_in = self._cri_input_tensors()
-            cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
-            if self.device.startswith("cuda"):
-                torch.cuda.synchronize()
-            self._CRI.data = cri_gpu.clone() if cri_gpu is not None else cri_gpu
-            if track_timing:
-                if self.device.startswith("cuda"):
+            if track_timing and use_cuda:
+                # Prefer native-like wall+single-sync over Event sandwich when asked for timing.
+                # Event path remains available via SFD_CRI_TIMING_EVENTS=1.
+                if os.environ.get("SFD_CRI_TIMING_EVENTS", "0") == "1":
+                    self._ensure_cri_cuda_events()
+                    assert self._cri_cuda_start_evt is not None and self._cri_cuda_end_evt is not None
+                    self._cri_cuda_start_evt.record()
+                    cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
+                    self._cri_cuda_end_evt.record()
+                    self._cri_cuda_end_evt.synchronize()
+                    elapsed = self._cri_cuda_start_evt.elapsed_time(self._cri_cuda_end_evt) * 1e-3
+                    self._record_cri_inference_time(elapsed)
+                else:
+                    wall0 = time.perf_counter()
+                    cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
                     torch.cuda.synchronize()
-                elapsed = time.perf_counter() - start_time
-                self._cri_inference_time_s = elapsed
-                self._cri_inference_count += 1
-                self._cri_inference_time_total_s += elapsed
-                self._cri_inference_time_min_s = min(self._cri_inference_time_min_s, elapsed)
-                self._cri_inference_time_max_s = max(self._cri_inference_time_max_s, elapsed)
-                self._cri_inference_samples_s.append(elapsed)
-            if self._CRI_float.data is None or self._CRI_float.data.shape != self._CRI.data.shape:
-                self._CRI_float.data = torch.clamp(self._CRI.data.float(), min=0.0, max=2.0)
+                    self._record_cri_inference_time(time.perf_counter() - wall0)
             else:
-                self._CRI_float.data.copy_(self._CRI.data)
-                self._CRI_float.data.clamp_(min=0.0, max=2.0)
-            self._store_cri_traj_snapshot(q_in, qd_in, self._CRI_float.data)
+                wall0 = time.perf_counter() if track_timing else 0.0
+                cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
+                if use_cuda:
+                    torch.cuda.synchronize()
+                if track_timing:
+                    self._record_cri_inference_time(time.perf_counter() - wall0)
+            self._store_cri_output_buffers(cri_gpu)
+            if os.environ.get("SFD_CRI_TRAJ_SNAPSHOT", "0") == "1":
+                self._store_cri_traj_snapshot(q_in, qd_in, self._CRI_float.data)
             self._CRI.timestamp = self._sim_timestamp
         return self._CRI_float.data
 

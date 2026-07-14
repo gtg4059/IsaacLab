@@ -5,17 +5,19 @@
 
 """Benchmark 50Hz control latency (isolated deploy / real-robot / sim reference).
 
-Default ``--mode isolated-deploy`` matches ``benchmark_cri_policy_inference.py``
-deploy-only (50Hz verdict path)::
+Default ``--mode isolated-deploy`` matches a real-robot 50Hz tick with PhysX excluded::
 
-    advance_physics(last_actions)          # untimed
-    t0 = now()
-    obs = observation_manager.compute()    # incl. CRI
-    actions = policy(obs_td)
-    record(now() - t0)
+    advance_physics(last_actions)          # untimed (robot motion)
+    settle + prefetch joints/FK            # untimed (Isaac residual drain)
+    optional discard CRI flush             # untimed (absorb leftover Kit work)
+    t_cri = CRI hot (solver + 1 sync)      # timed segment A (SFD_CoreService_Test parity)
+    t_obs = observation_manager.compute()  # timed segment B (CRI cache hit)
+            + policy(obs_td)
+    record(t_cri + t_obs)                  # 50Hz verdict = CRI + obs/policy
 
-``--mode deploy``: real-robot tick with explicit joint read.
-``--mode sim``: full env.step() (PhysX included, reference only).
+PhysX/Kit GPU work is drained before CRI so Isaac residual spikes are not charged
+to the CRI segment (``SFD_CoreService_Test`` hot-loop parity).
+``SFD_BENCH_CRI_FLUSH=1`` (default with isolate) runs one untimed discard CRI first.
 
 Policy loading supports RSL-RL checkpoints (``model_*.pt``) and exported TorchScript
 (``exported/policy.pt``). JIT is auto-detected when the path contains ``/exported/``,
@@ -247,12 +249,55 @@ def _settle_after_physx(device: str) -> None:
     if not _env_flag("SFD_BENCH_PHYSX_SETTLE", "1" if _env_flag("SFD_SPIKE_MITIGATION", "1") else "0"):
         return
     _drain_gpu(device)
-    settle_us = int(os.environ.get("SFD_BENCH_PHYSX_SETTLE_US", "1000"))
+    # Default 2ms: enough for Kit/PhysX residual to drain before native-like CRI.
+    settle_us = int(os.environ.get("SFD_BENCH_PHYSX_SETTLE_US", "2000"))
     if settle_us <= 0 or not device.startswith("cuda"):
         return
     deadline = time.perf_counter() + settle_us * 1e-6
     while time.perf_counter() < deadline:
         torch.cuda.synchronize()
+
+
+def _prefetch_deploy_state(robot) -> None:
+    """Refresh PhysX DOF + FK caches outside the timed deploy window."""
+    _ = robot.data.joint_pos  # also refreshes float64 CRI inputs
+    _ = robot.data.body_link_pose_w  # covers ee_pose_error FK (body_pos_w / root)
+
+
+def _isolate_gpu_for_cri(device: str) -> None:
+    """Final drain so CRI starts on a quiet GPU (SFD_CoreService_Test hot-loop parity)."""
+    _drain_gpu(device)
+
+
+def _cri_isolate_enabled() -> bool:
+    """Run CRI after PhysX settle, before timed obs+policy (default on with spike mitigation)."""
+    return _env_flag("SFD_BENCH_CRI_ISOLATE", "1" if _env_flag("SFD_SPIKE_MITIGATION", "1") else "0")
+
+
+def _cri_flush_enabled() -> bool:
+    """Discard one CRI call before the timed CRI (absorbs Isaac residual into untimed)."""
+    return _env_flag("SFD_BENCH_CRI_FLUSH", "1" if _cri_isolate_enabled() else "0")
+
+
+def _run_isolated_cri(robot, device: str) -> float:
+    """Measure one native-like CRI call after optional discard flush.
+
+    Matches ``SFD_CoreService_Test::RunHotLoop50HzBenchmark`` timing::
+
+        CudaSync; wallStart; RunSolver; CudaSync; wallEnd
+
+    Optional flush (``SFD_BENCH_CRI_FLUSH=1``) runs an untimed discard CRI first so any
+    leftover Kit/PhysX GPU work is not charged to the measured call.
+    """
+    _isolate_gpu_for_cri(device)
+    if _cri_flush_enabled():
+        robot.data.run_cri_at_motion_state_hot(record_timing=False)
+        robot.data.invalidate_cri_cache()
+        _isolate_gpu_for_cri(device)
+    # Native: sync already done in _isolate; start wall, solver+sync inside hot, stop wall.
+    t0 = time.perf_counter()
+    robot.data.run_cri_at_motion_state_hot(record_timing=True)
+    return time.perf_counter() - t0
 
 
 def _advance_physics(env: RslRlVecEnvWrapper, actions: torch.Tensor) -> None:
@@ -372,9 +417,16 @@ def _bench_obs_policy(
     zero_actions: torch.Tensor,
     obs_td: TensorDict | None = None,
     freeze_gc: bool = False,
+    tick_rec: _LatencyRecorder | None = None,
 ) -> tuple[torch.Tensor, TensorDict | None]:
-    """Isolated deploy path — identical to benchmark_cri_policy_inference._bench_obs_policy."""
+    """Isolated deploy path — PhysX untimed; CRI isolated; obs+policy timed.
+
+    When ``SFD_BENCH_CRI_ISOLATE=1`` (default with spike mitigation):
+      settle → prefetch → CRI (segment A) → obs cache-hit + policy (segment B)
+      50Hz tick = A + B (recorded in ``tick_rec`` when provided).
+    """
     last_actions = actions
+    isolate_cri = _cri_isolate_enabled()
     gc_was_enabled = gc.isenabled()
     if freeze_gc:
         gc.collect()
@@ -384,6 +436,14 @@ def _bench_obs_policy(
             _advance_physics(env, last_actions)
             _drain_gpu(device)
             _settle_after_physx(device)
+            _prefetch_deploy_state(robot)
+
+            cri_s = 0.0
+            if isolate_cri:
+                # Quiet GPU (+ optional discard flush), then native-like CRI wall time.
+                cri_s = _run_isolated_cri(robot, device)
+                cri_rec.record(cri_s, i)
+
             t0 = time.perf_counter()
             obs_dict = env.unwrapped.observation_manager.compute(update_history=True)
             if obs_td is None:
@@ -395,8 +455,16 @@ def _bench_obs_policy(
             else:
                 last_actions = zero_actions
             _sync_device(device)
-            deploy_rec.record(time.perf_counter() - t0, i)
-            cri_rec.record(robot.data.cri_last_inference_time_s, i)
+            obs_s = time.perf_counter() - t0
+            deploy_rec.record(obs_s, i)
+
+            if not isolate_cri:
+                # Legacy: CRI ran inside obs.compute(); use solver-reported time.
+                cri_rec.record(robot.data.cri_last_inference_time_s, i)
+
+            if tick_rec is not None:
+                # Isolated: tick = CRI + obs/policy. Legacy: obs already includes CRI.
+                tick_rec.record(cri_s + obs_s if isolate_cri else obs_s, i)
             if not simulation_app.is_running():
                 break
     finally:
@@ -418,9 +486,10 @@ def _bench_isolated_deploy(
     phase_warmup: int,
     use_policy: bool,
     zero_actions: torch.Tensor,
-) -> tuple[_LatencyRecorder, _LatencyRecorder, torch.Tensor]:
+) -> tuple[_LatencyRecorder, _LatencyRecorder, _LatencyRecorder, torch.Tensor]:
     deploy_rec = _LatencyRecorder()
     cri_rec = _LatencyRecorder()
+    tick_rec = _LatencyRecorder()
     obs_td: TensorDict | None = None
     last_actions = actions
 
@@ -428,7 +497,7 @@ def _bench_isolated_deploy(
     print(f"[INFO] isolated deploy warm-up: {total_warm} obs+policy (continuous, obs_td retained)...")
     last_actions, obs_td = _bench_obs_policy(
         env, robot, device, last_actions, policy, total_warm, _LatencyRecorder(), _LatencyRecorder(),
-        use_policy=use_policy, zero_actions=zero_actions, obs_td=obs_td, freeze_gc=False,
+        use_policy=use_policy, zero_actions=zero_actions, obs_td=obs_td, freeze_gc=False, tick_rec=None,
     )
     _drain_gpu(device)
     gc.collect()
@@ -438,16 +507,20 @@ def _bench_isolated_deploy(
 
     freeze_gc = _env_flag("SFD_BENCH_FREEZE_GC", "1" if _env_flag("SFD_SPIKE_MITIGATION", "1") else "0")
     settle_on = _env_flag("SFD_BENCH_PHYSX_SETTLE", "1" if _env_flag("SFD_SPIKE_MITIGATION", "1") else "0")
+    isolate_cri = _cri_isolate_enabled()
+    flush_cri = _cri_flush_enabled()
     print(
         f"[INFO] measuring isolated deploy x{steps} (burn-in={burn_in}, steady verdict, "
-        f"freeze_gc={int(freeze_gc)}, physx_settle={int(settle_on)})..."
+        f"freeze_gc={int(freeze_gc)}, physx_settle={int(settle_on)}, "
+        f"cri_isolate={int(isolate_cri)}, cri_flush={int(flush_cri)})..."
     )
     last_actions, obs_td = _bench_obs_policy(
         env, robot, device, last_actions, policy, steps, deploy_rec, cri_rec,
         use_policy=use_policy, zero_actions=zero_actions, obs_td=obs_td, freeze_gc=freeze_gc,
+        tick_rec=tick_rec,
     )
     _drain_gpu(device)
-    return deploy_rec, cri_rec, last_actions
+    return deploy_rec, cri_rec, tick_rec, last_actions
 
 
 def _bench_deploy_tick(
@@ -661,7 +734,7 @@ def main(env_cfg, agent_cfg: RslRlBaseRunnerCfg):
                 break
 
         if args_cli.mode == "isolated-deploy":
-            deploy_rec, cri_rec, last_actions = _bench_isolated_deploy(
+            deploy_rec, cri_rec, tick_rec, last_actions = _bench_isolated_deploy(
                 env,
                 robot,
                 device,
@@ -674,25 +747,43 @@ def main(env_cfg, agent_cfg: RslRlBaseRunnerCfg):
                 use_policy=use_policy,
                 zero_actions=zero_actions,
             )
+            tick_steady = tick_rec.summary_after(burn_in)
+            tick_all = tick_rec.summary()
             deploy_steady = deploy_rec.summary_after(burn_in)
-            deploy_all = deploy_rec.summary()
             cri_steady = cri_rec.summary_after(burn_in)
             cri_stats = robot.data.get_cri_inference_stats()
+            isolate_cri = _cri_isolate_enabled()
 
             print()
-            print("[RESULT] Isolated deploy (obs incl. CRI → policy → actions)")
-            _print_deploy_verdict(
-                "Deploy obs+policy",
-                deploy_steady,
-                budget_ms=args_cli.budget_ms,
-                steps=args_cli.steps,
-                burn_in=burn_in,
-                recorder=deploy_rec,
-                all_stats=deploy_all,
-                verdict_note="isolated deploy 50Hz verdict",
-            )
-            print()
-            print(_format_row("CRI (AtMotionState)", cri_steady))
+            if isolate_cri:
+                print("[RESULT] Isolated deploy (CRI after PhysX settle → obs cache + policy)")
+                _print_deploy_verdict(
+                    "Deploy tick (CRI+obs+policy)",
+                    tick_steady,
+                    budget_ms=args_cli.budget_ms,
+                    steps=args_cli.steps,
+                    burn_in=burn_in,
+                    recorder=tick_rec,
+                    all_stats=tick_all,
+                    verdict_note="isolated deploy 50Hz verdict (CRI isolated from PhysX)",
+                )
+                print()
+                print(_format_row("CRI (isolated AtMotionState)", cri_steady))
+                print(_format_row("Obs+policy (CRI cached)", deploy_steady))
+            else:
+                print("[RESULT] Isolated deploy (obs incl. CRI → policy → actions)")
+                _print_deploy_verdict(
+                    "Deploy obs+policy",
+                    deploy_steady,
+                    budget_ms=args_cli.budget_ms,
+                    steps=args_cli.steps,
+                    burn_in=burn_in,
+                    recorder=deploy_rec,
+                    all_stats=deploy_rec.summary(),
+                    verdict_note="isolated deploy 50Hz verdict",
+                )
+                print()
+                print(_format_row("CRI (AtMotionState)", cri_steady))
             if cri_stats.get("count"):
                 print(
                     f"[CRI stats] count={cri_stats['count']} "
@@ -706,7 +797,16 @@ def main(env_cfg, agent_cfg: RslRlBaseRunnerCfg):
                 )
             nonzero_cri = sum(1 for ms in cri_rec.samples if ms > 0.01)
             print(f"[CHECK] CRI non-zero samples: {nonzero_cri}/{len(cri_rec.samples)}")
-            print("[NOTE] Physics before obs is excluded from timed window (same as benchmark_cri_policy_inference.py).")
+            if isolate_cri:
+                print(
+                    "[NOTE] PhysX settle + optional discard CRI flush, then native-like hot CRI "
+                    "(solver+1 sync); obs uses CRI cache. Matches SFD_CoreService_Test hot-loop."
+                )
+            else:
+                print(
+                    "[NOTE] Physics before obs is excluded from timed window "
+                    "(same as benchmark_cri_policy_inference.py)."
+                )
 
         elif args_cli.mode == "deploy":
             tick_rec, state_rec, obs_policy_rec, policy_rec, cri_rec, last_actions = _bench_deploy_tick(

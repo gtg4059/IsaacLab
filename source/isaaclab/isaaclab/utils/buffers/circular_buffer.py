@@ -85,9 +85,15 @@ class CircularBuffer:
         Note:
             The oldest entry is at the beginning of dimension 1.
         """
-        buf = self._buffer.clone()
-        buf = torch.roll(buf, shifts=self.max_length - self._pointer - 1, dims=0)
-        return torch.transpose(buf, dim0=0, dim1=1)
+        # Storage layout is (max_length, batch_size, ...); newest is at ``_pointer``.
+        # Avoid full clone()+roll() (alloc + permute) — concatenate the two contiguous slices.
+        p = self._pointer
+        max_len = self.max_length
+        if p == max_len - 1:
+            ordered = self._buffer
+        else:
+            ordered = torch.cat((self._buffer[p + 1 :], self._buffer[: p + 1]), dim=0)
+        return ordered.transpose(0, 1)
 
     """
     Operations.

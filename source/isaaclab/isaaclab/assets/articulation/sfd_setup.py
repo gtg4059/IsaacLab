@@ -15,7 +15,13 @@ Realtime tail-spike mitigation (SafeGiver SFD_CoreService_Test + Isaac host tuni
     SFD_DISABLE_SWAP=1       → leave swap off for the whole run (auto with GPU lock)
                                so Isaac warmup cannot refill swap; swapon on exit
     SFD_REQUIRE_SWAP_HEADROOM=1 → abort only at startup if swap cannot be cleared
-    종료 시 GPU -rgc + CPU governor 원복 + swapon
+    SFD_PROCESS_RT=1         → mlockall + optional SCHED_FIFO / CPU affinity
+                               (auto with GPU lock / SFD_REALTIME_HOST unless =0)
+    SFD_MLOCKALL=1           → lock process pages (default on with SFD_PROCESS_RT)
+    SFD_SCHED_FIFO=1         → SCHED_FIFO realtime priority (needs CAP_SYS_NICE/root)
+    SFD_SCHED_FIFO_PRIO=N    → FIFO priority (default 40)
+    SFD_CPU_AFFINITY=0,2,4   → pin process to listed CPUs
+    종료 시 GPU -rgc + CPU governor 원복 + swapon (+ SCHED_OTHER restore)
 """
 
 from __future__ import annotations
@@ -38,6 +44,136 @@ _cpu_governor_used_sudo: bool = False
 _realtime_cleanup_registered: bool = False
 _realtime_signals_registered: bool = False
 _swap_disabled_by_us: bool = False
+_sched_fifo_applied: bool = False
+_sched_fifo_saved: tuple[int, int] | None = None  # (policy, priority)
+_mlockall_applied: bool = False
+
+
+def _process_rt_enabled() -> bool:
+    """Process RT hardening (mlock / FIFO / affinity). Default on with GPU-lock bundle."""
+    if "SFD_PROCESS_RT" in os.environ:
+        return _env_truthy("SFD_PROCESS_RT")
+    return _realtime_bundle_enabled()
+
+
+def try_mlockall() -> bool:
+    """Lock current + future pages into RAM (avoids mid-loop page-fault spikes)."""
+    global _mlockall_applied
+    if not _env_truthy("SFD_MLOCKALL", "1" if _process_rt_enabled() else "0"):
+        return False
+    if _mlockall_applied:
+        return True
+    try:
+        import ctypes
+        import ctypes.util
+
+        libc_name = ctypes.util.find_library("c")
+        if not libc_name:
+            print("[spike] mlockall skipped: libc not found", flush=True)
+            return False
+        libc = ctypes.CDLL(libc_name, use_errno=True)
+        # MCL_CURRENT | MCL_FUTURE
+        rc = libc.mlockall(1 | 2)
+        if rc != 0:
+            err = ctypes.get_errno()
+            print(
+                f"[spike] mlockall failed errno={err} "
+                f"(need CAP_IPC_LOCK / ulimit -l unlimited?). Continuing.",
+                flush=True,
+            )
+            return False
+        _mlockall_applied = True
+        print("[spike] mlockall(MCL_CURRENT|MCL_FUTURE) applied", flush=True)
+        return True
+    except Exception as exc:  # noqa: BLE001
+        print(f"[spike] mlockall skipped: {exc}", flush=True)
+        return False
+
+
+def try_set_cpu_affinity() -> bool:
+    """Pin process to ``SFD_CPU_AFFINITY`` (comma-separated CPU ids)."""
+    raw = os.environ.get("SFD_CPU_AFFINITY", "").strip()
+    if not raw:
+        return False
+    try:
+        cpus = {int(x.strip()) for x in raw.split(",") if x.strip() != ""}
+        if not cpus:
+            return False
+        os.sched_setaffinity(0, cpus)
+        print(f"[spike] CPU affinity set to {sorted(cpus)}", flush=True)
+        return True
+    except Exception as exc:  # noqa: BLE001
+        print(f"[spike] CPU affinity failed ({raw}): {exc}", flush=True)
+        return False
+
+
+def try_sched_fifo() -> bool:
+    """Raise this process to SCHED_FIFO (needs CAP_SYS_NICE / root). Opt-in."""
+    global _sched_fifo_applied, _sched_fifo_saved
+    if not _env_truthy("SFD_SCHED_FIFO"):
+        return False
+    if _sched_fifo_applied:
+        return True
+    if not hasattr(os, "SCHED_FIFO") or not hasattr(os, "sched_setscheduler"):
+        print("[spike] SCHED_FIFO not supported on this platform", flush=True)
+        return False
+    try:
+        old_policy = os.sched_getscheduler(0)
+        old_param = os.sched_getparam(0)
+        _sched_fifo_saved = (old_policy, int(old_param.sched_priority))
+        prio = int(os.environ.get("SFD_SCHED_FIFO_PRIO", "40"))
+        max_p = os.sched_get_priority_max(os.SCHED_FIFO)
+        min_p = os.sched_get_priority_min(os.SCHED_FIFO)
+        prio = max(min_p, min(max_p, prio))
+        os.sched_setscheduler(0, os.SCHED_FIFO, os.sched_param(prio))
+        _sched_fifo_applied = True
+        _register_realtime_cleanup()
+        print(
+            f"[spike] SCHED_FIFO priority={prio} "
+            f"(was policy={old_policy} prio={old_param.sched_priority})",
+            flush=True,
+        )
+        return True
+    except PermissionError:
+        print(
+            "[spike] SCHED_FIFO failed: need CAP_SYS_NICE/root. "
+            "Try: sudo setcap cap_sys_nice+ep $(which python)  OR  run with sudo.",
+            flush=True,
+        )
+        return False
+    except Exception as exc:  # noqa: BLE001
+        print(f"[spike] SCHED_FIFO failed: {exc}", flush=True)
+        return False
+
+
+def restore_sched_policy() -> None:
+    """Restore pre-FIFO scheduler if we changed it."""
+    global _sched_fifo_applied, _sched_fifo_saved
+    if not _sched_fifo_applied or _sched_fifo_saved is None:
+        return
+    policy, prio = _sched_fifo_saved
+    try:
+        os.sched_setscheduler(0, policy, os.sched_param(prio))
+        print(f"[spike] scheduler restored policy={policy} prio={prio}", flush=True)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[spike] scheduler restore failed: {exc}", flush=True)
+    _sched_fifo_applied = False
+    _sched_fifo_saved = None
+
+
+def apply_process_rt_hardening() -> None:
+    """Process-level RT hardening against rare mid-run latency spikes.
+
+    Complements host GPU/CPU locks. Call after tensors/solvers are warmed so
+    ``mlockall`` covers the working set.
+    """
+    if not _process_rt_enabled() and not _env_truthy("SFD_MLOCKALL") and not _env_truthy("SFD_SCHED_FIFO"):
+        # Still honor explicit affinity.
+        try_set_cpu_affinity()
+        return
+    try_set_cpu_affinity()
+    try_mlockall()
+    try_sched_fifo()
 
 
 def _env_truthy(name: str, default: str = "0") -> bool:
@@ -351,6 +487,7 @@ def restore_cpu_governor() -> None:
 
 def restore_realtime_host() -> None:
     """Release GPU clock lock, restore CPU governor, re-enable swap (idempotent)."""
+    restore_sched_policy()
     unlock_gpu_clocks()
     restore_cpu_governor()
     restore_swap()

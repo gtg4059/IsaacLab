@@ -392,7 +392,17 @@ class ObservationManager(ManagerBase):
         # evaluate terms: compute, add noise, clip, scale, custom modifiers
         for term_name, term_cfg in obs_terms:
             # compute term's value
-            obs: torch.Tensor = term_cfg.func(self._env, **term_cfg.params).clone()
+            obs: torch.Tensor = term_cfg.func(self._env, **term_cfg.params)
+            # Clone only when we mutate or return the tensor directly. History ``append``
+            # copies into the ring buffer, so owned-buffer terms (e.g. CRI) can skip clone.
+            will_mutate = (
+                term_cfg.modifiers is not None
+                or term_cfg.noise is not None
+                or term_cfg.clip
+                or term_cfg.scale is not None
+            )
+            if will_mutate or term_cfg.history_length <= 0:
+                obs = obs.clone()
             # apply post-processing
             if term_cfg.modifiers is not None:
                 for modifier in term_cfg.modifiers:
