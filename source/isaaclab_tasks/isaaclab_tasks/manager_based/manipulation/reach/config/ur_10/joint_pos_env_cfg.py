@@ -32,10 +32,14 @@ class UR10ReachEnvCfg(CRIReachEnvCfg):
             asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True
         )
 
-        self.events.reset_robot_joints.params["primary_position_range"] = (-math.pi / 2, math.pi / 2)
-        self.events.reset_robot_joints.params["secondary_position_range"] = (-math.pi * 0.8, math.pi * 0.8)
+        # shoulder lift joint position range
+        self.events.reset_robot_joints.params["primary_position_range"] = (-math.pi * 7/12, math.pi * 9/12)
+        # elbow joint position range
+        self.events.reset_robot_joints.params["secondary_position_range"] = (-math.pi * 0.0, math.pi * 0.8)
+        self.events.reset_robot_joints.params["tertiary_position_range"] = (-math.pi * 0.8, math.pi * 0.8)
         self.events.reset_robot_joints.params["primary_velocity_range"] = (0.0, 0.0)
         self.events.reset_robot_joints.params["secondary_velocity_range"] = (0.0, 0.0)
+        self.events.reset_robot_joints.params["tertiary_velocity_range"] = (0.0, 0.0)
 
         self.commands.ee_pose.ranges.pos_th = (-math.pi, math.pi)
         self.commands.ee_pose.ranges.roll = (-math.pi, math.pi)

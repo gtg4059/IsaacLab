@@ -107,22 +107,24 @@ class CRIObservationsCfg:
 @configclass
 class CRIEventCfg:
     reset_robot_joints = EventTerm(
-        func=mdp.reset_robot_joints_two_groups_by_offset,
+        func=mdp.reset_robot_joints_three_groups_by_offset,
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot"),
             "primary_joint_names": ["shoulder_lift_joint"],
             "primary_position_range": (0.0, 0.0),
             "primary_velocity_range": (0.0, 0.0),
-            "secondary_joint_names": [
+            "secondary_joint_names": ["elbow_joint"],
+            "secondary_position_range": (0.0, 0.0),
+            "secondary_velocity_range": (0.0, 0.0),
+            "tertiary_joint_names": [
                 "shoulder_pan_joint",
-                "elbow_joint",
                 "wrist_1_joint",
                 "wrist_2_joint",
                 "wrist_3_joint",
             ],
-            "secondary_position_range": (0.0, 0.0),
-            "secondary_velocity_range": (0.0, 0.0),
+            "tertiary_position_range": (0.0, 0.0),
+            "tertiary_velocity_range": (0.0, 0.0),
         },
     )
 
