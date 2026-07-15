@@ -23,6 +23,20 @@ Example (continuous-reach policy, P2P-style one-shot scoring)::
         --export_csv_dir /path/to/out \\
         --headless
 
+Multi-seed eval (same checkpoint, different env RNG seeds; Isaac Sim started once)::
+
+    ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/play_reach_csv.py \\
+        --task Isaac-Reach-UR10-Play-v0 \\
+        --num_envs 2000 \\
+        --checkpoint /path/to/model.pt \\
+        --seeds 0,1,2,3,4 \\
+        --no_traj_csv \\
+        --export_csv_dir /path/to/out \\
+        --headless
+
+Writes ``seed_<s>/episode_reach.csv``, ``seed_<s>/reach_summary.csv``, and
+``multi_seed_summary.csv`` (mean ± std of reach rate across seeds).
+
 For a P2P-trained policy use ``--task Isaac-Reach-UR10-P2P-Play-v0`` (env already ends on reach).
 
 CSV columns: ``global_step``, ``sim_time_s``, ``reach_event``, ``max_CRI``, ``q_*``, ``qd_*``, ``CRI_<i>``
@@ -56,7 +70,14 @@ parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument(
     "--agent", type=str, default="rsl_rl_cfg_entry_point", help="Name of the RL agent configuration entry point."
 )
-parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment.")
+parser.add_argument("--seed", type=int, default=None, help="Single environment seed (ignored if --seeds is set).")
+parser.add_argument(
+    "--seeds",
+    type=str,
+    default=None,
+    help="Comma-separated eval seeds for multi-seed acquisition (e.g. 0,1,2,3,4). "
+    "Runs each seed sequentially in one process; writes seed_<s>/ plus multi_seed_summary.csv.",
+)
 parser.add_argument(
     "--use_pretrained_checkpoint",
     action="store_true",
@@ -68,6 +89,12 @@ parser.add_argument(
     type=str,
     default=None,
     help="Output directory for env_*_traj.csv (default: <checkpoint_dir>/joint_trajectory).",
+)
+parser.add_argument(
+    "--no_traj_csv",
+    action="store_true",
+    default=False,
+    help="Skip writing env_*_traj.csv (still write episode_reach / summaries). Recommended with --seeds.",
 )
 parser.add_argument(
     "--export_csv_always",
@@ -133,6 +160,198 @@ import reach_traj_csv_utils as csv_utils
 installed_version = metadata.version("rsl-rl-lib")
 
 
+def _parse_eval_seeds(default_seed: int) -> list[int]:
+    if args_cli.seeds is not None:
+        parts = [p.strip() for p in args_cli.seeds.split(",") if p.strip() != ""]
+        if not parts:
+            raise ValueError("--seeds must contain at least one integer (e.g. 0,1,2).")
+        return [int(p) for p in parts]
+    if args_cli.seed is not None:
+        return [args_cli.seed]
+    return [default_seed]
+
+
+def _run_one_shot_eval(
+    *,
+    env: RslRlVecEnvWrapper,
+    base_env: ManagerBasedRLEnv,
+    policy: Any,
+    policy_nn: Any,
+    strict_reach_params: dict[str, Any],
+    export_csv_dir: str,
+    resume_path: str,
+    eval_seed: int,
+    write_traj: bool,
+    record_video: bool,
+) -> dict[str, Any]:
+    """Run P2P-style one-shot eval for the current reset state; write CSVs under export_csv_dir."""
+    dt = base_env.step_dt
+    obs = env.get_observations()
+
+    play_step = 0
+    video_step = 0
+    csv_files: dict[int, IO[str]] | None = None
+    csv_writers: dict[int, csv.DictWriter] | None = None
+    episode_reach_file: IO[str] | None = None
+    episode_reach_writer: csv.DictWriter | None = None
+    log_active: torch.Tensor | None = None
+    attempt_active: torch.Tensor | None = None
+    episode_ids: torch.Tensor | None = None
+    total_episodes = 0
+    total_reached_episodes = 0
+
+    try:
+        while simulation_app.is_running():
+            loop_start = time.time()
+            # Use no_grad (not inference_mode): Isaac Lab buffers are mutated in-place on reset,
+            # and inference tensors from a prior seed block multi-seed reset().
+            with torch.no_grad():
+                reach_cmd_snapshot = (
+                    base_env.command_manager.get_command(strict_reach_params["command_name"]).detach().clone()
+                )
+
+                actions = policy(obs)
+                obs, _, dones, _ = env.step(actions)
+
+                if version.parse(installed_version) >= version.parse("4.0.0"):
+                    policy.reset(dones)
+                elif policy_nn is not None:
+                    policy_nn.reset(dones)
+
+                play_step += 1
+
+                if episode_reach_writer is None:
+                    if write_traj:
+                        robot = base_env.scene["robot"]
+                        num_cri = int(robot.data.CRI.shape[1])
+                        csv_files, csv_writers = csv_utils.open_traj_csv_writers(
+                            export_csv_dir, base_env.num_envs, list(robot.joint_names), num_cri
+                        )
+                    episode_reach_file, episode_reach_writer = csv_utils.open_episode_reach_csv(export_csv_dir)
+                    log_active = torch.ones(base_env.num_envs, device=base_env.device, dtype=torch.bool)
+                    attempt_active = torch.ones(base_env.num_envs, device=base_env.device, dtype=torch.bool)
+                    episode_ids = torch.zeros(base_env.num_envs, device=base_env.device, dtype=torch.long)
+
+                assert (
+                    attempt_active is not None
+                    and log_active is not None
+                    and episode_ids is not None
+                    and episode_reach_writer is not None
+                    and episode_reach_file is not None
+                )
+
+                reach_ev = csv_utils.resolve_reach_event(base_env, reach_cmd_snapshot, strict_reach_params)
+                done_mask = dones.detach().bool().view(-1)
+
+                if write_traj and csv_writers is not None:
+                    csv_utils.append_traj_rows(
+                        csv_writers,
+                        base_env.scene["robot"],
+                        play_step,
+                        float(play_step) * dt,
+                        log_active & attempt_active,
+                        reach_ev,
+                    )
+                    if csv_files is not None:
+                        for handle in csv_files.values():
+                            handle.flush()
+
+                sim_time_s = float(play_step) * dt
+                newly_success = attempt_active & reach_ev
+                if bool(newly_success.any().item()):
+                    for env_idx in newly_success.nonzero(as_tuple=False).view(-1).tolist():
+                        csv_utils.record_attempt(
+                            episode_reach_writer,
+                            episode_reach_file,
+                            int(env_idx),
+                            int(episode_ids[env_idx].item()),
+                            sim_time_s,
+                            reached=True,
+                            outcome="success",
+                        )
+                    total_episodes += int(newly_success.sum().item())
+                    total_reached_episodes += int(newly_success.sum().item())
+                    episode_ids[newly_success] += 1
+                    attempt_active &= ~newly_success
+                    if not args_cli.export_csv_always:
+                        log_active &= ~newly_success
+
+                newly_fail = attempt_active & done_mask
+                if bool(newly_fail.any().item()):
+                    for env_idx in newly_fail.nonzero(as_tuple=False).view(-1).tolist():
+                        outcome = csv_utils.classify_failure_outcome(base_env, int(env_idx))
+                        csv_utils.record_attempt(
+                            episode_reach_writer,
+                            episode_reach_file,
+                            int(env_idx),
+                            int(episode_ids[env_idx].item()),
+                            sim_time_s,
+                            reached=False,
+                            outcome=outcome,
+                        )
+                    total_episodes += int(newly_fail.sum().item())
+                    episode_ids[newly_fail] += 1
+                    attempt_active &= ~newly_fail
+                    log_active &= ~newly_fail
+
+                if not bool(attempt_active.any().item()):
+                    pct = csv_utils.reach_percent(total_reached_episodes, total_episodes)
+                    print(
+                        f"[INFO] seed={eval_seed}: all envs finished 1 attempt; reach rate "
+                        f"{total_reached_episodes}/{total_episodes} ({pct:.2f}%)."
+                    )
+                    break
+
+            if record_video:
+                video_step += 1
+                if video_step >= args_cli.video_length:
+                    break
+
+            if args_cli.max_steps > 0 and play_step >= args_cli.max_steps:
+                print(f"[INFO] seed={eval_seed}: reached max_steps={args_cli.max_steps}; stopping.")
+                break
+
+            if args_cli.real_time:
+                sleep_time = dt - (time.time() - loop_start)
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+    finally:
+        if csv_files is not None:
+            for handle in csv_files.values():
+                handle.close()
+            print(f"[INFO] Closed trajectory CSV files under {os.path.abspath(export_csv_dir)}")
+        if episode_reach_file is not None:
+            episode_reach_file.close()
+
+    episode_path = os.path.join(export_csv_dir, "episode_reach.csv")
+    mean_lat = csv_utils.mean_success_latency_s_from_episode_csv(episode_path)
+    summary_path = csv_utils.write_reach_summary_csv(
+        export_csv_dir,
+        total_reached_episodes,
+        total_episodes,
+        seed=eval_seed,
+        checkpoint=resume_path,
+        mean_success_latency_s=mean_lat,
+    )
+    pct = csv_utils.reach_percent(total_reached_episodes, total_episodes)
+    print(
+        f"[INFO] seed={eval_seed}: {total_reached_episodes}/{total_episodes} reached ({pct:.2f}%); "
+        f"failed={total_episodes - total_reached_episodes}"
+    )
+    print(f"[INFO] Per-episode CSV: {os.path.abspath(episode_path)}")
+    print(f"[INFO] Aggregate CSV: {summary_path}")
+
+    return {
+        "seed": eval_seed,
+        "checkpoint": resume_path,
+        "total_episodes": total_episodes,
+        "reached_episodes": total_reached_episodes,
+        "failed_episodes": total_episodes - total_reached_episodes,
+        "reach_percent": round(pct, 4),
+        "mean_success_latency_s": "" if mean_lat is None else round(mean_lat, 6),
+    }
+
+
 @hydra_task_config(args_cli.task, args_cli.agent)
 def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     """Play with RSL-RL agent and write trajectory CSV under P2P-style one-shot eval."""
@@ -143,7 +362,11 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
     agent_cfg = handle_deprecated_rsl_rl_cfg(agent_cfg, installed_version)
 
-    env_cfg.seed = agent_cfg.seed
+    eval_seeds = _parse_eval_seeds(agent_cfg.seed)
+    multi_seed = args_cli.seeds is not None
+    # First seed applied at env construction; later seeds via reset(seed=...).
+    env_cfg.seed = eval_seeds[0]
+    agent_cfg.seed = eval_seeds[0]
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
 
     log_root_path = os.path.abspath(os.path.join("logs", "rsl_rl", agent_cfg.experiment_name))
@@ -159,7 +382,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         resume_path = get_checkpoint_path(log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint)
 
     log_dir = os.path.dirname(resume_path)
-    export_csv_dir = args_cli.export_csv_dir or os.path.join(log_dir, "joint_trajectory")
+    export_csv_root = args_cli.export_csv_dir or os.path.join(log_dir, "joint_trajectory")
     env_cfg.log_dir = log_dir
 
     strict_reach_params = csv_utils.strict_reach_params_from_env_cfg(env_cfg)
@@ -217,25 +440,11 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         )
     csv_utils.apply_strict_reach_params_to_env(base_env, strict_reach_params)
 
-    dt = base_env.step_dt
-    obs = env.get_observations()
-
-    play_step = 0
-    video_step = 0
-    csv_files: dict[int, IO[str]] | None = None
-    csv_writers: dict[int, csv.DictWriter] | None = None
-    episode_reach_file: IO[str] | None = None
-    episode_reach_writer: csv.DictWriter | None = None
-    # Per-env: still logging / still scoring this one-shot attempt (P2P-style).
-    log_active: torch.Tensor | None = None
-    attempt_active: torch.Tensor | None = None
-    episode_ids: torch.Tensor | None = None
-    total_episodes = 0
-    total_reached_episodes = 0
-
     has_reach_term = "reach_success" in base_env.termination_manager.active_terms
-    print(f"[INFO] Trajectory CSV output: {os.path.abspath(export_csv_dir)}/env_*_traj.csv")
-    print(f"[INFO] Episode reach summary: {os.path.abspath(export_csv_dir)}/episode_reach.csv")
+    write_traj = not args_cli.no_traj_csv
+    print(f"[INFO] Eval seeds: {eval_seeds}" + (" (multi-seed mode)" if multi_seed else ""))
+    print(f"[INFO] Trajectory CSV: {'enabled' if write_traj else 'disabled (--no_traj_csv)'}")
+    print(f"[INFO] CSV root: {os.path.abspath(export_csv_root)}")
     print(
         "[INFO] P2P-style one-shot eval: log until first strict reach; "
         "no reach before episode end => failure."
@@ -254,139 +463,63 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     if args_cli.export_csv_always:
         print("[INFO] export_csv_always: keep traj rows after reach (outcome still one-shot).")
     if args_cli.max_steps > 0:
-        print(f"[INFO] Will exit after {args_cli.max_steps} env steps.")
+        print(f"[INFO] Will exit after {args_cli.max_steps} env steps per seed.")
 
-    try:
-        while simulation_app.is_running():
-            loop_start = time.time()
-            with torch.inference_mode():
-                reach_cmd_snapshot = (
-                    base_env.command_manager.get_command(strict_reach_params["command_name"]).detach().clone()
-                )
+    seed_rows: list[dict[str, Any]] = []
+    for seed_idx, eval_seed in enumerate(eval_seeds):
+        if multi_seed:
+            seed_dir = os.path.join(export_csv_root, f"seed_{eval_seed}")
+        else:
+            seed_dir = export_csv_root
 
-                actions = policy(obs)
-                obs, _, dones, _ = env.step(actions)
-
+        if seed_idx > 0:
+            print(f"[INFO] Resetting env with seed={eval_seed} ...")
+            with torch.no_grad():
+                base_env.reset(seed=eval_seed)
+                # Clear any recurrent / distributional policy state between seeds.
                 if version.parse(installed_version) >= version.parse("4.0.0"):
-                    policy.reset(dones)
+                    zeros = torch.ones(base_env.num_envs, device=base_env.device, dtype=torch.long)
+                    policy.reset(zeros)
                 elif policy_nn is not None:
-                    policy_nn.reset(dones)
+                    zeros = torch.ones(base_env.num_envs, device=base_env.device, dtype=torch.long)
+                    policy_nn.reset(zeros)
 
-                base_env = env.unwrapped
-                play_step += 1
+        record_video = bool(args_cli.video) and seed_idx == 0
+        row = _run_one_shot_eval(
+            env=env,
+            base_env=base_env,
+            policy=policy,
+            policy_nn=policy_nn,
+            strict_reach_params=strict_reach_params,
+            export_csv_dir=seed_dir,
+            resume_path=resume_path,
+            eval_seed=eval_seed,
+            write_traj=write_traj,
+            record_video=record_video,
+        )
+        seed_rows.append(row)
 
-                if csv_writers is None:
-                    robot = base_env.scene["robot"]
-                    num_cri = int(robot.data.CRI.shape[1])
-                    csv_files, csv_writers = csv_utils.open_traj_csv_writers(
-                        export_csv_dir, base_env.num_envs, list(robot.joint_names), num_cri
-                    )
-                    episode_reach_file, episode_reach_writer = csv_utils.open_episode_reach_csv(export_csv_dir)
-                    log_active = torch.ones(base_env.num_envs, device=base_env.device, dtype=torch.bool)
-                    attempt_active = torch.ones(base_env.num_envs, device=base_env.device, dtype=torch.bool)
-                    episode_ids = torch.zeros(base_env.num_envs, device=base_env.device, dtype=torch.long)
+        if not simulation_app.is_running():
+            break
 
-                assert (
-                    csv_writers is not None
-                    and log_active is not None
-                    and attempt_active is not None
-                    and episode_ids is not None
-                    and episode_reach_writer is not None
-                    and episode_reach_file is not None
-                )
-
-                reach_ev = csv_utils.resolve_reach_event(base_env, reach_cmd_snapshot, strict_reach_params)
-                done_mask = dones.detach().bool().view(-1)
-
-                # Traj rows only while attempt/log active (includes the reach success row).
-                csv_utils.append_traj_rows(
-                    csv_writers,
-                    base_env.scene["robot"],
-                    play_step,
-                    float(play_step) * dt,
-                    log_active & attempt_active,
-                    reach_ev,
-                )
-                if csv_files is not None:
-                    for handle in csv_files.values():
-                        handle.flush()
-
-                # 1) Success: first strict reach ends the attempt (P2P reach_success equivalent).
-                sim_time_s = float(play_step) * dt
-                newly_success = attempt_active & reach_ev
-                if bool(newly_success.any().item()):
-                    for env_idx in newly_success.nonzero(as_tuple=False).view(-1).tolist():
-                        csv_utils.record_attempt(
-                            episode_reach_writer,
-                            episode_reach_file,
-                            int(env_idx),
-                            int(episode_ids[env_idx].item()),
-                            sim_time_s,
-                            reached=True,
-                            outcome="success",
-                        )
-                    total_episodes += int(newly_success.sum().item())
-                    total_reached_episodes += int(newly_success.sum().item())
-                    episode_ids[newly_success] += 1
-                    attempt_active &= ~newly_success
-                    if not args_cli.export_csv_always:
-                        log_active &= ~newly_success
-
-                # 2) Failure: episode ended without prior success (timeout / OVF / other).
-                newly_fail = attempt_active & done_mask
-                if bool(newly_fail.any().item()):
-                    for env_idx in newly_fail.nonzero(as_tuple=False).view(-1).tolist():
-                        outcome = csv_utils.classify_failure_outcome(base_env, int(env_idx))
-                        csv_utils.record_attempt(
-                            episode_reach_writer,
-                            episode_reach_file,
-                            int(env_idx),
-                            int(episode_ids[env_idx].item()),
-                            sim_time_s,
-                            reached=False,
-                            outcome=outcome,
-                        )
-                    total_episodes += int(newly_fail.sum().item())
-                    episode_ids[newly_fail] += 1
-                    attempt_active &= ~newly_fail
-                    log_active &= ~newly_fail
-
-                if not bool(attempt_active.any().item()):
-                    pct = csv_utils.reach_percent(total_reached_episodes, total_episodes)
-                    print(
-                        f"[INFO] All envs finished 1 attempt; reach rate "
-                        f"{total_reached_episodes}/{total_episodes} ({pct:.2f}%). Stopping."
-                    )
-                    break
-
-            if args_cli.video:
-                video_step += 1
-                if video_step >= args_cli.video_length:
-                    break
-
-            if args_cli.max_steps > 0 and play_step >= args_cli.max_steps:
-                print(f"[INFO] Reached max_steps={args_cli.max_steps}; stopping.")
-                break
-
-            if args_cli.real_time:
-                sleep_time = dt - (time.time() - loop_start)
-                if sleep_time > 0:
-                    time.sleep(sleep_time)
-    finally:
-        if csv_files is not None:
-            for handle in csv_files.values():
-                handle.close()
-            print(f"[INFO] Closed trajectory CSV files under {os.path.abspath(export_csv_dir)}")
-        if episode_reach_file is not None:
-            episode_reach_file.close()
-            pct = csv_utils.reach_percent(total_reached_episodes, total_episodes)
-            summary_path = csv_utils.write_reach_summary_csv(export_csv_dir, total_reached_episodes, total_episodes)
-            print(
-                f"[INFO] Episode reach summary: {total_reached_episodes}/{total_episodes} "
-                f"reached ({pct:.2f}%); failed={total_episodes - total_reached_episodes}"
-            )
-            print(f"[INFO] Per-episode CSV: {os.path.abspath(export_csv_dir)}/episode_reach.csv")
-            print(f"[INFO] Aggregate CSV: {summary_path}")
+    if multi_seed and len(seed_rows) == len(eval_seeds):
+        multi_path = csv_utils.write_multi_seed_summary_csv(export_csv_root, seed_rows)
+        rates = [float(r["reach_percent"]) for r in seed_rows]
+        mean_r = sum(rates) / len(rates)
+        if len(rates) >= 2:
+            std_r = (sum((x - mean_r) ** 2 for x in rates) / (len(rates) - 1)) ** 0.5
+        else:
+            std_r = 0.0
+        print(
+            f"[INFO] Multi-seed reach rate: {mean_r:.4f}% ± {std_r:.4f}% "
+            f"(n={len(rates)} seeds)"
+        )
+        print(f"[INFO] Multi-seed summary: {multi_path}")
+    elif multi_seed and seed_rows:
+        print(
+            f"[WARN] Multi-seed run incomplete: {len(seed_rows)}/{len(eval_seeds)} seeds finished; "
+            "skipping multi_seed_summary.csv"
+        )
 
     env.close()
 
