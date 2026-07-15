@@ -167,12 +167,20 @@ class UR10ReachP2PEnvCfg(UR10ReachEnvCfg):
             ),
         )
 
+        # Parent UR10ReachEnvCfg injects tertiary_* ranges for the 3-group continuous-reach
+        # reset; P2P uses reset_robot_joints_two_groups_by_offset, so drop those keys.
+        for key in (
+            "tertiary_joint_names",
+            "tertiary_position_range",
+            "tertiary_velocity_range",
+        ):
+            self.events.reset_robot_joints.params.pop(key, None)
         self.events.reset_robot_joints.params["primary_position_range"] = (0.0, 0.0)
         self.events.reset_robot_joints.params["secondary_position_range"] = (0.0, 0.0)
         self.events.reset_robot_joints.params["primary_velocity_range"] = (0.0, 0.0)
         self.events.reset_robot_joints.params["secondary_velocity_range"] = (0.0, 0.0)
 
-        self.commands.ee_pose.ranges.pos_r= (0.6, 0.6)
+        self.commands.ee_pose.ranges.pos_r = (0.6, 0.6)
         self.commands.ee_pose.ranges.pos_z = (0.6, 0.6)
         self.commands.ee_pose.ranges.pos_th = (0.0, 0.0)
         self.commands.ee_pose.ranges.roll = (0.0, 0.0)

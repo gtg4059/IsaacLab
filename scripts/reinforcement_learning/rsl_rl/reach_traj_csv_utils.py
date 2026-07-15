@@ -140,23 +140,106 @@ def reach_percent(reached: int, total: int) -> float:
     return 100.0 * float(reached) / float(total)
 
 
-def write_reach_summary_csv(csv_dir: str, reached: int, total: int) -> str:
+def write_reach_summary_csv(
+    csv_dir: str,
+    reached: int,
+    total: int,
+    *,
+    seed: int | None = None,
+    checkpoint: str | None = None,
+    mean_success_latency_s: float | None = None,
+) -> str:
     os.makedirs(csv_dir, exist_ok=True)
     path = os.path.join(csv_dir, "reach_summary.csv")
+    fieldnames = [
+        "seed",
+        "checkpoint",
+        "total_episodes",
+        "reached_episodes",
+        "failed_episodes",
+        "reach_percent",
+        "mean_success_latency_s",
+    ]
     with open(path, "w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(
-            handle,
-            fieldnames=["total_episodes", "reached_episodes", "failed_episodes", "reach_percent"],
-        )
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerow(
             {
+                "seed": "" if seed is None else seed,
+                "checkpoint": checkpoint or "",
                 "total_episodes": total,
                 "reached_episodes": reached,
                 "failed_episodes": total - reached,
                 "reach_percent": round(reach_percent(reached, total), 4),
+                "mean_success_latency_s": (
+                    "" if mean_success_latency_s is None else round(mean_success_latency_s, 6)
+                ),
             }
         )
+    return os.path.abspath(path)
+
+
+def mean_success_latency_s_from_episode_csv(episode_csv_path: str) -> float | None:
+    """Mean ``ended_at_s`` over successful attempts in ``episode_reach.csv``."""
+    if not os.path.isfile(episode_csv_path):
+        return None
+    latencies: list[float] = []
+    with open(episode_csv_path, newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            if int(row.get("reached", 0)) != 1:
+                continue
+            latencies.append(float(row["ended_at_s"]))
+    if not latencies:
+        return None
+    return float(sum(latencies) / len(latencies))
+
+
+def write_multi_seed_summary_csv(csv_dir: str, seed_rows: list[dict[str, Any]]) -> str:
+    """Write per-seed rows plus mean/std of reach_percent across seeds."""
+    os.makedirs(csv_dir, exist_ok=True)
+    path = os.path.join(csv_dir, "multi_seed_summary.csv")
+    fieldnames = [
+        "seed",
+        "checkpoint",
+        "total_episodes",
+        "reached_episodes",
+        "failed_episodes",
+        "reach_percent",
+        "mean_success_latency_s",
+    ]
+    rates = [float(row["reach_percent"]) for row in seed_rows]
+    n = len(rates)
+    mean_rate = sum(rates) / n if n else 0.0
+    if n >= 2:
+        var = sum((r - mean_rate) ** 2 for r in rates) / (n - 1)
+        std_rate = var**0.5
+    else:
+        std_rate = 0.0
+
+    latency_vals = [
+        float(row["mean_success_latency_s"])
+        for row in seed_rows
+        if row.get("mean_success_latency_s") not in (None, "")
+    ]
+    mean_lat = sum(latency_vals) / len(latency_vals) if latency_vals else None
+
+    with open(path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=fieldnames
+            + ["n_seeds", "mean_reach_percent", "std_reach_percent", "mean_success_latency_s_across_seeds"],
+        )
+        writer.writeheader()
+        for row in seed_rows:
+            out = {key: row.get(key, "") for key in fieldnames}
+            out["n_seeds"] = n
+            out["mean_reach_percent"] = round(mean_rate, 4)
+            out["std_reach_percent"] = round(std_rate, 4)
+            out["mean_success_latency_s_across_seeds"] = (
+                "" if mean_lat is None else round(mean_lat, 6)
+            )
+            writer.writerow(out)
     return os.path.abspath(path)
 
 
@@ -176,7 +259,8 @@ def append_traj_rows(
     this physics step (termination/reward), which is the state that must be exported.
     """
     joint_names = robot.joint_names
-    with torch.inference_mode():
+    # Prefer no_grad over inference_mode so sim buffers stay mutable across multi-seed resets.
+    with torch.no_grad():
         joint_pos, joint_vel, cri = robot.data.get_cri_trajectory_state()
         joint_pos = joint_pos.detach().cpu().numpy()
         joint_vel = joint_vel.detach().cpu().numpy()

@@ -388,6 +388,10 @@ def run_cri_at_motion_state(
     if monitor is not None:
         idx = index if index is not None else monitor._next_index
         monitor.record(wall_ms, iter=iter, step=step, label=label)
+    # SafetySolver CalculateLoop_T 재사용 버퍼(_loopTBuffer)와 storage 공유 시
+    # 다음 CRI 호출 zero_() 로 학습/디버그 print 가 0으로 보일 수 있다.
+    if cri_gpu is not None and bool(getattr(cri_gpu, "is_cuda", False)):
+        cri_gpu = cri_gpu.clone()
     return cri_gpu, wall_ms
 
 
