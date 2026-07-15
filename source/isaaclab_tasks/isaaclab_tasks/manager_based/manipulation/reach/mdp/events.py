@@ -117,6 +117,52 @@ def reset_robot_joints_three_groups_by_offset(
     asset.set_joint_velocity_target(joint_vel, env_ids=env_ids)
 
 
+def reset_robot_joints_by_name_offset(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    asset_cfg: SceneEntityCfg,
+    position_range: dict[str, tuple[float, float]],
+    velocity_range: dict[str, tuple[float, float]] | None = None,
+):
+    """Reset joint state from defaults with a per-joint uniform offset.
+
+    Args:
+        position_range: Mapping from joint name to ``(min, max)`` position offset.
+        velocity_range: Mapping from joint name to ``(min, max)`` velocity offset.
+            Joints missing from this dict default to ``(0.0, 0.0)``.
+    """
+    asset: Articulation = env.scene[asset_cfg.name]
+    joint_pos = asset.data.default_joint_pos[env_ids].clone()
+    joint_vel = asset.data.default_joint_vel[env_ids].clone()
+    n_env = joint_pos.shape[0]
+    device = joint_pos.device
+    if velocity_range is None:
+        velocity_range = {}
+
+    joint_names = list(position_range.keys())
+    joint_ids, resolved_names = asset.find_joints(joint_names, preserve_order=True)
+    if len(joint_ids) != len(joint_names):
+        raise ValueError(
+            "Could not resolve all joints in position_range."
+            f" Requested={joint_names}, resolved={resolved_names}."
+        )
+
+    for joint_id, joint_name in zip(joint_ids, resolved_names):
+        pos_lo, pos_hi = position_range[joint_name]
+        vel_lo, vel_hi = velocity_range.get(joint_name, (0.0, 0.0))
+        joint_pos[:, joint_id] += math_utils.sample_uniform(pos_lo, pos_hi, (n_env,), device)
+        joint_vel[:, joint_id] += math_utils.sample_uniform(vel_lo, vel_hi, (n_env,), device)
+
+    joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids]
+    joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
+    joint_vel_limits = asset.data.soft_joint_vel_limits[env_ids]
+    joint_vel = joint_vel.clamp_(-joint_vel_limits, joint_vel_limits)
+
+    asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
+    asset.set_joint_position_target(joint_pos, env_ids=env_ids)
+    asset.set_joint_velocity_target(joint_vel, env_ids=env_ids)
+
+
 def resample_ee_pose_command_on_reach(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor | None,

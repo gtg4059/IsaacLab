@@ -32,14 +32,23 @@ class UR10ReachEnvCfg(CRIReachEnvCfg):
             asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True
         )
 
-        # shoulder lift joint position range
-        self.events.reset_robot_joints.params["primary_position_range"] = (-math.pi * 7/12, math.pi * 9/12)
-        # elbow joint position range
-        self.events.reset_robot_joints.params["secondary_position_range"] = (-math.pi * 0.0, math.pi * 0.8)
-        self.events.reset_robot_joints.params["tertiary_position_range"] = (-math.pi * 0.8, math.pi * 0.8)
-        self.events.reset_robot_joints.params["primary_velocity_range"] = (0.0, 0.0)
-        self.events.reset_robot_joints.params["secondary_velocity_range"] = (0.0, 0.0)
-        self.events.reset_robot_joints.params["tertiary_velocity_range"] = (0.0, 0.0)
+        # Per-joint position offset ranges (relative to default joint positions).
+        self.events.reset_robot_joints.params["position_range"] = {
+            "shoulder_pan_joint": (-math.pi, math.pi),
+            "shoulder_lift_joint": (-math.pi, 0.0),
+            "elbow_joint": (-math.pi*2/3, math.pi*2/3),
+            "wrist_1_joint": (-math.pi, math.pi),
+            "wrist_2_joint": (-math.pi, math.pi),
+            "wrist_3_joint": (-math.pi, math.pi),
+        }
+        self.events.reset_robot_joints.params["velocity_range"] = {
+            "shoulder_pan_joint": (0.0, 0.0),
+            "shoulder_lift_joint": (0.0, 0.0),
+            "elbow_joint": (0.0, 0.0),
+            "wrist_1_joint": (0.0, 0.0),
+            "wrist_2_joint": (0.0, 0.0),
+            "wrist_3_joint": (0.0, 0.0),
+        }
 
         self.commands.ee_pose.ranges.pos_th = (-math.pi, math.pi)
         self.commands.ee_pose.ranges.roll = (-math.pi, math.pi)

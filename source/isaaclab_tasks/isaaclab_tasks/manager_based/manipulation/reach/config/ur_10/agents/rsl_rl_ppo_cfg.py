@@ -12,7 +12,7 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
 class UR10ReachPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_iterations = 10000000
-    save_interval = 200
+    save_interval = 1000
     experiment_name = "reach_ur10"
     empirical_normalization = True
     policy = RslRlPpoActorCriticCfg(

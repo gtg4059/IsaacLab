@@ -19,9 +19,7 @@ if TYPE_CHECKING:
 REACH_CRITERIA_HOLD_END = 24 * 3000
 REACH_CRITERIA_DECAY_STEPS = 24 * 4000
 CRI_OVF_REWARD_START = 24 * 7000
-CRI_OVF_REWARD_STEPS = 24 * 8000
 CRI_OVF_CROSSFADE_START = 24 * 15000
-CRI_OVF_CROSSFADE_STEPS = 24 * 2000
 CRI_OVF_THRESHOLD_FINAL = 0.96
 CRI_OVF_THRESHOLD_INITIAL = 2.0
 TERM_PENALTY_OVF_WEIGHT = -400.0
@@ -185,20 +183,16 @@ def cri_ovf_reward_weight_by_step(
     env_ids: Sequence[int],
     data: float,
     reward_start: int = CRI_OVF_REWARD_START,
-    reward_steps: int = CRI_OVF_REWARD_STEPS,
     crossfade_start: int = CRI_OVF_CROSSFADE_START,
-    crossfade_steps: int = CRI_OVF_CROSSFADE_STEPS,
     initial_weight: float = -20.0,
     peak_weight: float = -800.0,
 ) -> float:
-    """Piecewise CRI_OVF reward weight: inactive, ramp-up, then fade-out to zero."""
+    """Step CRI_OVF reward weight: initial, then peak at reward_start, then 0 after crossfade."""
     step = env.common_step_counter
     if step < reward_start:
-        return 0.0
+        return initial_weight
     if step < crossfade_start:
-        return _linear_schedule(step, reward_start, reward_steps, initial_weight, peak_weight)
-    if step < crossfade_start + crossfade_steps:
-        return _linear_schedule(step, crossfade_start, crossfade_steps, peak_weight, 0.0)
+        return peak_weight
     return 0.0
 
 
@@ -207,22 +201,12 @@ def cri_ovf_threshold_by_step(
     env_ids: Sequence[int],
     data: float,
     crossfade_start: int = CRI_OVF_CROSSFADE_START,
-    crossfade_steps: int = CRI_OVF_CROSSFADE_STEPS,
     threshold_initial: float = CRI_OVF_THRESHOLD_INITIAL,
     threshold_final: float = CRI_OVF_THRESHOLD_FINAL,
 ) -> float:
-    """Piecewise OVF termination threshold: disabled, then tighten to the final CRI limit."""
-    step = env.common_step_counter
-    if step < crossfade_start:
+    """Step OVF termination threshold: hold initial, then jump to final at crossfade_start."""
+    if env.common_step_counter < crossfade_start:
         return threshold_initial
-    if step < crossfade_start + crossfade_steps:
-        return _linear_schedule(
-            step,
-            crossfade_start,
-            crossfade_steps,
-            threshold_initial,
-            threshold_final,
-        )
     return threshold_final
 
 

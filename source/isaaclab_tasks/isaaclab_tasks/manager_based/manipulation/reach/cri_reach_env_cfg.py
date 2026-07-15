@@ -26,10 +26,8 @@ from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 import isaaclab_tasks.manager_based.manipulation.reach.mdp as mdp
 
 # CRI OVF curriculum schedule (env steps; 1 PPO iter = 24 steps).
-CRI_OVF_REWARD_START = 24 * 7000
-CRI_OVF_REWARD_STEPS = 24 * 8000
-CRI_OVF_CROSSFADE_START = 24 * 15000
-CRI_OVF_CROSSFADE_STEPS = 24 * 2000
+CRI_OVF_REWARD_START = 24 * 12000
+CRI_OVF_CROSSFADE_START = 24 * 20000
 CRI_OVF_THRESHOLD_INITIAL = 2.0
 CRI_OVF_THRESHOLD_FINAL = 0.96
 
@@ -107,24 +105,26 @@ class CRIObservationsCfg:
 @configclass
 class CRIEventCfg:
     reset_robot_joints = EventTerm(
-        func=mdp.reset_robot_joints_three_groups_by_offset,
+        func=mdp.reset_robot_joints_by_name_offset,
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot"),
-            "primary_joint_names": ["shoulder_lift_joint"],
-            "primary_position_range": (0.0, 0.0),
-            "primary_velocity_range": (0.0, 0.0),
-            "secondary_joint_names": ["elbow_joint"],
-            "secondary_position_range": (0.0, 0.0),
-            "secondary_velocity_range": (0.0, 0.0),
-            "tertiary_joint_names": [
-                "shoulder_pan_joint",
-                "wrist_1_joint",
-                "wrist_2_joint",
-                "wrist_3_joint",
-            ],
-            "tertiary_position_range": (0.0, 0.0),
-            "tertiary_velocity_range": (0.0, 0.0),
+            "position_range": {
+                "shoulder_pan_joint": (0.0, 0.0),
+                "shoulder_lift_joint": (0.0, 0.0),
+                "elbow_joint": (0.0, 0.0),
+                "wrist_1_joint": (0.0, 0.0),
+                "wrist_2_joint": (0.0, 0.0),
+                "wrist_3_joint": (0.0, 0.0),
+            },
+            "velocity_range": {
+                "shoulder_pan_joint": (0.0, 0.0),
+                "shoulder_lift_joint": (0.0, 0.0),
+                "elbow_joint": (0.0, 0.0),
+                "wrist_1_joint": (0.0, 0.0),
+                "wrist_2_joint": (0.0, 0.0),
+                "wrist_3_joint": (0.0, 0.0),
+            },
         },
     )
 
@@ -158,19 +158,19 @@ class CRIRewardsCfg:
         weight=1.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
-    end_effector_pos_orientation_tracking_fine_grained = RewTerm(
-        func=mdp.position_orientation_command_error_fine_grained,
-        weight=2.0,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
-    )
+    # end_effector_pos_orientation_tracking_fine_grained = RewTerm(
+    #     func=mdp.position_orientation_command_error_fine_grained,
+    #     weight=2.0,
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
+    # )
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
-    action_rate = RewTerm(func=mdp.action_rate_l2_clamped, weight=-0.1)
+    action_rate = RewTerm(func=mdp.action_rate_l2_clamped, weight=-0.01)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-5)
-    CRI_OVF = RewTerm(
-        func=mdp.CRI_OVF,
-        weight=0.0,
-        params={"threshold": 0.96},
-    )
+    # CRI_OVF = RewTerm(
+    #     func=mdp.CRI_OVF,
+    #     weight=-20.0,
+    #     params={"threshold": 0.96},
+    # )
     reach_success_bonus = RewTerm(
         func=mdp.reach_success_criteria,
         weight=600.0,
@@ -194,7 +194,7 @@ class CRICurriculumCfg:
         params={
             "ease_factor": 5.0,
             "start_step": 24 * 3000,
-            "num_steps": 24 * 4000,
+            "num_steps": 24 * 6000,
         },
     )
     cri_ovf_reward_weight = CurrTerm(
@@ -204,9 +204,7 @@ class CRICurriculumCfg:
             "modify_fn": mdp.cri_ovf_reward_weight_by_step,
             "modify_params": {
                 "reward_start": CRI_OVF_REWARD_START,
-                "reward_steps": CRI_OVF_REWARD_STEPS,
                 "crossfade_start": CRI_OVF_CROSSFADE_START,
-                "crossfade_steps": CRI_OVF_CROSSFADE_STEPS,
             },
         },
     )
@@ -217,7 +215,6 @@ class CRICurriculumCfg:
             "modify_fn": mdp.cri_ovf_threshold_by_step,
             "modify_params": {
                 "crossfade_start": CRI_OVF_CROSSFADE_START,
-                "crossfade_steps": CRI_OVF_CROSSFADE_STEPS,
                 "threshold_initial": CRI_OVF_THRESHOLD_INITIAL,
                 "threshold_final": CRI_OVF_THRESHOLD_FINAL,
             },
@@ -237,7 +234,7 @@ class CRITerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     OVF = DoneTerm(
         func=mdp.CRI_OVF,
-        params={"threshold": 2.0},
+        params={"threshold": 0.96},
     )
 
 
@@ -252,7 +249,7 @@ class CRIReachEnvCfg(ManagerBasedRLEnvCfg):
     rewards: CRIRewardsCfg = CRIRewardsCfg()
     terminations: CRITerminationsCfg = CRITerminationsCfg()
     events: CRIEventCfg = CRIEventCfg()
-    curriculum: CRICurriculumCfg = CRICurriculumCfg()
+    # curriculum: CRICurriculumCfg = CRICurriculumCfg()
 
     def __post_init__(self):
         self.decimation = 4
