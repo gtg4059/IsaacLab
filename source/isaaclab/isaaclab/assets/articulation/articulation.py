@@ -597,6 +597,8 @@ class Articulation(AssetBase):
             physx_env_ids = self._ALL_INDICES
         if joint_ids is None:
             joint_ids = slice(None)
+        # Preserve pre-broadcast ids for CRI dirty-mask updates.
+        cri_env_ids = physx_env_ids
         # broadcast env_ids if needed to allow double indexing
         if env_ids != slice(None) and joint_ids != slice(None):
             env_ids = env_ids[:, None]
@@ -616,7 +618,7 @@ class Articulation(AssetBase):
         self.root_physx_view.set_dof_positions(self._data.joint_pos, indices=physx_env_ids)
         # Keep CRI float64 inputs / cache coherent with the written joint state (env reset).
         self._data._sync_cri_inputs_from_joint_buffers()
-        self._data._invalidate_cri_cache()
+        self._data._invalidate_cri_cache(cri_env_ids)
 
     def write_joint_velocity_to_sim(
         self,
@@ -638,6 +640,7 @@ class Articulation(AssetBase):
             physx_env_ids = self._ALL_INDICES
         if joint_ids is None:
             joint_ids = slice(None)
+        cri_env_ids = physx_env_ids
         # broadcast env_ids if needed to allow double indexing
         if env_ids != slice(None) and joint_ids != slice(None):
             env_ids = env_ids[:, None]
@@ -649,7 +652,7 @@ class Articulation(AssetBase):
         self.root_physx_view.set_dof_velocities(self._data.joint_vel, indices=physx_env_ids)
         # Keep CRI float64 inputs / cache coherent with the written joint state (env reset → qd=0).
         self._data._sync_cri_inputs_from_joint_buffers()
-        self._data._invalidate_cri_cache()
+        self._data._invalidate_cri_cache(cri_env_ids)
 
     """
     Operations - Simulation Parameters Writers.

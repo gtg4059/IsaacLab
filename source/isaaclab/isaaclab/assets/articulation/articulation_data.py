@@ -91,6 +91,11 @@ class ArticulationData:
         self._cri_inference_samples_s: list[float] = []
         self._cri_cuda_start_evt: torch.cuda.Event | None = None
         self._cri_cuda_end_evt: torch.cuda.Event | None = None
+        # Mid-step env reset: keep pre-reset CRI for non-reset envs; refresh only dirty rows.
+        self._cri_dirty: torch.Tensor | None = None
+        self._cri_last_batch_rows: int = 0
+        # Pose → CRI row from a full-N TRT solve (batch=1 ≠ batch=N numerically).
+        self._cri_nbatch_row_cache: dict[tuple, torch.Tensor] = {}
 
         self.solver = sfd_coreservice.CoreService(str(_cudacri_dir), self._root_physx_view.count)
         self.solver.RunSolver_CUDA_LoadAnalysisForCRI(str(_cudacri_dir))
@@ -1101,9 +1106,43 @@ class ArticulationData:
             torch.cuda.synchronize()
         print(f"[CRI] init warm-up: {rounds} rounds (SFD_ALLOC_WARMUP_ROUNDS)", flush=True)
     
-    def _invalidate_cri_cache(self) -> None:
-        """Force next :attr:`CRI` access to recompute (e.g. after joint write / env reset)."""
-        self._CRI.timestamp = -1.0
+    def _invalidate_cri_cache(self, env_ids: torch.Tensor | slice | None = None) -> None:
+        """Invalidate CRI after joint writes / env reset.
+
+        If a CRI result already exists for the current ``_sim_timestamp`` (typical path:
+        termination ``CRI_OVF`` then reset), only ``env_ids`` are marked dirty so the next
+        access refreshes those rows at the post-reset ``(q, qd)`` while non-reset envs keep
+        the pre-reset CRI. That matches a full re-solve on the mixed batch (independent robots)
+        without a second 4096-wide solve — and avoids the old bug where obs kept pre-reset CRI
+        while ``qd`` was already 0.
+        """
+        has_fresh = self._CRI.data is not None and self._CRI.timestamp >= self._sim_timestamp
+        if not has_fresh:
+            self._CRI.timestamp = -1.0
+            if self._cri_dirty is not None:
+                self._cri_dirty.zero_()
+            return
+
+        n = self._root_physx_view.count
+        if self._cri_dirty is None:
+            self._cri_dirty = torch.zeros(n, device=self.device, dtype=torch.bool)
+
+        if env_ids is None or env_ids == slice(None):
+            self._cri_dirty[:] = True
+            return
+
+        if isinstance(env_ids, slice):
+            self._cri_dirty[env_ids] = True
+            return
+
+        ids = env_ids.reshape(-1).to(device=self.device, dtype=torch.long)
+        if ids.numel() == 0:
+            return
+        self._cri_dirty[ids] = True
+
+    def _clear_cri_dirty(self) -> None:
+        if self._cri_dirty is not None:
+            self._cri_dirty.zero_()
 
     def _store_cri_traj_snapshot(self, q_in: torch.Tensor, qd_in: torch.Tensor, cri_float: torch.Tensor) -> None:
         """Keep the first (q, qd, CRI) at this sim timestamp for trajectory CSV export."""
@@ -1149,6 +1188,21 @@ class ArticulationData:
         self._cri_inference_time_min_s = min(self._cri_inference_time_min_s, elapsed_s)
         self._cri_inference_time_max_s = max(self._cri_inference_time_max_s, elapsed_s)
         self._cri_inference_samples_s.append(elapsed_s)
+        # Print once per PPO collect (default 24 env steps) when SFD_CRI_TIMING=1.
+        period = int(os.environ.get("SFD_CRI_TIMING_PRINT_EVERY", "24"))
+        if period > 0 and self._cri_inference_count % period == 0:
+            n = min(period, len(self._cri_inference_samples_s))
+            window = self._cri_inference_samples_s[-n:]
+            mean_ms = (sum(window) / n) * 1000.0
+            last_ms = elapsed_s * 1000.0
+            est_collect_s = mean_ms * 24.0 / 1000.0
+            print(
+                f"[CRI timing] n={self._cri_inference_count} "
+                f"batch={self._cri_last_batch_rows} "
+                f"last={last_ms:.2f}ms mean_last{n}={mean_ms:.2f}ms "
+                f"est_24calls={est_collect_s:.3f}s",
+                flush=True,
+            )
 
     def _store_cri_output_buffers(self, cri_gpu: torch.Tensor | None) -> None:
         """Write solver output into preallocated CRI / float caches (no alloc on steady path)."""
@@ -1165,6 +1219,111 @@ class ArticulationData:
         else:
             self._CRI_float.data.copy_(self._CRI.data)
             self._CRI_float.data.clamp_(min=0.0, max=2.0)
+
+    def _invoke_cri_solver(self, q_in: torch.Tensor, qd_in: torch.Tensor) -> torch.Tensor | None:
+        """Run CRI solver (+ optional timing / sync). Returns GPU CRI or None."""
+        self._cri_last_batch_rows = int(q_in.shape[0])
+        track_timing = os.environ.get("SFD_CRI_TIMING", "0") == "1"
+        use_cuda = self.device.startswith("cuda")
+        if track_timing and use_cuda and os.environ.get("SFD_CRI_TIMING_EVENTS", "0") == "1":
+            self._ensure_cri_cuda_events()
+            assert self._cri_cuda_start_evt is not None and self._cri_cuda_end_evt is not None
+            self._cri_cuda_start_evt.record()
+            cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
+            self._cri_cuda_end_evt.record()
+            self._cri_cuda_end_evt.synchronize()
+            self._record_cri_inference_time(self._cri_cuda_start_evt.elapsed_time(self._cri_cuda_end_evt) * 1e-3)
+            return cri_gpu
+        wall0 = time.perf_counter() if track_timing else 0.0
+        cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
+        if use_cuda:
+            torch.cuda.synchronize()
+        if track_timing:
+            self._record_cri_inference_time(time.perf_counter() - wall0)
+        return cri_gpu
+
+    def _index_copy_cri_rows(self, env_ids: torch.Tensor, cri_rows: torch.Tensor) -> None:
+        """Scatter solved CRI rows into the full-env cache (raw + clamped float)."""
+        assert self._CRI.data is not None
+        self._CRI.data.index_copy_(0, env_ids, cri_rows)
+        cri_f = torch.clamp(cri_rows.float(), min=0.0, max=2.0)
+        if self._CRI_float.data is None or self._CRI_float.data.shape != self._CRI.data.shape:
+            self._CRI_float.data = torch.clamp(self._CRI.data.float(), min=0.0, max=2.0)
+        else:
+            self._CRI_float.data.index_copy_(0, env_ids, cri_f)
+
+    def _cri_pose_cache_key(self, q_row: torch.Tensor, qd_row: torch.Tensor) -> tuple:
+        """Stable CPU key for a single-robot (q, qd) pose (micro-rad / micro-rad/s)."""
+        q_i = torch.round(q_row.detach().reshape(-1).float() * 1e6).to(dtype=torch.int64).cpu().tolist()
+        qd_i = torch.round(qd_row.detach().reshape(-1).float() * 1e6).to(dtype=torch.int64).cpu().tolist()
+        return (tuple(q_i), tuple(qd_i))
+
+    def _cri_row_from_full_n_batch(self, q_row: torch.Tensor, qd_row: torch.Tensor) -> torch.Tensor | None:
+        """Return one CRI row solved at full env count (TRT batch = num_envs), with caching.
+
+        TensorRT paths are batch-size sensitive: a batch=1 solve is not bit-identical to the
+        corresponding row of a batch=num_envs solve. Cache entries are always produced with
+        a full-N solve so post-reset obs match the previous double-full-solve semantics.
+        """
+        key = self._cri_pose_cache_key(q_row, qd_row)
+        cached = self._cri_nbatch_row_cache.get(key)
+        if cached is not None:
+            self._cri_last_batch_rows = 0  # cache hit: no solver
+            return cached
+
+        n = self._root_physx_view.count
+        q_fill = q_row.reshape(1, -1).expand(n, -1).contiguous()
+        qd_fill = qd_row.reshape(1, -1).expand(n, -1).contiguous()
+        cri_full = self._invoke_cri_solver(q_fill, qd_fill)
+        if cri_full is None:
+            return None
+        row = cri_full[0].detach().clone()
+        self._cri_nbatch_row_cache[key] = row
+        return row
+
+    def _refresh_dirty_cri_rows(self) -> None:
+        """Recompute CRI only for envs marked dirty after a mid-step joint write / reset.
+
+        Identical-pose dirty sets (P2P home reset) use a cached full-N TRT row then scatter.
+        Heterogeneous dirty sets re-solve the full mixed ``(q, qd)`` batch (same as the old
+        post-reset full recompute).
+        """
+        assert self._cri_dirty is not None and self._CRI.data is not None
+        ids = self._cri_dirty.nonzero(as_tuple=False).squeeze(-1)
+        if ids.numel() == 0:
+            return
+        q_in, qd_in = self._cri_input_tensors()
+        q_d = q_in.index_select(0, ids)
+        qd_d = qd_in.index_select(0, ids)
+        if ids.numel() > 1 and torch.allclose(q_d, q_d[0:1]) and torch.allclose(qd_d, qd_d[0:1]):
+            row = self._cri_row_from_full_n_batch(q_d[0], qd_d[0])
+            if row is None:
+                self._CRI.timestamp = -1.0
+                self._clear_cri_dirty()
+                return
+            cri_rows = row.unsqueeze(0).expand(ids.numel(), -1).contiguous()
+            self._index_copy_cri_rows(ids, cri_rows)
+            self._clear_cri_dirty()
+            return
+
+        # Mixed / heterogeneous resets: match legacy full re-solve on current buffers.
+        cri_gpu = self._invoke_cri_solver(q_in, qd_in)
+        if cri_gpu is None:
+            self._CRI.timestamp = -1.0
+            self._clear_cri_dirty()
+            return
+        self._store_cri_output_buffers(cri_gpu)
+        self._clear_cri_dirty()
+
+    def _recompute_cri_full(self) -> None:
+        """Full-batch CRI for a new physics timestamp."""
+        q_in, qd_in = self._cri_input_tensors()
+        cri_gpu = self._invoke_cri_solver(q_in, qd_in)
+        self._store_cri_output_buffers(cri_gpu)
+        if os.environ.get("SFD_CRI_TRAJ_SNAPSHOT", "0") == "1":
+            self._store_cri_traj_snapshot(q_in, qd_in, self._CRI_float.data)
+        self._CRI.timestamp = self._sim_timestamp
+        self._clear_cri_dirty()
 
     def run_cri_at_motion_state_hot(self, *, record_timing: bool = False) -> torch.Tensor:
         """Native-like CRI call: solver + one ``cuda.synchronize`` (SFD_CoreService_Test hot-loop).
@@ -1184,48 +1343,26 @@ class ArticulationData:
         if os.environ.get("SFD_CRI_TRAJ_SNAPSHOT", "0") == "1":
             self._store_cri_traj_snapshot(q_in, qd_in, self._CRI_float.data)
         self._CRI.timestamp = self._sim_timestamp
+        self._clear_cri_dirty()
         return self._CRI_float.data
 
     def invalidate_cri_cache(self) -> None:
-        """Public wrapper for :meth:`_invalidate_cri_cache` (bench discard-flush)."""
-        self._invalidate_cri_cache()
+        """Public full-cache wipe for :meth:`_invalidate_cri_cache` (bench discard-flush)."""
+        self._CRI.timestamp = -1.0
+        self._clear_cri_dirty()
 
     @property
     def CRI(self):
         """Collision Risk Index from Safetics CRI solver. Shape is (num_instances, num_collision_points)."""
 
         if self._CRI.timestamp < self._sim_timestamp:
-            track_timing = os.environ.get("SFD_CRI_TIMING", "0") == "1"
-            use_cuda = self.device.startswith("cuda")
-            q_in, qd_in = self._cri_input_tensors()
-            if track_timing and use_cuda:
-                # Prefer native-like wall+single-sync over Event sandwich when asked for timing.
-                # Event path remains available via SFD_CRI_TIMING_EVENTS=1.
-                if os.environ.get("SFD_CRI_TIMING_EVENTS", "0") == "1":
-                    self._ensure_cri_cuda_events()
-                    assert self._cri_cuda_start_evt is not None and self._cri_cuda_end_evt is not None
-                    self._cri_cuda_start_evt.record()
-                    cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
-                    self._cri_cuda_end_evt.record()
-                    self._cri_cuda_end_evt.synchronize()
-                    elapsed = self._cri_cuda_start_evt.elapsed_time(self._cri_cuda_end_evt) * 1e-3
-                    self._record_cri_inference_time(elapsed)
-                else:
-                    wall0 = time.perf_counter()
-                    cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
-                    torch.cuda.synchronize()
-                    self._record_cri_inference_time(time.perf_counter() - wall0)
-            else:
-                wall0 = time.perf_counter() if track_timing else 0.0
-                cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
-                if use_cuda:
-                    torch.cuda.synchronize()
-                if track_timing:
-                    self._record_cri_inference_time(time.perf_counter() - wall0)
-            self._store_cri_output_buffers(cri_gpu)
-            if os.environ.get("SFD_CRI_TRAJ_SNAPSHOT", "0") == "1":
-                self._store_cri_traj_snapshot(q_in, qd_in, self._CRI_float.data)
-            self._CRI.timestamp = self._sim_timestamp
+            self._recompute_cri_full()
+        elif self._cri_dirty is not None and self._cri_dirty.any().item():
+            # Same physics step after env reset: refresh only reset rows at post-reset (q, qd).
+            self._refresh_dirty_cri_rows()
+            # If refresh fell back to invalidation, recompute full once.
+            if self._CRI.timestamp < self._sim_timestamp:
+                self._recompute_cri_full()
         return self._CRI_float.data
 
     @property
