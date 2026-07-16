@@ -90,8 +90,8 @@ class CRIObservationsCfg:
             params={"command_name": "ee_pose", "asset_cfg": SceneEntityCfg("robot", body_names="ee_link")},
         )
         CRI = ObsTerm(func=mdp.collision_risk_index)
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.001, n_max=0.001))
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.001, n_max=0.001))
+        joint_pos = ObsTerm(func=mdp.joint_pos, noise=Unoise(n_min=-0.001, n_max=0.001))
+        joint_vel = ObsTerm(func=mdp.joint_vel, noise=Unoise(n_min=-0.001, n_max=0.001))
         pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "ee_pose"})
         actions = ObsTerm(func=mdp.last_action)
 
@@ -158,17 +158,17 @@ class CRIRewardsCfg:
         weight=1.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
-    # end_effector_pos_orientation_tracking_fine_grained = RewTerm(
-    #     func=mdp.position_orientation_command_error_fine_grained,
-    #     weight=2.0,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
-    # )
+    end_effector_pos_orientation_tracking_fine_grained = RewTerm(
+        func=mdp.position_orientation_command_error_fine_grained,
+        weight=4.0,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
+    )
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
     action_rate = RewTerm(func=mdp.action_rate_l2_clamped, weight=-0.01)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-5)
     # CRI_OVF = RewTerm(
     #     func=mdp.CRI_OVF,
-    #     weight=-20.0,
+    #     weight=-50.0,
     #     params={"threshold": 0.96},
     # )
     reach_success_bonus = RewTerm(
@@ -193,40 +193,45 @@ class CRICurriculumCfg:
         func=mdp.reach_success_criteria_curriculum,
         params={
             "ease_factor": 5.0,
-            "start_step": 24 * 3000,
-            "num_steps": 24 * 6000,
+            "start_step": 24 * 40000,
+            "num_steps": 24 * 40000,
         },
     )
-    cri_ovf_reward_weight = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "rewards.CRI_OVF.weight",
-            "modify_fn": mdp.cri_ovf_reward_weight_by_step,
-            "modify_params": {
-                "reward_start": CRI_OVF_REWARD_START,
-                "crossfade_start": CRI_OVF_CROSSFADE_START,
-            },
-        },
-    )
-    cri_ovf_term_threshold = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "terminations.OVF.params.threshold",
-            "modify_fn": mdp.cri_ovf_threshold_by_step,
-            "modify_params": {
-                "crossfade_start": CRI_OVF_CROSSFADE_START,
-                "threshold_initial": CRI_OVF_THRESHOLD_INITIAL,
-                "threshold_final": CRI_OVF_THRESHOLD_FINAL,
-            },
-        },
-    )
-    termination_penalty = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "rewards.termination_penalty.weight",
-            "modify_fn": mdp.termination_penalty_weight_by_step,
-        },
-    )
+    # termination_penalty = CurrTerm(
+    #     func=mdp.modify_term_cfg,
+    #     params={
+    #         "address": "rewards.termination_penalty.weight",
+    #         "modify_fn": mdp.termination_penalty_weight_by_step,
+    #         "modify_params": {
+    #             "switch_step": 24 * 20000,
+    #             "initial_weight": -200.0,
+    #             "final_weight": -2000.0,
+    #         },
+    #     },
+    # )
+    # cri_ovf_reward_weight = CurrTerm(
+    #     func=mdp.modify_term_cfg,
+    #     params={
+    #         "address": "rewards.CRI_OVF.weight",
+    #         "modify_fn": mdp.cri_ovf_reward_weight_by_step,
+    #         "modify_params": {
+    #             "reward_start": CRI_OVF_REWARD_START,
+    #             "crossfade_start": CRI_OVF_CROSSFADE_START,
+    #         },
+    #     },
+    # )
+    # cri_ovf_term_threshold = CurrTerm(
+    #     func=mdp.modify_term_cfg,
+    #     params={
+    #         "address": "terminations.OVF.params.threshold",
+    #         "modify_fn": mdp.cri_ovf_threshold_by_step,
+    #         "modify_params": {
+    #             "crossfade_start": CRI_OVF_CROSSFADE_START,
+    #             "threshold_initial": CRI_OVF_THRESHOLD_INITIAL,
+    #             "threshold_final": CRI_OVF_THRESHOLD_FINAL,
+    #         },
+    #     },
+    # )
 
 
 @configclass
@@ -249,7 +254,7 @@ class CRIReachEnvCfg(ManagerBasedRLEnvCfg):
     rewards: CRIRewardsCfg = CRIRewardsCfg()
     terminations: CRITerminationsCfg = CRITerminationsCfg()
     events: CRIEventCfg = CRIEventCfg()
-    # curriculum: CRICurriculumCfg = CRICurriculumCfg()
+    curriculum: CRICurriculumCfg = CRICurriculumCfg()
 
     def __post_init__(self):
         self.decimation = 4

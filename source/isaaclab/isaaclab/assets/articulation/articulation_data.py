@@ -96,6 +96,12 @@ class ArticulationData:
         self._cri_last_batch_rows: int = 0
         # Pose → CRI row from a full-N TRT solve (batch=1 ≠ batch=N numerically).
         self._cri_nbatch_row_cache: dict[tuple, torch.Tensor] = {}
+        # Path counters for once-per-step verification (printed when SFD_CRI_TIMING=1).
+        self._cri_path_full: int = 0
+        self._cri_path_dirty_full: int = 0
+        self._cri_path_dirty_cache: int = 0
+        self._cri_path_dirty_identical_solve: int = 0
+        self._cri_path_dirty_skip: int = 0
 
         self.solver = sfd_coreservice.CoreService(str(_cudacri_dir), self._root_physx_view.count)
         self.solver.RunSolver_CUDA_LoadAnalysisForCRI(str(_cudacri_dir))
@@ -1200,7 +1206,10 @@ class ArticulationData:
                 f"[CRI timing] n={self._cri_inference_count} "
                 f"batch={self._cri_last_batch_rows} "
                 f"last={last_ms:.2f}ms mean_last{n}={mean_ms:.2f}ms "
-                f"est_24calls={est_collect_s:.3f}s",
+                f"est_24calls={est_collect_s:.3f}s "
+                f"paths(full={self._cri_path_full} dirty_full={self._cri_path_dirty_full} "
+                f"dirty_ident_solve={self._cri_path_dirty_identical_solve} "
+                f"dirty_cache={self._cri_path_dirty_cache} dirty_skip={self._cri_path_dirty_skip})",
                 flush=True,
             )
 
@@ -1269,6 +1278,7 @@ class ArticulationData:
         cached = self._cri_nbatch_row_cache.get(key)
         if cached is not None:
             self._cri_last_batch_rows = 0  # cache hit: no solver
+            self._cri_path_dirty_cache += 1
             return cached
 
         n = self._root_physx_view.count
@@ -1277,6 +1287,7 @@ class ArticulationData:
         cri_full = self._invoke_cri_solver(q_fill, qd_fill)
         if cri_full is None:
             return None
+        self._cri_path_dirty_identical_solve += 1
         row = cri_full[0].detach().clone()
         self._cri_nbatch_row_cache[key] = row
         return row
@@ -1285,8 +1296,9 @@ class ArticulationData:
         """Recompute CRI only for envs marked dirty after a mid-step joint write / reset.
 
         Identical-pose dirty sets (P2P home reset) use a cached full-N TRT row then scatter.
-        Heterogeneous dirty sets re-solve the full mixed ``(q, qd)`` batch (same as the old
-        post-reset full recompute).
+        Heterogeneous dirty sets: by default (``SFD_CRI_ONCE_PER_STEP=1``) skip a second DLL
+        call; :meth:`_apply_cri_zero_vel_filter` then forces CRI=0 where ``qd≈0`` (post-reset).
+        Set ``SFD_CRI_ONCE_PER_STEP=0`` to restore a full mixed-batch re-solve for post-reset obs.
         """
         assert self._cri_dirty is not None and self._CRI.data is not None
         ids = self._cri_dirty.nonzero(as_tuple=False).squeeze(-1)
@@ -1295,7 +1307,8 @@ class ArticulationData:
         q_in, qd_in = self._cri_input_tensors()
         q_d = q_in.index_select(0, ids)
         qd_d = qd_in.index_select(0, ids)
-        if ids.numel() > 1 and torch.allclose(q_d, q_d[0:1]) and torch.allclose(qd_d, qd_d[0:1]):
+        # Single-env / identical home reset: free (or one-time) full-N cached row, no mixed re-solve.
+        if ids.numel() >= 1 and torch.allclose(q_d, q_d[0:1]) and torch.allclose(qd_d, qd_d[0:1]):
             row = self._cri_row_from_full_n_batch(q_d[0], qd_d[0])
             if row is None:
                 self._CRI.timestamp = -1.0
@@ -1306,7 +1319,16 @@ class ArticulationData:
             self._clear_cri_dirty()
             return
 
-        # Mixed / heterogeneous resets: match legacy full re-solve on current buffers.
+        # Heterogeneous random resets (UR10): second full-batch DLL is the 0.8s→1.2s regression.
+        # Default: skip DLL; :attr:`CRI` zero-vel filter clears stale rows when ``qd≈0``.
+        # Set SFD_CRI_ONCE_PER_STEP=0 to restore a full mixed-batch re-solve for post-reset obs.
+        if os.environ.get("SFD_CRI_ONCE_PER_STEP", "1") == "1":
+            self._cri_path_dirty_skip += 1
+            self._clear_cri_dirty()
+            return
+
+        # Legacy: match post-reset obs with a second full-batch solve.
+        self._cri_path_dirty_full += 1
         cri_gpu = self._invoke_cri_solver(q_in, qd_in)
         if cri_gpu is None:
             self._CRI.timestamp = -1.0
@@ -1317,6 +1339,7 @@ class ArticulationData:
 
     def _recompute_cri_full(self) -> None:
         """Full-batch CRI for a new physics timestamp."""
+        self._cri_path_full += 1
         q_in, qd_in = self._cri_input_tensors()
         cri_gpu = self._invoke_cri_solver(q_in, qd_in)
         self._store_cri_output_buffers(cri_gpu)
@@ -1351,10 +1374,34 @@ class ArticulationData:
         self._CRI.timestamp = -1.0
         self._clear_cri_dirty()
 
+    def _apply_cri_zero_vel_filter(self) -> None:
+        """Force CRI=0 for envs whose joint speed is ~0 (e.g. first frame after reset).
+
+        Applied in-place on the cached CRI buffers so every consumer of :attr:`CRI`
+        (obs, ``CRI_OVF`` reward/termination, etc.) sees the same filtered values.
+        """
+        if self._CRI_float.data is None:
+            return
+        eps = float(os.environ.get("SFD_CRI_ZERO_VEL_EPS", "1e-6"))
+        if self._cri_qd_f64 is not None:
+            qd = self._cri_qd_f64
+        else:
+            qd = self.joint_vel
+        speed = torch.linalg.norm(qd, dim=-1)
+        at_rest = speed <= eps
+        if not torch.any(at_rest):
+            return
+        self._CRI_float.data[at_rest] = 0.0
+        if self._CRI.data is not None:
+            self._CRI.data[at_rest] = 0.0
+
     @property
     def CRI(self):
-        """Collision Risk Index from Safetics CRI solver. Shape is (num_instances, num_collision_points)."""
+        """Collision Risk Index from Safetics CRI solver. Shape is (num_instances, num_collision_points).
 
+        Envs with near-zero joint velocity are forced to CRI=0 so post-reset obs/reward paths
+        cannot keep a stale high CRI while ``qd`` is already cleared.
+        """
         if self._CRI.timestamp < self._sim_timestamp:
             self._recompute_cri_full()
         elif self._cri_dirty is not None and self._cri_dirty.any().item():
@@ -1363,6 +1410,7 @@ class ArticulationData:
             # If refresh fell back to invalidation, recompute full once.
             if self._CRI.timestamp < self._sim_timestamp:
                 self._recompute_cri_full()
+        self._apply_cri_zero_vel_filter()
         return self._CRI_float.data
 
     @property
@@ -1401,6 +1449,11 @@ class ArticulationData:
         self._cri_inference_time_min_s = float("inf")
         self._cri_inference_time_max_s = 0.0
         self._cri_inference_samples_s.clear()
+        self._cri_path_full = 0
+        self._cri_path_dirty_full = 0
+        self._cri_path_dirty_cache = 0
+        self._cri_path_dirty_identical_solve = 0
+        self._cri_path_dirty_skip = 0
 
     ##
     # Backward compatibility.

@@ -22,13 +22,9 @@ CRI_OVF_REWARD_START = 24 * 7000
 CRI_OVF_CROSSFADE_START = 24 * 15000
 CRI_OVF_THRESHOLD_FINAL = 0.96
 CRI_OVF_THRESHOLD_INITIAL = 2.0
-TERM_PENALTY_OVF_WEIGHT = -400.0
-TERM_PENALTY_PRE_OVF_WEIGHT = -200.0
-TERM_PENALTY_OVF_START = 24 * 17000
-TERM_PENALTY_DEEP_START = 24 * 44500
-# 2026-07-08_00-08-13 rate: 600 / 290400 per step; extended to -2000.
-TERM_PENALTY_DEEP_STEPS = 774400
+TERM_PENALTY_INITIAL_WEIGHT = -200.0
 TERM_PENALTY_FINAL_WEIGHT = -2000.0
+TERM_PENALTY_SWITCH_STEP = 24 * 40000
 
 _REACH_CRITERIA_PARAM_KEYS = (
     "max_distance",
@@ -214,19 +210,11 @@ def termination_penalty_weight_by_step(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],
     data: float,
+    switch_step: int = TERM_PENALTY_SWITCH_STEP,
+    initial_weight: float = TERM_PENALTY_INITIAL_WEIGHT,
+    final_weight: float = TERM_PENALTY_FINAL_WEIGHT,
 ) -> float:
-    """Piecewise termination penalty: pre-OVF, OVF plateau, then deep ramp to -2000."""
-    step = env.common_step_counter
-    if step < TERM_PENALTY_OVF_START:
-        return TERM_PENALTY_PRE_OVF_WEIGHT
-    if step < TERM_PENALTY_DEEP_START:
-        return TERM_PENALTY_OVF_WEIGHT
-    if step < TERM_PENALTY_DEEP_START + TERM_PENALTY_DEEP_STEPS:
-        return _linear_schedule(
-            step,
-            TERM_PENALTY_DEEP_START,
-            TERM_PENALTY_DEEP_STEPS,
-            TERM_PENALTY_OVF_WEIGHT,
-            TERM_PENALTY_FINAL_WEIGHT,
-        )
-    return TERM_PENALTY_FINAL_WEIGHT
+    """Step termination penalty weight: hold initial, then jump to final at ``switch_step``."""
+    if env.common_step_counter < switch_step:
+        return initial_weight
+    return final_weight
