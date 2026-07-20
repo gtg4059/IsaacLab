@@ -25,7 +25,7 @@
     "BasicInfo": {
       "AnalysisRecommend": "SPEED",
       "StepTime": 0.1,
-      "SaveVideo": 0,
+      "SaveVideo": 1,
       "ColliPointImageDivision": 10,
       "VelocityMaximumMultiple": 2,
       "VelocityConvergenceValue": 1,
@@ -35,7 +35,7 @@
       "DrawingPosition": "0 0",
       "DrawingScale": 0,
       "LayoutOption": 2,
-      "OvershootLimit": -1
+      "OvershootLimit": 5000
     },
     "BaseInfo": {
       "CollisionPoint": [],
@@ -184,11 +184,11 @@
             "RecommendCover": true,
             "Index": 1,
             "ColliJoint": 0,
-            "ColliPos": "0 0 150",
+            "ColliPos": "0 0 160",
             "ColliShape": 5,
             "ColliRadi": 5,
-            "ColliFillet": 1,
-            "ExposureDir": "-2.7262957516538403e-15 4.688784083217714e-15 1",
+            "ColliFillet": 2,
+            "ExposureDir": "-2.7186807814624204e-15 4.688761043921543e-15 1",
             "ColliRotation": "0 0 0",
             "CoverInfo": 0,
             "Color": "#022b69",
@@ -196,14 +196,14 @@
             "Name": "Collision Point1"
           }
         ],
-        "Mass": 0.9,
-        "STLName": "2F-85.stl",
+        "Mass": 1.16,
+        "STLName": "2FG7.stl",
         "Position": "0 0 0",
         "Rotation": "0 0 0",
-        "CenterOfMass": "0 0 0",
-        "I": "1547.2513206234878 1.7460479112523497 3.26021032843981 1.7460479112523497 2821.8303319260594 3.6196859727465327 3.26021032843981 3.6196859727465327 1709.881682151937",
+        "CenterOfMass": "0 0 75",
+        "I": "2695.4290652432073 -0.22060008095664507 64.82422500577661 -0.22060008095664507 3026.6267061039216 -6.727056682448265 64.82422500577661 -6.727056682448265 1390.6618721952052",
         "Variable": "1 1",
-        "Name": "2F-85",
+        "Name": "2FG7",
         "AutoCOM": 0,
         "TCP": "0 0 0"
       }
