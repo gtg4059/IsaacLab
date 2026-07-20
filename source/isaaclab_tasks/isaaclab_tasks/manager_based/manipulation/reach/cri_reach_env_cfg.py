@@ -30,6 +30,8 @@ CRI_OVF_REWARD_START = 24 * 12000
 CRI_OVF_CROSSFADE_START = 24 * 20000
 CRI_OVF_THRESHOLD_INITIAL = 2.0
 CRI_OVF_THRESHOLD_FINAL = 0.96
+REACH_SUCCESS_CRITERIA_START = 24 * 80000
+FINE_GRAINED_TRACKING_WEIGHT = 8.0
 
 @configclass
 class CRIReachSceneCfg(InteractiveSceneCfg):
@@ -160,11 +162,11 @@ class CRIRewardsCfg:
     )
     end_effector_pos_orientation_tracking_fine_grained = RewTerm(
         func=mdp.position_orientation_command_error_fine_grained,
-        weight=4.0,
+        weight=FINE_GRAINED_TRACKING_WEIGHT,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
-    action_rate = RewTerm(func=mdp.action_rate_l2_clamped, weight=-0.01)
+    action_rate = RewTerm(func=mdp.action_rate_l2_clamped, weight=-0.2)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-5)
     # CRI_OVF = RewTerm(
     #     func=mdp.CRI_OVF,
@@ -172,8 +174,8 @@ class CRIRewardsCfg:
     #     params={"threshold": 0.96},
     # )
     reach_success_bonus = RewTerm(
-        func=mdp.reach_success_criteria,
-        weight=600.0,
+        func=mdp.reach_success_bonus,
+        weight=400.0,
         params={
             "command_name": "ee_pose",
             "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
@@ -193,22 +195,35 @@ class CRICurriculumCfg:
         func=mdp.reach_success_criteria_curriculum,
         params={
             "ease_factor": 5.0,
-            "start_step": 24 * 40000,
+            "start_step": REACH_SUCCESS_CRITERIA_START,
             "num_steps": 24 * 40000,
         },
     )
-    # termination_penalty = CurrTerm(
-    #     func=mdp.modify_term_cfg,
-    #     params={
-    #         "address": "rewards.termination_penalty.weight",
-    #         "modify_fn": mdp.termination_penalty_weight_by_step,
-    #         "modify_params": {
-    #             "switch_step": 24 * 20000,
-    #             "initial_weight": -200.0,
-    #             "final_weight": -2000.0,
-    #         },
-    #     },
-    # )
+    # When reach success criteria curriculum starts, drop fine-grained tracking reward.
+    fine_grained_tracking_weight = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "rewards.end_effector_pos_orientation_tracking_fine_grained.weight",
+            "modify_fn": mdp.reward_weight_step_by_step,
+            "modify_params": {
+                "switch_step": REACH_SUCCESS_CRITERIA_START,
+                "initial_weight": FINE_GRAINED_TRACKING_WEIGHT,
+                "final_weight": 1.0,
+            },
+        },
+    )
+    termination_penalty = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "rewards.termination_penalty.weight",
+            "modify_fn": mdp.termination_penalty_weight_by_step,
+            "modify_params": {
+                "switch_step": 24 * 40000,
+                "initial_weight": -200.0,
+                "final_weight": -2000.0,
+            },
+        },
+    )
     # cri_ovf_reward_weight = CurrTerm(
     #     func=mdp.modify_term_cfg,
     #     params={

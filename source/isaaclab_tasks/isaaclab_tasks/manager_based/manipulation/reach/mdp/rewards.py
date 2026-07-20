@@ -5,11 +5,13 @@
 
 from __future__ import annotations
 
-import torch
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
+import torch
+
 from isaaclab.assets import RigidObject
-from isaaclab.managers import SceneEntityCfg
+from isaaclab.managers import ManagerTermBase, RewardTermCfg, SceneEntityCfg
 from isaaclab.utils.math import combine_frame_transforms, quat_error_magnitude, quat_mul
 
 if TYPE_CHECKING:
@@ -67,6 +69,59 @@ def reach_success_criteria(
     return torch.logical_and(torch.logical_and(pose_ok, vel_ok), acc_ok)
 
 
+class reach_success_bonus(ManagerTermBase):
+    """Sparse reach bonus that doubles for each success before episode reset.
+
+    On the rising edge of :func:`reach_success_criteria`, returns ``2**(n-1)`` where ``n`` is the
+    number of successes in the current episode (1, 2, 4, ...). The counter resets with the env.
+    """
+
+    def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRLEnv):
+        super().__init__(cfg, env)
+        self._success_count = torch.zeros(env.num_envs, dtype=torch.long, device=env.device)
+        self._prev_success = torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)
+
+    def reset(self, env_ids: Sequence[int] | None = None) -> None:
+        if env_ids is None or isinstance(env_ids, slice):
+            self._success_count.zero_()
+            self._prev_success.zero_()
+            return
+        self._success_count[env_ids] = 0
+        self._prev_success[env_ids] = False
+
+    def __call__(
+        self,
+        env: ManagerBasedRLEnv,
+        command_name: str,
+        asset_cfg: SceneEntityCfg,
+        max_distance: float,
+        max_angle_rad: float,
+        max_lin_vel: float,
+        max_ang_vel: float,
+        max_lin_acc: float,
+        max_ang_acc: float,
+    ) -> torch.Tensor:
+        success = reach_success_criteria(
+            env,
+            command_name=command_name,
+            asset_cfg=asset_cfg,
+            max_distance=max_distance,
+            max_angle_rad=max_angle_rad,
+            max_lin_vel=max_lin_vel,
+            max_ang_vel=max_ang_vel,
+            max_lin_acc=max_lin_acc,
+            max_ang_acc=max_ang_acc,
+        )
+        event = success & ~self._prev_success
+        self._prev_success[:] = success
+        self._success_count[event] += 1
+
+        reward = torch.zeros(self.num_envs, device=self.device)
+        if torch.any(event):
+            reward[event] = torch.pow(2.0, (self._success_count[event] - 1).to(dtype=torch.float32))
+        return reward
+
+
 def position_command_error(env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     """Penalize tracking of the position error using L2-norm."""
     asset: RigidObject = env.scene[asset_cfg.name]
@@ -113,7 +168,7 @@ def position_orientation_command_error_fine_grained(
     des_quat_b = command[:, 3:7]
     des_quat_w = quat_mul(asset.data.root_quat_w, des_quat_b)
     curr_quat_w = asset.data.body_quat_w[:, bid]
-    return torch.exp(-10 * distance) * torch.exp(-2 * quat_error_magnitude(curr_quat_w, des_quat_w))
+    return torch.exp(-5 * distance) * torch.exp(-2 * quat_error_magnitude(curr_quat_w, des_quat_w))
 
 
 def position_command_error_tanh(

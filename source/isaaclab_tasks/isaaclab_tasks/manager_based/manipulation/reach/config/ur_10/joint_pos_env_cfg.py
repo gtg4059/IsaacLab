@@ -66,8 +66,10 @@ class UR10ReachEnvCfg_PLAY(UR10ReachEnvCfg):
         self.observations.policy.enable_corruption = False
         # Keep final (strict) reach / CRI thresholds for evaluation (no curriculum easing).
         self.curriculum.reach_success_criteria = None
+        self.curriculum.fine_grained_tracking_weight = None
         self.curriculum.cri_ovf_term_threshold = None
         self.curriculum.cri_ovf_reward_weight = None
+        self.rewards.end_effector_pos_orientation_tracking_fine_grained.weight = 0.0
         self.terminations.OVF.params["threshold"] = 0.96
         if hasattr(self.rewards, "CRI_OVF"):
             self.rewards.CRI_OVF.params["threshold"] = 0.96

@@ -206,6 +206,20 @@ def cri_ovf_threshold_by_step(
     return threshold_final
 
 
+def reward_weight_step_by_step(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    data: float,
+    switch_step: int,
+    initial_weight: float,
+    final_weight: float,
+) -> float:
+    """Hold ``initial_weight`` until ``switch_step``, then jump to ``final_weight``."""
+    if env.common_step_counter < switch_step:
+        return initial_weight
+    return final_weight
+
+
 def termination_penalty_weight_by_step(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],
@@ -215,6 +229,4 @@ def termination_penalty_weight_by_step(
     final_weight: float = TERM_PENALTY_FINAL_WEIGHT,
 ) -> float:
     """Step termination penalty weight: hold initial, then jump to final at ``switch_step``."""
-    if env.common_step_counter < switch_step:
-        return initial_weight
-    return final_weight
+    return reward_weight_step_by_step(env, env_ids, data, switch_step, initial_weight, final_weight)
