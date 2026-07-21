@@ -175,7 +175,7 @@ class CRIRewardsCfg:
     # )
     reach_success_bonus = RewTerm(
         func=mdp.reach_success_bonus,
-        weight=400.0,
+        weight=600.0,
         params={
             "command_name": "ee_pose",
             "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
@@ -194,7 +194,7 @@ class CRICurriculumCfg:
     reach_success_criteria = CurrTerm(
         func=mdp.reach_success_criteria_curriculum,
         params={
-            "ease_factor": 5.0,
+            "ease_factor": 6.0,
             "start_step": REACH_SUCCESS_CRITERIA_START,
             "num_steps": 24 * 40000,
         },
