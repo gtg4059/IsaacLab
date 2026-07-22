@@ -196,7 +196,7 @@ class CRICurriculumCfg:
         params={
             "ease_factor": 6.0,
             "start_step": REACH_SUCCESS_CRITERIA_START,
-            "num_steps": 24 * 40000,
+            "num_steps": 24 * 60000,
         },
     )
     # When reach success criteria curriculum starts, drop fine-grained tracking reward.

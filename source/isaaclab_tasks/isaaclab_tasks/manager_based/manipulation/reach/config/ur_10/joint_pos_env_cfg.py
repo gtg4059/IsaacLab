@@ -64,8 +64,8 @@ class UR10ReachEnvCfg_PLAY(UR10ReachEnvCfg):
         self.scene.env_spacing = 2.5
         self.viewer.eye = (4.5, 4.5, 4.5)
         self.observations.policy.enable_corruption = False
-        # Keep final (strict) reach / CRI thresholds for evaluation (no curriculum easing).
-        self.curriculum.reach_success_criteria = None
+        # Play: use configured reach thresholds as-is (no ease_factor relaxation).
+        self.curriculum.reach_success_criteria.params["ease_factor"] = 1.0
         self.curriculum.fine_grained_tracking_weight = None
         self.curriculum.cri_ovf_term_threshold = None
         self.curriculum.cri_ovf_reward_weight = None
