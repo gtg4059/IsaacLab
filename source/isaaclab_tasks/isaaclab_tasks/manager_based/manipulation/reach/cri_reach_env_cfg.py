@@ -26,11 +26,11 @@ from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 import isaaclab_tasks.manager_based.manipulation.reach.mdp as mdp
 
 # CRI OVF curriculum schedule (env steps; 1 PPO iter = 24 steps).
-CRI_OVF_REWARD_START = 24 * 12000
-CRI_OVF_CROSSFADE_START = 24 * 20000
+CRI_OVF_REWARD_START = 32 * 12000
+CRI_OVF_CROSSFADE_START = 32 * 20000
 CRI_OVF_THRESHOLD_INITIAL = 2.0
 CRI_OVF_THRESHOLD_FINAL = 0.96
-REACH_SUCCESS_CRITERIA_START = 24 * 80000
+REACH_SUCCESS_CRITERIA_START = 32 * 80000
 FINE_GRAINED_TRACKING_WEIGHT = 8.0
 
 @configclass
@@ -65,7 +65,7 @@ class CRICommandsCfg:
         asset_name="robot",
         body_name="ee_link",
         debug_vis=True,
-        resampling_time_range=(24, 24),
+        resampling_time_range=(32, 32),
         ranges=mdp.UniformPoseTrigCommandCfg.PolarRanges(
             pos_th=MISSING,
             pos_r=(0.4, 0.8),
@@ -196,7 +196,7 @@ class CRICurriculumCfg:
         params={
             "ease_factor": 6.0,
             "start_step": REACH_SUCCESS_CRITERIA_START,
-            "num_steps": 24 * 60000,
+            "num_steps": 32 * 60000,
         },
     )
     # When reach success criteria curriculum starts, drop fine-grained tracking reward.
@@ -218,9 +218,9 @@ class CRICurriculumCfg:
             "address": "rewards.termination_penalty.weight",
             "modify_fn": mdp.termination_penalty_weight_by_step,
             "modify_params": {
-                "switch_step": 24 * 40000,
+                "switch_step": 32 * 40000,
                 "initial_weight": -200.0,
-                "final_weight": -2000.0,
+                "final_weight": -6000.0,
             },
         },
     )
@@ -274,6 +274,6 @@ class CRIReachEnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self):
         self.decimation = 4
         self.sim.render_interval = self.decimation
-        self.episode_length_s = 24.0
+        self.episode_length_s = 32.0
         self.viewer.eye = (3.5, 3.5, 3.5)
         self.sim.dt = 1.0 / 60.0
