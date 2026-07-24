@@ -122,6 +122,50 @@ class reach_success_bonus(ManagerTermBase):
         return reward
 
 
+class timeout_no_reach_penalty(ManagerTermBase):
+    """Sparse penalty when an episode times out without any reach success.
+
+    Tracks whether :func:`reach_success_criteria` was satisfied at least once in the episode.
+    On timeout with zero successes, returns ``1.0`` (scaled by the term weight); otherwise ``0.0``.
+    """
+
+    def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRLEnv):
+        super().__init__(cfg, env)
+        self._ever_reached = torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)
+
+    def reset(self, env_ids: Sequence[int] | None = None) -> None:
+        if env_ids is None or isinstance(env_ids, slice):
+            self._ever_reached.zero_()
+            return
+        self._ever_reached[env_ids] = False
+
+    def __call__(
+        self,
+        env: ManagerBasedRLEnv,
+        command_name: str,
+        asset_cfg: SceneEntityCfg,
+        max_distance: float,
+        max_angle_rad: float,
+        max_lin_vel: float,
+        max_ang_vel: float,
+        max_lin_acc: float,
+        max_ang_acc: float,
+    ) -> torch.Tensor:
+        success = reach_success_criteria(
+            env,
+            command_name=command_name,
+            asset_cfg=asset_cfg,
+            max_distance=max_distance,
+            max_angle_rad=max_angle_rad,
+            max_lin_vel=max_lin_vel,
+            max_ang_vel=max_ang_vel,
+            max_lin_acc=max_lin_acc,
+            max_ang_acc=max_ang_acc,
+        )
+        self._ever_reached |= success
+        return (env.termination_manager.time_outs & ~self._ever_reached).float()
+
+
 def position_command_error(env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     """Penalize tracking of the position error using L2-norm."""
     asset: RigidObject = env.scene[asset_cfg.name]

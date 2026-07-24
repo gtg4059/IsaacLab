@@ -37,7 +37,7 @@ _REACH_CRITERIA_PARAM_KEYS = (
 
 
 class reach_success_criteria_curriculum(ManagerTermBase):
-    """Gradually tighten reach success thresholds for the bonus reward and command resample event.
+    """Gradually tighten reach success thresholds for bonus/penalty rewards and command resample.
 
     Reward/event term configs hold the **final** (strictest) thresholds. This curriculum starts from
     relaxed values and linearly interpolates toward those finals over ``num_steps``.
@@ -46,12 +46,18 @@ class reach_success_criteria_curriculum(ManagerTermBase):
     def __init__(self, cfg: CurriculumTermCfg, env: ManagerBasedRLEnv):
         super().__init__(cfg, env)
 
-        self._reward_term_name = cfg.params.get("reward_term_name", "reach_success_bonus")
+        reward_term_names = cfg.params.get("reward_term_names")
+        if reward_term_names is None:
+            reward_term_names = [cfg.params.get("reward_term_name", "reach_success_bonus")]
+        self._reward_term_names = list(reward_term_names)
         self._event_term_name = cfg.params.get("event_term_name", "resample_ee_pose_on_reach")
-        self._reward_term_cfg = env.reward_manager.get_term_cfg(self._reward_term_name)
+        self._reward_term_cfgs = {
+            name: env.reward_manager.get_term_cfg(name) for name in self._reward_term_names
+        }
         self._event_term_cfg = env.event_manager.get_term_cfg(self._event_term_name)
 
-        self._final_params = {key: self._reward_term_cfg.params[key] for key in _REACH_CRITERIA_PARAM_KEYS}
+        primary_cfg = self._reward_term_cfgs[self._reward_term_names[0]]
+        self._final_params = {key: primary_cfg.params[key] for key in _REACH_CRITERIA_PARAM_KEYS}
         ease_factor = cfg.params.get("ease_factor", 5.0)
         initial_override = cfg.params.get("initial_params")
         if initial_override is not None:
@@ -82,11 +88,13 @@ class reach_success_criteria_curriculum(ManagerTermBase):
         if params_key == self._last_params_key:
             return
 
-        for key, value in params.items():
-            self._reward_term_cfg.params[key] = value
-            self._event_term_cfg.params[key] = value
         env = self._env
-        env.reward_manager.set_term_cfg(self._reward_term_name, self._reward_term_cfg)
+        for key, value in params.items():
+            for term_cfg in self._reward_term_cfgs.values():
+                term_cfg.params[key] = value
+            self._event_term_cfg.params[key] = value
+        for name, term_cfg in self._reward_term_cfgs.items():
+            env.reward_manager.set_term_cfg(name, term_cfg)
         env.event_manager.set_term_cfg(self._event_term_name, self._event_term_cfg)
         self._last_params_key = params_key
 
@@ -98,6 +106,7 @@ class reach_success_criteria_curriculum(ManagerTermBase):
         ease_factor: float = 5.0,
         start_step: int = 0,
         reward_term_name: str = "reach_success_bonus",
+        reward_term_names: list[str] | None = None,
         event_term_name: str = "resample_ee_pose_on_reach",
         initial_params: dict[str, float] | None = None,
     ) -> dict[str, float]:
