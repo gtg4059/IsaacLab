@@ -37,10 +37,13 @@ _REACH_CRITERIA_PARAM_KEYS = (
 
 
 class reach_success_criteria_curriculum(ManagerTermBase):
-    """Gradually tighten reach success thresholds for bonus/penalty rewards and command resample.
+    """Gradually tighten reach success thresholds for bonus/penalty rewards (and optional event).
 
     Reward/event term configs hold the **final** (strictest) thresholds. This curriculum starts from
     relaxed values and linearly interpolates toward those finals over ``num_steps``.
+
+    Set ``event_term_name`` to ``None`` when reach success ends the episode (no in-episode resample).
+    ``terminations.reach_success`` reads thresholds from the reward term, so it tracks automatically.
     """
 
     def __init__(self, cfg: CurriculumTermCfg, env: ManagerBasedRLEnv):
@@ -50,11 +53,14 @@ class reach_success_criteria_curriculum(ManagerTermBase):
         if reward_term_names is None:
             reward_term_names = [cfg.params.get("reward_term_name", "reach_success_bonus")]
         self._reward_term_names = list(reward_term_names)
+        # Default keeps legacy in-episode resample; pass None for termination-on-reach envs.
         self._event_term_name = cfg.params.get("event_term_name", "resample_ee_pose_on_reach")
         self._reward_term_cfgs = {
             name: env.reward_manager.get_term_cfg(name) for name in self._reward_term_names
         }
-        self._event_term_cfg = env.event_manager.get_term_cfg(self._event_term_name)
+        self._event_term_cfg = (
+            env.event_manager.get_term_cfg(self._event_term_name) if self._event_term_name else None
+        )
 
         primary_cfg = self._reward_term_cfgs[self._reward_term_names[0]]
         self._final_params = {key: primary_cfg.params[key] for key in _REACH_CRITERIA_PARAM_KEYS}
@@ -92,10 +98,12 @@ class reach_success_criteria_curriculum(ManagerTermBase):
         for key, value in params.items():
             for term_cfg in self._reward_term_cfgs.values():
                 term_cfg.params[key] = value
-            self._event_term_cfg.params[key] = value
+            if self._event_term_cfg is not None:
+                self._event_term_cfg.params[key] = value
         for name, term_cfg in self._reward_term_cfgs.items():
             env.reward_manager.set_term_cfg(name, term_cfg)
-        env.event_manager.set_term_cfg(self._event_term_name, self._event_term_cfg)
+        if self._event_term_name is not None and self._event_term_cfg is not None:
+            env.event_manager.set_term_cfg(self._event_term_name, self._event_term_cfg)
         self._last_params_key = params_key
 
     def __call__(
@@ -107,7 +115,7 @@ class reach_success_criteria_curriculum(ManagerTermBase):
         start_step: int = 0,
         reward_term_name: str = "reach_success_bonus",
         reward_term_names: list[str] | None = None,
-        event_term_name: str = "resample_ee_pose_on_reach",
+        event_term_name: str | None = "resample_ee_pose_on_reach",
         initial_params: dict[str, float] | None = None,
     ) -> dict[str, float]:
         params = self._interpolate_params(env.common_step_counter)

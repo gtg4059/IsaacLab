@@ -3,7 +3,10 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""CRI-aware reach environment (UR_CRI_recurr style)."""
+"""CRI-aware reach environment (UR_CRI_recurr style).
+
+Reach success ends the episode via ``terminations.reach_success`` (no in-episode target resample).
+"""
 
 from dataclasses import MISSING
 
@@ -130,23 +133,6 @@ class CRIEventCfg:
         },
     )
 
-    resample_ee_pose_on_reach = EventTerm(
-        func=mdp.resample_ee_pose_command_on_reach,
-        mode="interval",
-        interval_range_s=(0.0, 0.0),
-        is_global_time=True,
-        params={
-            "command_name": "ee_pose",
-            "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
-            "max_distance": 0.03,
-            "max_angle_rad": 0.1,
-            "max_lin_vel": 0.01,
-            "max_ang_vel": 0.1,
-            "max_lin_acc": 0.01,
-            "max_ang_acc": 0.1,
-        },
-    )
-
 
 @configclass
 class CRIRewardsCfg:
@@ -166,29 +152,17 @@ class CRIRewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
-    timeout_no_reach_penalty = RewTerm(
-        func=mdp.timeout_no_reach_penalty,
-        weight=-200.0,
-        params={
-            "command_name": "ee_pose",
-            "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
-            "max_distance": 0.03,
-            "max_angle_rad": 0.1,
-            "max_lin_vel": 0.01,
-            "max_ang_vel": 0.1,
-            "max_lin_acc": 0.01,
-            "max_ang_acc": 0.1,
-        },
+    action_rate = RewTerm(func=mdp.action_rate_l2_clamped, weight=-0.1)
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-7)
+    CRI_OVF = RewTerm(
+        func=mdp.CRI_OVF,
+        weight=-10.0,
+        params={"threshold": 0.9},
     )
-    action_rate = RewTerm(func=mdp.action_rate_l2_clamped, weight=-0.2)
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-5)
-    # CRI_OVF = RewTerm(
-    #     func=mdp.CRI_OVF,
-    #     weight=-50.0,
-    #     params={"threshold": 0.96},
-    # )
+    is_alive = RewTerm(func=mdp.is_alive, weight=-3.0)
+    # Sparse bonus on the success step; episode then ends via terminations.reach_success.
     reach_success_bonus = RewTerm(
-        func=mdp.reach_success_bonus,
+        func=mdp.reach_success_criteria,
         weight=600.0,
         params={
             "command_name": "ee_pose",
@@ -211,7 +185,9 @@ class CRICurriculumCfg:
             "ease_factor": 6.0,
             "start_step": REACH_SUCCESS_CRITERIA_START,
             "num_steps": 32 * 60000,
-            "reward_term_names": ["reach_success_bonus", "timeout_no_reach_penalty"],
+            "reward_term_names": ["reach_success_bonus"],
+            # Thresholds live on reward terms; terminations.reach_success reads them from there.
+            "event_term_name": None,
         },
     )
     # When reach success criteria curriculum starts, drop fine-grained tracking reward.
@@ -223,7 +199,7 @@ class CRICurriculumCfg:
             "modify_params": {
                 "switch_step": REACH_SUCCESS_CRITERIA_START,
                 "initial_weight": FINE_GRAINED_TRACKING_WEIGHT,
-                "final_weight": 1.0,
+                "final_weight": 8.0,
             },
         },
     )
@@ -235,19 +211,7 @@ class CRICurriculumCfg:
             "modify_params": {
                 "switch_step": 32 * 40000,
                 "initial_weight": -200.0,
-                "final_weight": -2000.0,
-            },
-        },
-    )
-    timeout_no_reach_penalty = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "rewards.timeout_no_reach_penalty.weight",
-            "modify_fn": mdp.termination_penalty_weight_by_step,
-            "modify_params": {
-                "switch_step": 32 * 40000,
-                "initial_weight": -200.0,
-                "final_weight": -2000.0,
+                "final_weight": -4000.0,
             },
         },
     )
@@ -278,7 +242,13 @@ class CRICurriculumCfg:
 
 @configclass
 class CRITerminationsCfg:
-    time_out = DoneTerm(func=mdp.time_out, time_out=True)
+    time_out = DoneTerm(func=mdp.time_out)
+    # Mark as time_out so rewards.is_terminated (OVF etc.) does not penalize success.
+    reach_success = DoneTerm(
+        func=mdp.reach_success,
+        params={"reward_term_name": "reach_success_bonus"},
+        time_out=True,
+    )
     OVF = DoneTerm(
         func=mdp.CRI_OVF,
         params={"threshold": 0.96},
@@ -287,7 +257,7 @@ class CRITerminationsCfg:
 
 @configclass
 class CRIReachEnvCfg(ManagerBasedRLEnvCfg):
-    """Reach environment with CRI observation/termination (UR_CRI_recurr)."""
+    """Reach environment with CRI observation; episode resets on reach success or failure."""
 
     scene: CRIReachSceneCfg = CRIReachSceneCfg(num_envs=4096, env_spacing=2.5)
     observations: CRIObservationsCfg = CRIObservationsCfg()
