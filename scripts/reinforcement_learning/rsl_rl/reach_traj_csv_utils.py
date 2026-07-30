@@ -48,8 +48,19 @@ def configure_p2p_style_eval(
     env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg,
     *,
     disable_resample: bool,
+    freeze_finished_envs: bool = True,
+    deterministic_sim: bool = False,
 ) -> None:
-    """Align play eval with P2P-Play: strict thresholds, optional one target per attempt."""
+    """Align play eval with P2P-Play: strict thresholds, optional one target per attempt.
+
+    When ``freeze_finished_envs`` is True, disable ``terminations.reach_success`` so a success
+    does not reset that env mid-eval. Play still scores success via strict criteria; by default
+    the policy keeps acting on finished envs (zip-compatible). Optional ``--freeze_actions``
+    zeros those actions separately.
+
+    ``deterministic_sim`` (PhysX enhanced determinism etc.) is opt-in: it changes dynamics vs
+    training and can drop reach rate / reintroduce spurious OVF.
+    """
     curriculum_cfg = getattr(env_cfg, "curriculum", None)
     if curriculum_cfg is not None:
         if hasattr(curriculum_cfg, "reach_success_criteria"):
@@ -66,6 +77,10 @@ def configure_p2p_style_eval(
         if ovf is not None and getattr(ovf, "params", None) is not None:
             ovf.params["threshold"] = 0.96
 
+    if freeze_finished_envs and terminations_cfg is not None and hasattr(terminations_cfg, "reach_success"):
+        # Success is scored in play_reach_csv; keep the robot pose (no mid-eval reset).
+        terminations_cfg.reach_success = None
+
     rewards_cfg = getattr(env_cfg, "rewards", None)
     if rewards_cfg is not None and hasattr(rewards_cfg, "CRI_OVF"):
         cri_ovf = rewards_cfg.CRI_OVF
@@ -76,6 +91,40 @@ def configure_p2p_style_eval(
         events_cfg = getattr(env_cfg, "events", None)
         if events_cfg is not None and hasattr(events_cfg, "resample_ee_pose_on_reach"):
             events_cfg.resample_ee_pose_on_reach = None
+
+    if deterministic_sim:
+        sim_cfg = getattr(env_cfg, "sim", None)
+        physx = getattr(sim_cfg, "physx", None) if sim_cfg is not None else None
+        if physx is not None:
+            if hasattr(physx, "enable_enhanced_determinism"):
+                physx.enable_enhanced_determinism = True
+            if hasattr(physx, "enable_external_forces_every_iteration"):
+                # Reduces noisy articulation velocities that seed late trajectory divergence.
+                physx.enable_external_forces_every_iteration = True
+            if hasattr(physx, "min_velocity_iteration_count"):
+                physx.min_velocity_iteration_count = max(int(physx.min_velocity_iteration_count), 1)
+
+
+def freeze_finished_env_controls(
+    base_env: ManagerBasedRLEnv,
+    actions: torch.Tensor,
+    attempt_active: torch.Tensor,
+) -> torch.Tensor:
+    """Hold finished envs still: zero actions and stall episode length (no timeout reset).
+
+    Do not teleport finished robots to ``default_joint_pos``: mass pose jumps couple into the
+    shared CRI TensorRT batch and cause spurious ``fail_ovf`` on still-active envs.
+    """
+    frozen = ~attempt_active
+    if not bool(frozen.any().item()):
+        return actions
+    actions = actions.clone()
+    actions[frozen] = 0.0
+    # ``env.step`` increments ``episode_length_buf`` then checks timeout; keep frozen envs at 0
+    # beforehand so they never reach ``max_episode_length``.
+    base_env.episode_length_buf[frozen] = 0
+    return actions
+
 
 def apply_strict_reach_params_to_env(env: ManagerBasedRLEnv, strict_params: dict[str, Any]) -> None:
     """Force reward/event reach thresholds to the captured strict finals."""
@@ -324,7 +373,11 @@ def resolve_reach_event(
     reach_cmd_snapshot: torch.Tensor,
     strict_reach_params: dict[str, Any],
 ) -> torch.Tensor:
-    """Prefer pre-reset ``reach_success`` termination (P2P); else strict criteria."""
+    """Prefer ``reach_success`` termination when active; else evaluate strict criteria.
+
+    One-shot play eval typically disables ``terminations.reach_success`` (freeze finished envs)
+    and relies on the criteria path so success does not reset mid-batch.
+    """
     if "reach_success" in base.termination_manager.active_terms:
         return base.termination_manager.get_term("reach_success")
     return reach_success_criteria(base, command_b=reach_cmd_snapshot, **strict_reach_params)

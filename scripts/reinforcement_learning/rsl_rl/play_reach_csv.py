@@ -10,6 +10,8 @@ Evaluation protocol matches ``Isaac-Reach-UR10-P2P-Play-v0`` semantics:
 * one target per env attempt (in-episode ``resample_ee_pose_on_reach`` disabled)
 * strict final reach thresholds (curriculum easing disabled)
 * trajectory logged only until first strict reach (inclusive), or until episode failure
+* ``terminations.reach_success`` is disabled by default so success does not reset mid-eval
+  (zip / ``09dca287``-compatible); policy keeps running on finished envs unless ``--freeze_actions``
 * attempt outcome: ``success`` on reach; ``fail_timeout`` / ``fail_ovf`` / ``fail_other`` if the
   episode ends without reach (same idea as P2P: reach terminates success, timeout is failure)
 * stops after every env finishes exactly one attempt
@@ -109,6 +111,27 @@ parser.add_argument(
     help="Keep mid-episode target resample (default: disabled for P2P-style one-target attempts).",
 )
 parser.add_argument(
+    "--keep_reach_success_term",
+    action="store_true",
+    default=False,
+    help="Keep terminations.reach_success (success resets the env). "
+    "Default disables it so finished envs are not reset mid-eval (zip-compatible).",
+)
+parser.add_argument(
+    "--freeze_actions",
+    action="store_true",
+    default=False,
+    help="Zero actions + stall timeout on finished envs. Default keeps policy running "
+    "(zip / 09dca287-compatible). Implies reach_success term is off unless "
+    "--keep_reach_success_term is set.",
+)
+parser.add_argument(
+    "--deterministic_sim",
+    action="store_true",
+    default=False,
+    help="Opt-in PhysX enhanced determinism (changes dynamics vs training; can lower reach rate).",
+)
+parser.add_argument(
     "--max_steps",
     type=int,
     default=0,
@@ -142,6 +165,12 @@ from isaaclab.envs import (
 )
 from isaaclab.utils.assets import retrieve_file_path
 from isaaclab.utils.dict import print_dict
+from isaaclab.utils.seed import configure_seed
+
+
+def _configure_eval_rng(seed: int) -> None:
+    """Re-pin RNGs for play eval (no torch.use_deterministic_algorithms — breaks CircularBuffer)."""
+    configure_seed(seed, torch_deterministic=False)
 
 from isaaclab_rl.rsl_rl import (
     RslRlBaseRunnerCfg,
@@ -185,6 +214,9 @@ def _run_one_shot_eval(
     record_video: bool,
 ) -> dict[str, Any]:
     """Run P2P-style one-shot eval for the current reset state; write CSVs under export_csv_dir."""
+    # Re-pin RNGs at the start of every seed so multi-seed / repeat runs are reproducible.
+    _configure_eval_rng(eval_seed)
+
     dt = base_env.step_dt
     obs = env.get_observations()
 
@@ -211,6 +243,9 @@ def _run_one_shot_eval(
                 )
 
                 actions = policy(obs)
+                # Optional: hold finished envs still. Default keeps policy on (zip-compatible).
+                if attempt_active is not None and args_cli.freeze_actions:
+                    actions = csv_utils.freeze_finished_env_controls(base_env, actions, attempt_active)
                 obs, _, dones, _ = env.step(actions)
 
                 if version.parse(installed_version) >= version.parse("4.0.0"):
@@ -393,7 +428,15 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         )
 
     disable_resample = not args_cli.keep_resample_on_reach
-    csv_utils.configure_p2p_style_eval(env_cfg, disable_resample=disable_resample)
+    disable_reach_success_term = not args_cli.keep_reach_success_term
+    csv_utils.configure_p2p_style_eval(
+        env_cfg,
+        disable_resample=disable_resample,
+        freeze_finished_envs=disable_reach_success_term,
+        deterministic_sim=bool(args_cli.deterministic_sim),
+    )
+    # Seed before env construction (PhysX / scene spawn paths also read global RNGs).
+    _configure_eval_rng(eval_seeds[0])
 
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
 
@@ -450,6 +493,18 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         "no reach before episode end => failure."
     )
     print(f"[INFO] Env has reach_success termination: {has_reach_term}")
+    print(
+        "[INFO] Disable reach_success reset: "
+        f"{'yes (zip-compatible; policy keeps running after success)' if disable_reach_success_term else 'no (--keep_reach_success_term)'}"
+    )
+    print(
+        "[INFO] Freeze finished actions: "
+        f"{'enabled (--freeze_actions)' if args_cli.freeze_actions else 'disabled (default)'}"
+    )
+    print(
+        "[INFO] PhysX deterministic_sim: "
+        f"{'enabled (--deterministic_sim)' if args_cli.deterministic_sim else 'disabled (default)'}"
+    )
     print(f"[INFO] Mid-episode target resample: {'enabled' if args_cli.keep_resample_on_reach else 'disabled'}")
     print(
         "[INFO] Strict reach thresholds: "
