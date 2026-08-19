@@ -199,7 +199,7 @@ class CRICurriculumCfg:
             "modify_params": {
                 "switch_step": REACH_SUCCESS_CRITERIA_START,
                 "initial_weight": FINE_GRAINED_TRACKING_WEIGHT,
-                "final_weight": 8.0,
+                "final_weight": 1.0,
             },
         },
     )
