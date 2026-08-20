@@ -72,7 +72,7 @@ class CRICommandsCfg:
         ranges=mdp.UniformPoseTrigCommandCfg.PolarRanges(
             pos_th=MISSING,
             pos_r=(0.4, 0.8),
-            pos_z=(-0.7, 0.7),
+            pos_z=(-0.8, 0.8),
             roll=MISSING,
             pitch=MISSING,
             yaw=MISSING,
