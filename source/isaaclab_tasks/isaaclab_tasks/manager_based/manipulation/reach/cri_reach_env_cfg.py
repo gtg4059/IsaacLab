@@ -72,7 +72,7 @@ class CRICommandsCfg:
         ranges=mdp.UniformPoseTrigCommandCfg.PolarRanges(
             pos_th=MISSING,
             pos_r=(0.4, 0.8),
-            pos_z=(0.4, 0.8),
+            pos_z=(-0.7, 0.7),
             roll=MISSING,
             pitch=MISSING,
             yaw=MISSING,
@@ -156,10 +156,10 @@ class CRIRewardsCfg:
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-7)
     CRI_OVF = RewTerm(
         func=mdp.CRI_OVF,
-        weight=-0.0,
+        weight=-1.0,
         params={"threshold": 0.9},
     )
-    is_alive = RewTerm(func=mdp.is_alive, weight=-3.0)
+    is_alive = RewTerm(func=mdp.is_alive, weight=-0.0)
     # Sparse bonus on the success step; episode then ends via terminations.reach_success.
     reach_success_bonus = RewTerm(
         func=mdp.reach_success_criteria,
@@ -221,9 +221,21 @@ class CRICurriculumCfg:
             "address": "rewards.CRI_OVF.weight",
             "modify_fn": mdp.termination_penalty_weight_by_step,
             "modify_params": {
-                "switch_step": 32 * 2000,
-                "initial_weight": 0.0,
+                "switch_step": 32 * 10000,
+                "initial_weight": -1.0,
                 "final_weight": -10.0,
+            },
+        },
+    )
+    is_alive_penalty = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "rewards.is_alive.weight",
+            "modify_fn": mdp.termination_penalty_weight_by_step,
+            "modify_params": {
+                "switch_step": 32 * 80000,
+                "initial_weight": -0.0,
+                "final_weight": -3.0,
             },
         },
     )
@@ -238,18 +250,18 @@ class CRICurriculumCfg:
     #         },
     #     },
     # )
-    cri_ovf_term_threshold = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "terminations.OVF.params.threshold",
-            "modify_fn": mdp.cri_ovf_threshold_by_step,
-            "modify_params": {
-                "crossfade_start": CRI_OVF_CROSSFADE_START,
-                "threshold_initial": CRI_OVF_THRESHOLD_INITIAL,
-                "threshold_final": CRI_OVF_THRESHOLD_FINAL,
-            },
-        },
-    )
+    # cri_ovf_term_threshold = CurrTerm(
+    #     func=mdp.modify_term_cfg,
+    #     params={
+    #         "address": "terminations.OVF.params.threshold",
+    #         "modify_fn": mdp.cri_ovf_threshold_by_step,
+    #         "modify_params": {
+    #             "crossfade_start": CRI_OVF_CROSSFADE_START,
+    #             "threshold_initial": CRI_OVF_THRESHOLD_INITIAL,
+    #             "threshold_final": CRI_OVF_THRESHOLD_FINAL,
+    #         },
+    #     },
+    # )
 
 
 @configclass
