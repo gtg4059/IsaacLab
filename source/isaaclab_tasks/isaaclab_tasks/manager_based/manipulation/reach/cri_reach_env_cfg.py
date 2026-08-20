@@ -156,7 +156,7 @@ class CRIRewardsCfg:
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-7)
     CRI_OVF = RewTerm(
         func=mdp.CRI_OVF,
-        weight=-10.0,
+        weight=-0.0,
         params={"threshold": 0.9},
     )
     is_alive = RewTerm(func=mdp.is_alive, weight=-3.0)
@@ -215,6 +215,18 @@ class CRICurriculumCfg:
             },
         },
     )
+    cri_ovf_penalty = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "rewards.CRI_OVF.weight",
+            "modify_fn": mdp.termination_penalty_weight_by_step,
+            "modify_params": {
+                "switch_step": 32 * 2000,
+                "initial_weight": 0.0,
+                "final_weight": -10.0,
+            },
+        },
+    )
     # cri_ovf_reward_weight = CurrTerm(
     #     func=mdp.modify_term_cfg,
     #     params={
@@ -226,18 +238,18 @@ class CRICurriculumCfg:
     #         },
     #     },
     # )
-    # cri_ovf_term_threshold = CurrTerm(
-    #     func=mdp.modify_term_cfg,
-    #     params={
-    #         "address": "terminations.OVF.params.threshold",
-    #         "modify_fn": mdp.cri_ovf_threshold_by_step,
-    #         "modify_params": {
-    #             "crossfade_start": CRI_OVF_CROSSFADE_START,
-    #             "threshold_initial": CRI_OVF_THRESHOLD_INITIAL,
-    #             "threshold_final": CRI_OVF_THRESHOLD_FINAL,
-    #         },
-    #     },
-    # )
+    cri_ovf_term_threshold = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "terminations.OVF.params.threshold",
+            "modify_fn": mdp.cri_ovf_threshold_by_step,
+            "modify_params": {
+                "crossfade_start": CRI_OVF_CROSSFADE_START,
+                "threshold_initial": CRI_OVF_THRESHOLD_INITIAL,
+                "threshold_final": CRI_OVF_THRESHOLD_FINAL,
+            },
+        },
+    )
 
 
 @configclass

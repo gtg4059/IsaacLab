@@ -94,6 +94,8 @@ class ArticulationData:
         # Mid-step env reset: keep pre-reset CRI for non-reset envs; refresh only dirty rows.
         self._cri_dirty: torch.Tensor | None = None
         self._cri_last_batch_rows: int = 0
+        # Last physics timestamp that ran RunSolver_CUDA_CRI_AtMotionState (once-per-step guard).
+        self._cri_solved_timestamp: float = -1.0
         # Pose → CRI row from a full-N TRT solve (batch=1 ≠ batch=N numerically).
         self._cri_nbatch_row_cache: dict[tuple, torch.Tensor] = {}
         # Path counters for once-per-step verification (printed when SFD_CRI_TIMING=1).
@@ -1229,8 +1231,26 @@ class ArticulationData:
             self._CRI_float.data.copy_(self._CRI.data)
             self._CRI_float.data.clamp_(min=0.0, max=2.0)
 
+    def _cri_once_per_step_enabled(self) -> bool:
+        return os.environ.get("SFD_CRI_ONCE_PER_STEP", "1") == "1"
+
     def _invoke_cri_solver(self, q_in: torch.Tensor, qd_in: torch.Tensor) -> torch.Tensor | None:
-        """Run CRI solver (+ optional timing / sync). Returns GPU CRI or None."""
+        """Run CRI solver (+ optional timing / sync). Returns GPU CRI or None.
+
+        When ``SFD_CRI_ONCE_PER_STEP=1`` (default), a second full-batch call at the same
+        ``_sim_timestamp`` returns the cached tensor instead of invoking the DLL again.
+        """
+        n = self._root_physx_view.count
+        if (
+            self._cri_once_per_step_enabled()
+            and self._cri_solved_timestamp == self._sim_timestamp
+            and self._CRI.data is not None
+            and q_in.shape[0] == n
+        ):
+            self._cri_path_dirty_skip += 1
+            self._cri_last_batch_rows = 0
+            return self._CRI.data
+
         self._cri_last_batch_rows = int(q_in.shape[0])
         track_timing = os.environ.get("SFD_CRI_TIMING", "0") == "1"
         use_cuda = self.device.startswith("cuda")
@@ -1242,6 +1262,8 @@ class ArticulationData:
             self._cri_cuda_end_evt.record()
             self._cri_cuda_end_evt.synchronize()
             self._record_cri_inference_time(self._cri_cuda_start_evt.elapsed_time(self._cri_cuda_end_evt) * 1e-3)
+            if cri_gpu is not None and q_in.shape[0] == n:
+                self._cri_solved_timestamp = self._sim_timestamp
             return cri_gpu
         wall0 = time.perf_counter() if track_timing else 0.0
         cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
@@ -1249,6 +1271,8 @@ class ArticulationData:
             torch.cuda.synchronize()
         if track_timing:
             self._record_cri_inference_time(time.perf_counter() - wall0)
+        if cri_gpu is not None and q_in.shape[0] == n:
+            self._cri_solved_timestamp = self._sim_timestamp
         return cri_gpu
 
     def _index_copy_cri_rows(self, env_ids: torch.Tensor, cri_rows: torch.Tensor) -> None:
@@ -1295,15 +1319,22 @@ class ArticulationData:
     def _refresh_dirty_cri_rows(self) -> None:
         """Recompute CRI only for envs marked dirty after a mid-step joint write / reset.
 
-        Identical-pose dirty sets (P2P home reset) use a cached full-N TRT row then scatter.
-        Heterogeneous dirty sets: by default (``SFD_CRI_ONCE_PER_STEP=1``) skip a second DLL
-        call; :meth:`_apply_cri_zero_vel_filter` then forces CRI=0 where ``qd≈0`` (post-reset).
-        Set ``SFD_CRI_ONCE_PER_STEP=0`` to restore a full mixed-batch re-solve for post-reset obs.
+        Default (``SFD_CRI_ONCE_PER_STEP=1``): no second DLL at this physics timestamp.
+        :meth:`_apply_cri_zero_vel_filter` then forces CRI=0 where ``qd≈0`` (post-reset).
+        Set ``SFD_CRI_ONCE_PER_STEP=0`` to restore identical-home cache / mixed-batch re-solve.
         """
         assert self._cri_dirty is not None and self._CRI.data is not None
         ids = self._cri_dirty.nonzero(as_tuple=False).squeeze(-1)
         if ids.numel() == 0:
             return
+        # Training default: never a second DLL at this physics timestamp. Reset rows keep the
+        # pre-reset cache; :meth:`_apply_cri_zero_vel_filter` then forces CRI=0 where ``qd≈0``.
+        # This also covers the 1-env / identical-home path, which used to do a full-N solve.
+        if self._cri_once_per_step_enabled():
+            self._cri_path_dirty_skip += 1
+            self._clear_cri_dirty()
+            return
+
         q_in, qd_in = self._cri_input_tensors()
         q_d = q_in.index_select(0, ids)
         qd_d = qd_in.index_select(0, ids)
@@ -1316,14 +1347,6 @@ class ArticulationData:
                 return
             cri_rows = row.unsqueeze(0).expand(ids.numel(), -1).contiguous()
             self._index_copy_cri_rows(ids, cri_rows)
-            self._clear_cri_dirty()
-            return
-
-        # Heterogeneous random resets (UR10): second full-batch DLL is the 0.8s→1.2s regression.
-        # Default: skip DLL; :attr:`CRI` zero-vel filter clears stale rows when ``qd≈0``.
-        # Set SFD_CRI_ONCE_PER_STEP=0 to restore a full mixed-batch re-solve for post-reset obs.
-        if os.environ.get("SFD_CRI_ONCE_PER_STEP", "1") == "1":
-            self._cri_path_dirty_skip += 1
             self._clear_cri_dirty()
             return
 
