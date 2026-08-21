@@ -235,7 +235,7 @@ class CRICurriculumCfg:
             "address": "rewards.is_alive.weight",
             "modify_fn": mdp.termination_penalty_weight_by_step,
             "modify_params": {
-                "switch_step": 32 * 80000,
+                "switch_step": 32 * 160000,
                 "initial_weight": -0.0,
                 "final_weight": -3.0,
             },
