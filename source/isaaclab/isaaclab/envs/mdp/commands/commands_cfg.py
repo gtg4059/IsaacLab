@@ -210,6 +210,12 @@ class UniformPoseTrigCommandCfg(CommandTermCfg):
         pos_z: tuple[float, float] = MISSING
         """Height range [m]."""
 
+        exclude_pos_r: tuple[float, float] | None = None
+        """If set with :attr:`exclude_pos_z`, resample when ``r`` and ``z`` both fall in these ranges."""
+
+        exclude_pos_z: tuple[float, float] | None = None
+        """If set with :attr:`exclude_pos_r`, resample when ``r`` and ``z`` both fall in these ranges."""
+
         roll: tuple[float, float] = MISSING
         """Roll angle range [rad]."""
 

@@ -180,12 +180,37 @@ class UniformPoseTrigCommand(CommandTrigTerm):
         return self.pose_command_b
 
     def _resample_command(self, env_ids: Sequence[int]):
-        r = torch.empty(len(env_ids), device=self.device)
-        theta = torch.empty(len(env_ids), device=self.device)
-        z = torch.empty(len(env_ids), device=self.device)
-        r.uniform_(*self.cfg.ranges.pos_r)
-        theta.uniform_(*self.cfg.ranges.pos_th)
-        z.uniform_(*self.cfg.ranges.pos_z)
+        n = len(env_ids)
+        r = torch.empty(n, device=self.device)
+        theta = torch.empty(n, device=self.device)
+        z = torch.empty(n, device=self.device)
+        pending = torch.ones(n, dtype=torch.bool, device=self.device)
+        exclude_r = self.cfg.ranges.exclude_pos_r
+        exclude_z = self.cfg.ranges.exclude_pos_z
+        max_tries = 32
+        for _ in range(max_tries):
+            if not pending.any():
+                break
+            idx = pending.nonzero(as_tuple=False).squeeze(-1)
+            r_new = torch.empty(idx.numel(), device=self.device)
+            theta_new = torch.empty(idx.numel(), device=self.device)
+            z_new = torch.empty(idx.numel(), device=self.device)
+            r_new.uniform_(*self.cfg.ranges.pos_r)
+            theta_new.uniform_(*self.cfg.ranges.pos_th)
+            z_new.uniform_(*self.cfg.ranges.pos_z)
+            r[idx] = r_new
+            theta[idx] = theta_new
+            z[idx] = z_new
+            if exclude_r is None or exclude_z is None:
+                pending.zero_()
+                break
+            pending[idx] = (
+                (r_new >= exclude_r[0])
+                & (r_new <= exclude_r[1])
+                & (z_new >= exclude_z[0])
+                & (z_new <= exclude_z[1])
+            )
+
         x = r * torch.cos(theta)
         y = r * torch.sin(theta)
         self.pose_command_b[env_ids, 0] = x

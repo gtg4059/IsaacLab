@@ -71,8 +71,10 @@ class CRICommandsCfg:
         resampling_time_range=(32, 32),
         ranges=mdp.UniformPoseTrigCommandCfg.PolarRanges(
             pos_th=MISSING,
-            pos_r=(0.4, 0.8),
-            pos_z=(-0.8, 0.8),
+            pos_r=(0.0, 0.8),
+            pos_z=(-0.0, 0.8),
+            exclude_pos_r=(0.0, 0.4),
+            exclude_pos_z=(-0.0, 0.4),
             roll=MISSING,
             pitch=MISSING,
             yaw=MISSING,
@@ -163,7 +165,7 @@ class CRIRewardsCfg:
     # Sparse bonus on the success step; episode then ends via terminations.reach_success.
     reach_success_bonus = RewTerm(
         func=mdp.reach_success_criteria,
-        weight=600.0,
+        weight=1200.0,
         params={
             "command_name": "ee_pose",
             "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
