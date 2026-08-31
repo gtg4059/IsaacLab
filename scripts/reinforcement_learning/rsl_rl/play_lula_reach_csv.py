@@ -7,9 +7,10 @@
 
 Exports the same CSV schema as :mod:`play_reach_csv`:
 
-* ``env_<id>_traj.csv`` — ``global_step``, ``sim_time_s``, ``reach_event``, ``max_CRI``, ``q_*``, ``qd_*``, ``CRI_<i>``
+* ``env_<id>_traj.csv`` — ``global_step``, ``sim_time_s``, ``reach_event``, ``max_CRI``,
+  ``cmd_{x,y,z,qw,qx,qy,qz}`` (ee_pose in robot base frame), ``q_*``, ``qd_*``, ``CRI_<i>``
   (q/qd/CRI from the first CRI eval at each env step — pre-reset if the env terminated)
-* ``episode_reach.csv`` — per-attempt ``reached`` / ``outcome``
+* ``episode_reach.csv`` — per-attempt ``reached`` / ``outcome`` / command pose
 * ``reach_summary.csv`` — aggregate reach rate
 
 Evaluation is P2P-style one-shot (strict thresholds, one target, log until reach or episode failure).
@@ -499,6 +500,7 @@ def main():
                     float(play_step) * dt,
                     log_active & attempt_active,
                     reach_ev,
+                    command=reach_cmd_snapshot,
                 )
                 if csv_files is not None:
                     for handle in csv_files.values():
@@ -516,6 +518,7 @@ def main():
                             sim_time_s,
                             reached=True,
                             outcome="success",
+                            command_pose=reach_cmd_snapshot[int(env_idx)],
                         )
                     total_episodes += int(newly_success.sum().item())
                     total_reached_episodes += int(newly_success.sum().item())
@@ -536,6 +539,7 @@ def main():
                             sim_time_s,
                             reached=False,
                             outcome=outcome,
+                            command_pose=reach_cmd_snapshot[int(env_idx)],
                         )
                     total_episodes += int(newly_fail.sum().item())
                     episode_ids[newly_fail] += 1

@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Play a reach-task RSL-RL checkpoint and export per-env trajectory CSV (q, qd, CRI, reach_event).
+"""Play a reach-task RSL-RL checkpoint and export per-env trajectory CSV (q, qd, CRI, reach_event, cmd pose).
 
 Evaluation protocol matches ``Isaac-Reach-UR10-P2P-Play-v0`` semantics:
 
@@ -41,7 +41,9 @@ Writes ``seed_<s>/episode_reach.csv``, ``seed_<s>/reach_summary.csv``, and
 
 For a P2P-trained policy use ``--task Isaac-Reach-UR10-P2P-Play-v0`` (env already ends on reach).
 
-CSV columns: ``global_step``, ``sim_time_s``, ``reach_event``, ``max_CRI``, ``q_*``, ``qd_*``, ``CRI_<i>``
+CSV columns: ``global_step``, ``sim_time_s``, ``reach_event``, ``max_CRI``,
+``cmd_{x,y,z,qw,qx,qy,qz}`` (ee_pose in robot base frame), ``q_*``, ``qd_*``, ``CRI_<i>``.
+``episode_reach.csv`` also stores the same command pose per attempt.
 
 Trajectory rows use the first CRI evaluation at each env step (pre-reset motion state), so OVF
 termination does not pair post-reset ``qd=0`` with the pre-reset CRI that caused the reset.
@@ -109,6 +111,24 @@ parser.add_argument(
     action="store_true",
     default=False,
     help="Keep mid-episode target resample (default: disabled for P2P-style one-target attempts).",
+)
+parser.add_argument(
+    "--print_targets",
+    action="store_true",
+    default=True,
+    help="Print ee_pose targets at attempt start (robot base frame).",
+)
+parser.add_argument(
+    "--no_print_targets",
+    action="store_true",
+    default=False,
+    help="Disable --print_targets.",
+)
+parser.add_argument(
+    "--print_targets_limit",
+    type=int,
+    default=32,
+    help="Max envs to print target poses for (default: 32).",
 )
 parser.add_argument(
     "--keep_reach_success_term",
@@ -229,6 +249,7 @@ def _run_one_shot_eval(
     log_active: torch.Tensor | None = None
     attempt_active: torch.Tensor | None = None
     episode_ids: torch.Tensor | None = None
+    printed_targets = False
     total_episodes = 0
     total_reached_episodes = 0
 
@@ -241,6 +262,15 @@ def _run_one_shot_eval(
                 reach_cmd_snapshot = (
                     base_env.command_manager.get_command(strict_reach_params["command_name"]).detach().clone()
                 )
+                if args_cli.print_targets and not args_cli.no_print_targets and not printed_targets:
+                    cmd_name = strict_reach_params["command_name"]
+                    csv_utils.print_command_targets_from_env(
+                        base_env,
+                        cmd_name,
+                        label=f"seed={eval_seed}",
+                        max_rows=args_cli.print_targets_limit,
+                    )
+                    printed_targets = True
 
                 actions = policy(obs)
                 # Optional: hold finished envs still. Default keeps policy on (zip-compatible).
@@ -286,6 +316,7 @@ def _run_one_shot_eval(
                         float(play_step) * dt,
                         log_active & attempt_active,
                         reach_ev,
+                        command=reach_cmd_snapshot,
                     )
                     if csv_files is not None:
                         for handle in csv_files.values():
@@ -303,6 +334,7 @@ def _run_one_shot_eval(
                             sim_time_s,
                             reached=True,
                             outcome="success",
+                            command_pose=reach_cmd_snapshot[int(env_idx)],
                         )
                     total_episodes += int(newly_success.sum().item())
                     total_reached_episodes += int(newly_success.sum().item())
@@ -323,6 +355,7 @@ def _run_one_shot_eval(
                             sim_time_s,
                             reached=False,
                             outcome=outcome,
+                            command_pose=reach_cmd_snapshot[int(env_idx)],
                         )
                     total_episodes += int(newly_fail.sum().item())
                     episode_ids[newly_fail] += 1

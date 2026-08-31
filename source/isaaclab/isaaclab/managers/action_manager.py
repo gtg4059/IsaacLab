@@ -355,7 +355,7 @@ class ActionManager(ManagerBase):
                 all environments are considered.
 
         Returns:
-            An empty dictionary.
+            Logged extras from action terms (empty if none).
         """
         # resolve environment ids
         if env_ids is None:
@@ -363,11 +363,12 @@ class ActionManager(ManagerBase):
         # reset the action history
         self._prev_action[env_ids] = 0.0
         self._action[env_ids] = 0.0
-        # reset all action terms
+        extras: dict[str, torch.Tensor] = {}
         for term in self._terms.values():
-            term.reset(env_ids=env_ids)
-        # nothing to log here
-        return {}
+            info = term.reset(env_ids=env_ids)
+            if info:
+                extras.update(info)
+        return extras
 
     def process_action(self, action: torch.Tensor):
         """Processes the actions sent to the environment.

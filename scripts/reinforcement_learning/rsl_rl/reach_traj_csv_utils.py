@@ -25,6 +25,66 @@ _REACH_CRITERIA_PARAM_KEYS = (
     "max_lin_acc",
     "max_ang_acc",
 )
+_REACH_CRITERIA_CALL_KEYS = ("command_name", "asset_cfg", *_REACH_CRITERIA_PARAM_KEYS)
+
+# ee_pose command in robot base frame: (x, y, z, qw, qx, qy, qz)
+_CMD_POSE_FIELDS = ("cmd_x", "cmd_y", "cmd_z", "cmd_qw", "cmd_qx", "cmd_qy", "cmd_qz")
+
+
+def print_command_targets(
+    command: torch.Tensor,
+    *,
+    label: str = "TARGET",
+    max_rows: int = 32,
+    pose_w: torch.Tensor | None = None,
+) -> None:
+    """Print ee_pose targets. ``command`` is (N, 7) in the robot base / origin frame."""
+    cmd = command.detach().cpu()
+    n = int(cmd.shape[0])
+    world = None if pose_w is None else pose_w.detach().cpu()
+    print(
+        f"[INFO] {label}: ee_pose in robot base frame (x, y, z, r=hypot(x,y))  n={n}"
+        + ("  + world xyz" if world is not None else "")
+    )
+    hdr = f"{'env':>5} {'x':>8} {'y':>8} {'z':>8} {'r':>8}"
+    if world is not None:
+        hdr += f" {'xw':>8} {'yw':>8} {'zw':>8}"
+    print(f"[INFO] {label}: {hdr}")
+    rows = min(n, max(0, int(max_rows)))
+    for i in range(rows):
+        x, y, z = float(cmd[i, 0]), float(cmd[i, 1]), float(cmd[i, 2])
+        r = (x * x + y * y) ** 0.5
+        line = f"{i:5d} {x:8.4f} {y:8.4f} {z:8.4f} {r:8.4f}"
+        if world is not None:
+            line += f" {float(world[i, 0]):8.4f} {float(world[i, 1]):8.4f} {float(world[i, 2]):8.4f}"
+        print(f"[INFO] {label}: {line}")
+    if n > rows:
+        print(f"[INFO] {label}: ... {n - rows} more envs (full poses in episode_reach.csv / traj cmd_*)")
+
+
+def print_command_targets_from_env(env, command_name: str, *, label: str = "TARGET", max_rows: int = 32) -> None:
+    """Print current command term pose (base + world if the term has ``pose_command_w``)."""
+    term = env.command_manager.get_term(command_name)
+    pose_w = getattr(term, "pose_command_w", None)
+    print_command_targets(term.command, label=label, max_rows=max_rows, pose_w=pose_w)
+
+
+def command_pose_row(command_7: Any | None) -> dict[str, Any]:
+    """Serialize a 7D pose command (base frame) for CSV columns."""
+    if command_7 is None:
+        return {key: "" for key in _CMD_POSE_FIELDS}
+    vals = command_7.detach().cpu().reshape(-1).tolist() if hasattr(command_7, "detach") else list(command_7)
+    if len(vals) < 7:
+        return {key: "" for key in _CMD_POSE_FIELDS}
+    return {
+        "cmd_x": float(vals[0]),
+        "cmd_y": float(vals[1]),
+        "cmd_z": float(vals[2]),
+        "cmd_qw": float(vals[3]),
+        "cmd_qx": float(vals[4]),
+        "cmd_qy": float(vals[5]),
+        "cmd_qz": float(vals[6]),
+    }
 
 
 def strict_reach_params_from_env_cfg(
@@ -85,7 +145,8 @@ def configure_p2p_style_eval(
     if rewards_cfg is not None and hasattr(rewards_cfg, "CRI_OVF"):
         cri_ovf = rewards_cfg.CRI_OVF
         if cri_ovf is not None and getattr(cri_ovf, "params", None) is not None:
-            cri_ovf.params["threshold"] = 0.96
+            cri_ovf.params.pop("threshold", None)
+            cri_ovf.params["limit"] = 0.96
 
     if disable_resample:
         events_cfg = getattr(env_cfg, "events", None)
@@ -153,6 +214,7 @@ def open_traj_csv_writers(
     os.makedirs(csv_dir, exist_ok=True)
     fieldnames = (
         ["global_step", "sim_time_s", "reach_event", "max_CRI"]
+        + list(_CMD_POSE_FIELDS)
         + [f"q_{name}" for name in joint_names]
         + [f"qd_{name}" for name in joint_names]
         + [f"CRI_{i}" for i in range(num_cri_points)]
@@ -176,7 +238,7 @@ def open_episode_reach_csv(csv_dir: str) -> tuple[IO[str], csv.DictWriter]:
     handle = open(path, "w", newline="", encoding="utf-8")
     writer = csv.DictWriter(
         handle,
-        fieldnames=["env_idx", "episode_id", "ended_at_s", "reached", "outcome"],
+        fieldnames=["env_idx", "episode_id", "ended_at_s", "reached", "outcome", *_CMD_POSE_FIELDS],
     )
     writer.writeheader()
     handle.flush()
@@ -299,6 +361,7 @@ def append_traj_rows(
     sim_time_s: float,
     env_log_mask: torch.Tensor,
     reach_event: torch.Tensor,
+    command: torch.Tensor | None = None,
 ) -> None:
     """Append one CSV row per active env using the pre-reset CRI motion snapshot.
 
@@ -306,6 +369,9 @@ def append_traj_rows(
     ``joint_pos`` / ``joint_vel`` then pairs post-reset ``qd=0`` with a stale CRI.
     ``get_cri_trajectory_state`` keeps the (q, qd, CRI) from the first CRI eval at
     this physics step (termination/reward), which is the state that must be exported.
+
+    ``command`` should be the pre-step ``ee_pose`` snapshot (base frame, 7D). Live
+    command after ``step`` can already be the next target on reset envs.
     """
     joint_names = robot.joint_names
     # Prefer no_grad over inference_mode so sim buffers stay mutable across multi-seed resets.
@@ -315,6 +381,7 @@ def append_traj_rows(
         joint_vel = joint_vel.detach().cpu().numpy()
         cri = cri.detach().cpu().numpy()
         reach_np = reach_event.detach().cpu().numpy()
+        cmd_np = None if command is None else command.detach().cpu().numpy()
 
     mask = env_log_mask.detach().bool().cpu()
     num_cri = int(cri.shape[1]) if cri.ndim == 2 else 0
@@ -329,6 +396,8 @@ def append_traj_rows(
             "reach_event": int(bool(reach_np[env_idx])),
             "max_CRI": float(cri[env_idx].max()) if num_cri > 0 else float("nan"),
         }
+        cmd_vec = cmd_np[env_idx] if cmd_np is not None and env_idx < int(cmd_np.shape[0]) else None
+        row.update(command_pose_row(cmd_vec))
         for joint_idx in range(num_joints):
             name = joint_names[joint_idx]
             row[f"q_{name}"] = float(joint_pos[env_idx, joint_idx])
@@ -355,16 +424,17 @@ def record_attempt(
     ended_at_s: float,
     reached: bool,
     outcome: str,
+    command_pose: Any | None = None,
 ) -> None:
-    writer.writerow(
-        {
-            "env_idx": env_idx,
-            "episode_id": episode_id,
-            "ended_at_s": ended_at_s,
-            "reached": int(reached),
-            "outcome": outcome,
-        }
-    )
+    row: dict[str, Any] = {
+        "env_idx": env_idx,
+        "episode_id": episode_id,
+        "ended_at_s": ended_at_s,
+        "reached": int(reached),
+        "outcome": outcome,
+    }
+    row.update(command_pose_row(command_pose))
+    writer.writerow(row)
     handle.flush()
 
 
@@ -380,4 +450,5 @@ def resolve_reach_event(
     """
     if "reach_success" in base.termination_manager.active_terms:
         return base.termination_manager.get_term("reach_success")
-    return reach_success_criteria(base, command_b=reach_cmd_snapshot, **strict_reach_params)
+    criteria = {key: strict_reach_params[key] for key in _REACH_CRITERIA_CALL_KEYS if key in strict_reach_params}
+    return reach_success_criteria(base, command_b=reach_cmd_snapshot, **criteria)

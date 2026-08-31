@@ -78,6 +78,8 @@ from isaaclab.envs import (
 from isaaclab.utils.assets import retrieve_file_path
 from isaaclab.utils.dict import print_dict
 
+import reach_traj_csv_utils as csv_utils
+
 from isaaclab_rl.rsl_rl import (
     RslRlBaseRunnerCfg,
     RslRlVecEnvWrapper,
@@ -201,11 +203,23 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # reset environment
     obs = env.get_observations()
     timestep = 0
+    last_cmd_key: torch.Tensor | None = None
     # simulate environment
     while simulation_app.is_running():
         start_time = time.time()
         # run everything in inference mode
         with torch.inference_mode():
+            base = env.unwrapped
+            cm = getattr(base, "command_manager", None)
+            if cm is not None and "ee_pose" in getattr(cm, "active_terms", []):
+                cmd = cm.get_command("ee_pose")
+                cmd_key = cmd[:, :3].detach()
+                changed = last_cmd_key is None or not torch.allclose(cmd_key, last_cmd_key)
+                if changed:
+                    csv_utils.print_command_targets_from_env(
+                        base, "ee_pose", label="play", max_rows=32
+                    )
+                    last_cmd_key = cmd_key.clone()
             # agent stepping
             actions = policy(obs)
             # env stepping

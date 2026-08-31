@@ -2,10 +2,11 @@
 
 articulation/__init__.py 맨 위 (ArticulationData import 전) 에 configure_cudacri 호출.
 
-lib/ 번들에는 libcrypto++.so.8, libjsoncpp.so.25 등이 포함된다.
+lib/<major.minor>/ 번들 (예: lib/3.11, lib/3.12) 에 libcrypto++.so.8, libjsoncpp.so.25 등이 포함된다.
+configure_cudacri 는 실행 중 Python 버전에 맞는 디렉터리를 고른다 (구형 평탄 lib/ 도 허용).
 TensorRT: Engine/.../model_fp16.engine 우선, deserialize 실패 시 같은 폴더 model.onnx 로 런타임 빌드.
 Isaac Sim: export SAFETICS_TRT_PREFER_ONNX=1 로 engine 건너뛰기 가능.
-cmake --build build --target isaaclab_deploy 로 patchelf 적용 lib/·Engine/ 을 IsaacLab articulation 에 배포.
+cmake --build build --target isaaclab_deploy 로 patchelf 적용 lib/{3.11,3.12}/·Engine/ 을 IsaacLab articulation 에 배포.
 
 Realtime tail-spike mitigation (SafeGiver SFD_CoreService_Test + Isaac host tuning):
     SFD_LOCK_GPU_CLOCK=1     → nvidia-smi -pm 1 + -lgc MAX,MAX
@@ -771,6 +772,27 @@ def apply_realtime_host_tuning(*, clear_swap: bool = True, enforce_swap_headroom
         ensure_swap_headroom(abort=True if _require_swap_headroom_enabled() else False)
 
 
+def _python_version_tag() -> str:
+    return f"{sys.version_info.major}.{sys.version_info.minor}"
+
+
+def _resolve_cudacri_lib_dir(root: Path) -> Path:
+    """Pick lib/<major.minor>/ for this interpreter; fall back to a flat lib/ bundle."""
+    version = _python_version_tag()
+    versioned = root / "lib" / version
+    if versioned.is_dir() and any(versioned.iterdir()):
+        return versioned
+
+    flat = root / "lib"
+    if flat.is_dir() and any(flat.glob("sfd_coreservice*.so")):
+        return flat
+
+    raise FileNotFoundError(
+        f"CUDACRI lib for Python {version} not found: {versioned} "
+        f"(build with -DSFD_PYBIND_PYTHON_VERSION={version} and target cudacri_deploy)"
+    )
+
+
 def configure_cudacri(cudacri_dir: str | Path) -> Path:
     import torch
 
@@ -778,9 +800,7 @@ def configure_cudacri(cudacri_dir: str | Path) -> Path:
     apply_realtime_host_tuning()
 
     root = Path(cudacri_dir).resolve()
-    lib_dir = root / "lib"
-    if not lib_dir.is_dir():
-        raise FileNotFoundError(f"CUDACRI lib not found: {lib_dir}")
+    lib_dir = _resolve_cudacri_lib_dir(root)
 
     if str(lib_dir) not in sys.path:
         sys.path.insert(0, str(lib_dir))

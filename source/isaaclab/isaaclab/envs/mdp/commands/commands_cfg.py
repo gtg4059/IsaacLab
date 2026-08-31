@@ -195,20 +195,26 @@ class UniformPoseTrigCommandCfg(CommandTermCfg):
     """Name of the asset in the environment for which the commands are generated."""
 
     body_name: str = MISSING
-    """Name of the body in the asset for which the commands are generated."""
+    """Name of the body in the asset for which the commands are generated (tracked EE)."""
+
+    origin_body_name: str | None = None
+    """Body that defines the command frame. ``None`` uses the articulation root.
+
+    Sampled ``pos_z`` is height [m] above this body (robot base), not world or table height.
+    """
 
     @configclass
     class PolarRanges:
         """Uniform distribution ranges for the pose commands."""
 
         pos_r: tuple[float, float] = MISSING
-        """Radial distance range [m]."""
+        """Radial distance range [m] in the command origin (robot base) XY plane."""
 
         pos_th: tuple[float, float] = MISSING
         """Azimuth angle range [rad]."""
 
         pos_z: tuple[float, float] = MISSING
-        """Height range [m]."""
+        """Height range [m] above the command origin (robot base), not world/table z."""
 
         exclude_pos_r: tuple[float, float] | None = None
         """If set with :attr:`exclude_pos_z`, resample when ``r`` and ``z`` both fall in these ranges."""

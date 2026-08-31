@@ -37,10 +37,14 @@ _REACH_CRITERIA_PARAM_KEYS = (
 
 
 class reach_success_criteria_curriculum(ManagerTermBase):
-    """Gradually tighten reach success thresholds for bonus/penalty rewards (and optional event).
+    """Tighten reach success thresholds for bonus/penalty rewards (and optional event).
 
     Reward/event term configs hold the **final** (strictest) thresholds. This curriculum starts from
-    relaxed values and linearly interpolates toward those finals over ``num_steps``.
+    relaxed values (``ease_factor`` times final).
+
+    * Default: linear ``ease_factor → 1`` over ``num_steps`` after ``start_step``.
+    * Piecewise (when ``mid_factor`` is set): ``ease_factor → mid_factor`` over ``num_steps``,
+      hold ``mid_factor`` for ``hold_steps``, then ``mid_factor → 1`` over ``num_steps_final``.
 
     Set ``event_term_name`` to ``None`` when reach success ends the episode (no in-episode resample).
     ``terminations.reach_success`` reads thresholds from the reward term, so it tracks automatically.
@@ -64,30 +68,54 @@ class reach_success_criteria_curriculum(ManagerTermBase):
 
         primary_cfg = self._reward_term_cfgs[self._reward_term_names[0]]
         self._final_params = {key: primary_cfg.params[key] for key in _REACH_CRITERIA_PARAM_KEYS}
-        ease_factor = cfg.params.get("ease_factor", 5.0)
+        self._ease_factor = cfg.params.get("ease_factor", 5.0)
+        self._mid_factor = cfg.params.get("mid_factor")
         initial_override = cfg.params.get("initial_params")
         if initial_override is not None:
             self._initial_params = {
-                key: initial_override.get(key, value * ease_factor) for key, value in self._final_params.items()
+                key: initial_override.get(key, value * self._ease_factor)
+                for key, value in self._final_params.items()
             }
         else:
-            self._initial_params = {key: value * ease_factor for key, value in self._final_params.items()}
+            self._initial_params = {key: value * self._ease_factor for key, value in self._final_params.items()}
+        self._mid_params = (
+            {key: value * self._mid_factor for key, value in self._final_params.items()}
+            if self._mid_factor is not None
+            else None
+        )
 
         self._start_step = cfg.params.get("start_step", 0)
         self._num_steps = cfg.params["num_steps"]
+        self._hold_steps = cfg.params.get("hold_steps", 0)
+        self._num_steps_final = cfg.params.get("num_steps_final", self._num_steps)
         self._last_params_key: tuple[float, ...] | None = None
 
         self._apply_params(self._initial_params)
+
+    def _lerp(self, start: dict[str, float], end: dict[str, float], progress: float) -> dict[str, float]:
+        return {key: start[key] + progress * (end[key] - start[key]) for key in _REACH_CRITERIA_PARAM_KEYS}
 
     def _interpolate_params(self, step: int) -> dict[str, float]:
         if step < self._start_step:
             return dict(self._initial_params)
 
-        progress = min(1.0, (step - self._start_step) / self._num_steps)
-        return {
-            key: self._initial_params[key] + progress * (self._final_params[key] - self._initial_params[key])
-            for key in _REACH_CRITERIA_PARAM_KEYS
-        }
+        if self._mid_params is None:
+            progress = min(1.0, (step - self._start_step) / max(self._num_steps, 1))
+            return self._lerp(self._initial_params, self._final_params, progress)
+
+        first_end = self._start_step + self._num_steps
+        hold_end = first_end + self._hold_steps
+        second_end = hold_end + self._num_steps_final
+
+        if step < first_end:
+            progress = min(1.0, (step - self._start_step) / max(self._num_steps, 1))
+            return self._lerp(self._initial_params, self._mid_params, progress)
+        if step < hold_end:
+            return dict(self._mid_params)
+        if step < second_end:
+            progress = min(1.0, (step - hold_end) / max(self._num_steps_final, 1))
+            return self._lerp(self._mid_params, self._final_params, progress)
+        return dict(self._final_params)
 
     def _apply_params(self, params: dict[str, float]) -> None:
         params_key = tuple(round(params[key], 8) for key in _REACH_CRITERIA_PARAM_KEYS)
@@ -117,6 +145,9 @@ class reach_success_criteria_curriculum(ManagerTermBase):
         reward_term_names: list[str] | None = None,
         event_term_name: str | None = "resample_ee_pose_on_reach",
         initial_params: dict[str, float] | None = None,
+        mid_factor: float | None = None,
+        hold_steps: int = 0,
+        num_steps_final: int | None = None,
     ) -> dict[str, float]:
         params = self._interpolate_params(env.common_step_counter)
         self._apply_params(params)

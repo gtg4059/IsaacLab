@@ -165,6 +165,10 @@ class UniformPoseTrigCommand(CommandTrigTerm):
         super().__init__(cfg, env)
         self.robot: Articulation = env.scene[cfg.asset_name]
         self.body_idx = self.robot.find_bodies(cfg.body_name)[0][0]
+        if cfg.origin_body_name is None:
+            self.origin_body_idx: int | None = None
+        else:
+            self.origin_body_idx = self.robot.find_bodies(cfg.origin_body_name)[0][0]
         self.pose_command_b = torch.zeros(self.num_envs, 7, device=self.device)
         self.pose_command_b[:, 3] = 1.0
         self.pose_command_w = torch.zeros_like(self.pose_command_b)
@@ -178,6 +182,18 @@ class UniformPoseTrigCommand(CommandTrigTerm):
     @property
     def command(self) -> torch.Tensor:
         return self.pose_command_b
+
+    @property
+    def origin_pos_w(self) -> torch.Tensor:
+        if self.origin_body_idx is None:
+            return self.robot.data.root_pos_w
+        return self.robot.data.body_pos_w[:, self.origin_body_idx]
+
+    @property
+    def origin_quat_w(self) -> torch.Tensor:
+        if self.origin_body_idx is None:
+            return self.robot.data.root_quat_w
+        return self.robot.data.body_quat_w[:, self.origin_body_idx]
 
     def _resample_command(self, env_ids: Sequence[int]):
         n = len(env_ids)
@@ -230,8 +246,8 @@ class UniformPoseTrigCommand(CommandTrigTerm):
 
     def _update_metrics(self):
         self.pose_command_w[:, :3], self.pose_command_w[:, 3:] = combine_frame_transforms(
-            self.robot.data.root_pos_w,
-            self.robot.data.root_quat_w,
+            self.origin_pos_w,
+            self.origin_quat_w,
             self.pose_command_b[:, :3],
             self.pose_command_b[:, 3:],
         )

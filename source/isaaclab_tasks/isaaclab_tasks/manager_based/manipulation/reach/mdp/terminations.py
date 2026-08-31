@@ -11,10 +11,21 @@ from typing import TYPE_CHECKING
 from isaaclab.assets import Articulation
 from isaaclab.managers import SceneEntityCfg
 
-from .rewards import reach_success_criteria
+from .rewards import ReachSuccessCriteria, reach_success_criteria
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
+
+_CRITERIA_KEYS = (
+    "command_name",
+    "asset_cfg",
+    "max_distance",
+    "max_angle_rad",
+    "max_lin_vel",
+    "max_ang_vel",
+    "max_lin_acc",
+    "max_ang_acc",
+)
 
 
 def reach_success(
@@ -23,18 +34,11 @@ def reach_success(
 ) -> torch.Tensor:
     """Terminate when EE satisfies success thresholds from the reach bonus reward term."""
     term_cfg = env.reward_manager.get_term_cfg(reward_term_name)
-    params = term_cfg.params
-    return reach_success_criteria(
-        env,
-        command_name=params["command_name"],
-        asset_cfg=params["asset_cfg"],
-        max_distance=params["max_distance"],
-        max_angle_rad=params["max_angle_rad"],
-        max_lin_vel=params["max_lin_vel"],
-        max_ang_vel=params["max_ang_vel"],
-        max_lin_acc=params["max_lin_acc"],
-        max_ang_acc=params["max_ang_acc"],
-    )
+    func = term_cfg.func
+    if isinstance(func, ReachSuccessCriteria):
+        return func.compute_success(env, **term_cfg.params)
+    params = {key: term_cfg.params[key] for key in _CRITERIA_KEYS}
+    return reach_success_criteria(env, **params)
 
 
 def CRI_OVF(

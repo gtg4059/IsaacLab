@@ -104,10 +104,26 @@ class ArticulationData:
         self._cri_path_dirty_cache: int = 0
         self._cri_path_dirty_identical_solve: int = 0
         self._cri_path_dirty_skip: int = 0
+        # Opt-in CRI-F path (Isaac-Reach-UR10-CRI-F-v0 only). Off by default:
+        # Isaac-Reach-UR10-v0 and every other env keep AtMotionState.
+        self._cri_f_obs: bool = False
+        self._cri_filter_mode: bool = False
+        self._cri_filter_s: torch.Tensor | None = None
+        self._cri_filter_qd_cmd: torch.Tensor | None = None
+        self._cri_filter_qd_rl: torch.Tensor | None = None
+        self._cri_filter_lib_min_scale: float = 1.0
+        self._cri_filter_limit: float = 1.0
+        self._cri_filter_enabled: bool = False
+        self._cri_atmotion_warmed: bool = False
+        self._cri_f_runtime_ready: bool = False
+        self._cri_f_control_steps: int = 0
+        self._cri_f_runtime_solves: int = 0
+        self._cri_f_last_solve_timestamp: float = -1.0
 
         self.solver = sfd_coreservice.CoreService(str(_cudacri_dir), self._root_physx_view.count)
         self.solver.RunSolver_CUDA_LoadAnalysisForCRI(str(_cudacri_dir))
-        self._warmup_cri_solver()
+        # AtMotionState warmup is deferred to the first AtMotionState CRI access so
+        # Isaac-Reach-UR10-CRI-F-v0 never runs that solver.
         
         # Initialize the lazy buffers.
         # -- link frame w.r.t. world frame
@@ -1084,6 +1100,9 @@ class ArticulationData:
 
     def warmup_cri_solver_rounds(self, rounds: int | None = None) -> None:
         """Extra GPU warm-up after env reset (tail-spike mitigation)."""
+        if self._cri_f_obs:
+            return
+        self._ensure_atmotion_warmup()
         if rounds is None:
             rounds = int(os.environ.get("SFD_ALLOC_WARMUP_ROUNDS", "15"))
         if rounds <= 0:
@@ -1095,8 +1114,17 @@ class ArticulationData:
             torch.cuda.synchronize()
         print(f"[CRI] warm-up complete: {rounds} rounds", flush=True)
 
+    def _ensure_atmotion_warmup(self) -> None:
+        """Warm AtMotionState only for non-CRI-F envs, on first use."""
+        if self._cri_f_obs or self._cri_atmotion_warmed:
+            return
+        self._warmup_cri_solver()
+        self._cri_atmotion_warmed = True
+
     def _warmup_cri_solver(self) -> None:
-        """Allocator/TRT tail-spike mitigation at articulation init."""
+        """Allocator/TRT tail-spike mitigation for AtMotionState envs."""
+        if self._cri_f_obs:
+            return
         rounds = int(os.environ.get("SFD_ALLOC_WARMUP_ROUNDS", "15"))
         if rounds <= 0:
             return
@@ -1123,7 +1151,15 @@ class ArticulationData:
         the pre-reset CRI. That matches a full re-solve on the mixed batch (independent robots)
         without a second 4096-wide solve — and avoids the old bug where obs kept pre-reset CRI
         while ``qd`` was already 0.
+
+        CRI-F: no solver on reset. Those rows become CRI=0, s=1 (spec t=0, qd≈0).
         """
+        if self._cri_f_obs:
+            self._reset_cri_filter_rows(env_ids)
+            if self._CRI.data is not None:
+                self._CRI.timestamp = self._sim_timestamp
+            self._clear_cri_dirty()
+            return
         has_fresh = self._CRI.data is not None and self._CRI.timestamp >= self._sim_timestamp
         if not has_fresh:
             self._CRI.timestamp = -1.0
@@ -1239,7 +1275,12 @@ class ArticulationData:
 
         When ``SFD_CRI_ONCE_PER_STEP=1`` (default), a second full-batch call at the same
         ``_sim_timestamp`` returns the cached tensor instead of invoking the DLL again.
+
+        AtMotionState path only. CRI-F (``Isaac-Reach-UR10-CRI-F-v0``) must not call this.
         """
+        if self._cri_f_obs:
+            return self._CRI.data
+        self._ensure_atmotion_warmup()
         n = self._root_physx_view.count
         if (
             self._cri_once_per_step_enabled()
@@ -1376,8 +1417,13 @@ class ArticulationData:
 
         Skips CUDA Event sandwich used by :attr:`CRI` when ``SFD_CRI_TIMING=1``. Always
         recomputes (ignores cache) so callers can pair with :meth:`_invalidate_cri_cache`
-        for discard-flush patterns.
+        for discard-flush patterns. Not used by CRI-F.
         """
+        if self._cri_f_obs:
+            if self._CRI_float.data is None:
+                n = self._root_physx_view.count
+                self._CRI_float.data = torch.zeros(n, 1, device=self.device)
+            return self._CRI_float.data
         q_in, qd_in = self._cri_input_tensors()
         wall0 = time.perf_counter() if record_timing else 0.0
         cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
@@ -1396,6 +1442,248 @@ class ArticulationData:
         """Public full-cache wipe for :meth:`_invalidate_cri_cache` (bench discard-flush)."""
         self._CRI.timestamp = -1.0
         self._clear_cri_dirty()
+
+    def enable_cri_filter_mode(self, cri_limit: float = 1.0, filter_enabled: bool = False) -> None:
+        """Prepare CRI-F: CRI only from ``run_cri_filter``. Existing AtMotionState envs must not call this.
+
+        Reset / first obs: CRI=0, s=1, no solver (qd≈0).
+        Each later tick: one ``run_cri_filter(q, qd_RL)``; next obs is that CRI.
+        ``filter_enabled`` only toggles Newton scale (s=1 vs s*).
+        """
+        if not hasattr(self.solver, "run_cri_filter"):
+            raise RuntimeError(
+                "sfd_coreservice.CoreService.run_cri_filter is missing. "
+                "Deploy a CoreService build that exports the CRI filter API."
+            )
+        self._cri_f_obs = True
+        self._cri_filter_mode = True
+        self._cri_filter_limit = float(cri_limit) if cri_limit > 0.0 else 1.0
+        n = self._root_physx_view.count
+        j = int(self._root_physx_view.shared_metatype.dof_count)
+        if self._cri_filter_s is None:
+            self._cri_filter_s = torch.ones(n, device=self.device, dtype=torch.float32)
+            self._cri_filter_qd_cmd = torch.zeros(n, j, device=self.device, dtype=torch.float32)
+            self._cri_filter_qd_rl = torch.zeros(n, j, device=self.device, dtype=torch.float32)
+        if hasattr(self.solver, "set_cri_filter_limit"):
+            self.solver.set_cri_filter_limit(self._cri_filter_limit)
+        self.set_cri_filter_enabled(filter_enabled)
+        self._warmup_cri_filter_solver()
+        self._reset_cri_filter_rows(None)
+        if self._CRI.data is not None:
+            self._CRI.timestamp = self._sim_timestamp
+        self._cri_f_runtime_ready = True
+        self._cri_f_control_steps = 0
+        self._cri_f_runtime_solves = 0
+        self._cri_f_last_solve_timestamp = -1.0
+        print(
+            f"[CRI] CRI-F (newton={self._cri_filter_enabled}, limit={self._cri_filter_limit:g}): "
+            f"CRI from run_cri_filter only, one solve per env step, first obs=0",
+            flush=True,
+        )
+
+    def _ensure_cri_obs_buffers(self) -> None:
+        """Allocate zero CRI cache for t=0. Never calls the solver."""
+        if self._CRI_float.data is not None:
+            return
+        n = self._root_physx_view.count
+        zeros = torch.zeros(n, 1, device=self.device, dtype=torch.float32)
+        self._CRI_float.data = zeros
+        self._CRI.data = zeros.to(dtype=torch.float64)
+
+    def set_cri_filter_enabled(self, enabled: bool) -> None:
+        """Toggle Newton scale. CRI is still computed with ``run_cri_filter``."""
+        self._cri_filter_enabled = bool(enabled)
+        if hasattr(self.solver, "set_cri_filter_enabled"):
+            self.solver.set_cri_filter_enabled(self._cri_filter_enabled)
+
+    def _warmup_cri_filter_solver(self) -> None:
+        """Warm the filter solver so the first training tick is not a cold TRT build."""
+        rounds = int(os.environ.get("SFD_ALLOC_WARMUP_ROUNDS", "15"))
+        if rounds <= 0:
+            return
+        q_in, qd_in = self._cri_input_tensors()
+        last = None
+        for _ in range(rounds):
+            last = self.solver.run_cri_filter(q_in, qd_in)
+        if self.device.startswith("cuda"):
+            torch.cuda.synchronize()
+        if last is not None and last.get("cri_pre") is not None:
+            self._store_cri_output_buffers(last["cri_pre"])
+        print(f"[CRI] filter warm-up: {rounds} rounds", flush=True)
+
+    def _reset_cri_filter_rows(self, env_ids: torch.Tensor | slice | None) -> None:
+        """Spec t=0: no solver, CRI=0, s=1, qd_cmd=0."""
+        if self._cri_filter_s is None or self._cri_filter_qd_cmd is None or self._cri_filter_qd_rl is None:
+            return
+        self._ensure_cri_obs_buffers()
+        if env_ids is None or env_ids == slice(None):
+            self._cri_filter_s.fill_(1.0)
+            self._cri_filter_qd_cmd.zero_()
+            self._cri_filter_qd_rl.zero_()
+            if self._CRI.data is not None:
+                self._CRI.data.zero_()
+            if self._CRI_float.data is not None:
+                self._CRI_float.data.zero_()
+            return
+        if isinstance(env_ids, slice):
+            self._cri_filter_s[env_ids] = 1.0
+            self._cri_filter_qd_cmd[env_ids] = 0.0
+            self._cri_filter_qd_rl[env_ids] = 0.0
+            if self._CRI.data is not None:
+                self._CRI.data[env_ids] = 0.0
+            if self._CRI_float.data is not None:
+                self._CRI_float.data[env_ids] = 0.0
+            return
+        ids = env_ids.reshape(-1).to(device=self.device, dtype=torch.long)
+        if ids.numel() == 0:
+            return
+        self._cri_filter_s.index_fill_(0, ids, 1.0)
+        self._cri_filter_qd_cmd.index_fill_(0, ids, 0.0)
+        self._cri_filter_qd_rl.index_fill_(0, ids, 0.0)
+        if self._CRI.data is not None:
+            self._CRI.data.index_fill_(0, ids, 0.0)
+        if self._CRI_float.data is not None:
+            self._CRI_float.data.index_fill_(0, ids, 0.0)
+
+    @staticmethod
+    def _reduce_over_points(tensor: torch.Tensor, reduce_fn) -> torch.Tensor:
+        """Reduce ``[N, P]`` or ``[B, N, P]`` to per-env ``[N]``."""
+        if tensor.dim() == 3:
+            return reduce_fn(tensor, dim=(0, 2))
+        return reduce_fn(tensor, dim=-1)
+
+    def _per_env_cri_scale(
+        self,
+        cri_pre: torch.Tensor,
+        scale_factor: torch.Tensor | None,
+        cri_limit: float,
+        lib_min_scale: float,
+    ) -> torch.Tensor:
+        """Per-env s: 1 if max CRI_pre <= limit, else min_p scale_factor (clamped to (0, 1])."""
+        cri_max = self._reduce_over_points(cri_pre, torch.amax)
+        n = cri_max.shape[0]
+        if not isinstance(scale_factor, torch.Tensor) or scale_factor.numel() == 0:
+            scale_factor = None
+        if scale_factor is not None:
+            s_from_scale = self._reduce_over_points(scale_factor, torch.amin).to(dtype=torch.float32)
+        else:
+            s_from_scale = torch.full((n,), float(lib_min_scale), device=cri_max.device, dtype=torch.float32)
+        s_from_scale = s_from_scale.clamp(min=0.0, max=1.0)
+        over = cri_max > cri_limit
+        return torch.where(over, s_from_scale, torch.ones_like(s_from_scale))
+
+    def apply_cri_filter(self, qd_rl: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """One ``run_cri_filter(q, qd_RL)`` per env step; store CRI for the next observation.
+
+        Newton off: library returns s=1, qd_cmd=qd_RL. Never calls AtMotionState.
+        Opt-in only via :meth:`enable_cri_filter_mode` (CRI-F action). Other envs stay on AtMotionState.
+        """
+        if not self._cri_f_obs:
+            raise RuntimeError(
+                "apply_cri_filter is only for Isaac-Reach-UR10-CRI-F-v0. "
+                "Call enable_cri_filter_mode from JointVelocityCriFilterAction; "
+                "other envs use AtMotionState via asset.data.CRI."
+            )
+        if (
+            self._cri_f_last_solve_timestamp == self._sim_timestamp
+            and self._CRI_float.data is not None
+            and self._cri_filter_s is not None
+            and self._cri_filter_qd_cmd is not None
+        ):
+            return self._CRI_float.data, self._cri_filter_s, self._cri_filter_qd_cmd
+
+        q_in, _ = self._cri_input_tensors()
+        if qd_rl.shape != q_in.shape:
+            raise ValueError(f"qd_RL shape {tuple(qd_rl.shape)} does not match CRI q shape {tuple(q_in.shape)}")
+        qd_in = qd_rl if qd_rl.is_contiguous() else qd_rl.contiguous()
+
+        track_timing = os.environ.get("SFD_CRI_TIMING", "0") == "1"
+        wall0 = time.perf_counter() if track_timing else 0.0
+        result = self.solver.run_cri_filter(q_in, qd_in)
+        if self._cri_f_runtime_ready:
+            self._cri_f_control_steps += 1
+            self._cri_f_runtime_solves += 1
+            self._cri_f_last_solve_timestamp = self._sim_timestamp
+        if track_timing:
+            self._record_cri_inference_time(time.perf_counter() - wall0)
+
+        cri_pre = result["cri_pre"]
+        if cri_pre is None:
+            raise RuntimeError("run_cri_filter returned empty cri_pre")
+        self._cri_filter_lib_min_scale = float(result.get("min_scale", 1.0))
+        self._cri_filter_limit = float(result.get("cri_limit", self._cri_filter_limit))
+        lib_enabled = bool(result.get("enabled", self._cri_filter_enabled))
+
+        assert self._cri_filter_s is not None and self._cri_filter_qd_cmd is not None
+        assert self._cri_filter_qd_rl is not None
+        if not lib_enabled:
+            s = self._cri_filter_s
+            qd_cmd = qd_rl
+        else:
+            s = self._per_env_cri_scale(
+                cri_pre, result.get("scale_factor"), self._cri_filter_limit, self._cri_filter_lib_min_scale
+            )
+            qd_cmd = s.to(dtype=qd_rl.dtype, device=qd_rl.device).unsqueeze(-1) * qd_rl
+            self._cri_filter_s.copy_(s.to(dtype=self._cri_filter_s.dtype))
+            self._cri_filter_qd_cmd.copy_(qd_cmd.to(dtype=self._cri_filter_qd_cmd.dtype))
+        self._cri_filter_qd_rl.copy_(qd_rl)
+        self._store_cri_output_buffers(cri_pre)
+        self._CRI.timestamp = self._sim_timestamp
+        self._clear_cri_dirty()
+
+        if os.environ.get("SFD_CRI_FILTER_VERIFY", "0") == "1":
+            self._verify_cri_filter_reforward(q_in, qd_in, s, self._cri_filter_limit)
+        return self._CRI_float.data, s, qd_cmd
+
+    def _verify_cri_filter_reforward(
+        self, q_in: torch.Tensor, qd_rl: torch.Tensor, s: torch.Tensor, cri_limit: float
+    ) -> None:
+        """Offline re-forward: CRI(q, s*qd_RL) should stay near the limit. Not on the hot path."""
+        qd_scaled = qd_rl * s.to(dtype=qd_rl.dtype, device=qd_rl.device).unsqueeze(-1)
+        cri_after = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_scaled)
+        if cri_after is None:
+            return
+        max_after = float(cri_after.amax().item())
+        if max_after > cri_limit + 0.05:
+            print(
+                f"[CRI filter verify] re-forward max CRI={max_after:.4f} > limit={cri_limit:g}+0.05",
+                flush=True,
+            )
+
+    @property
+    def cri_filter_solves_per_step(self) -> float:
+        """Runtime ``run_cri_filter`` calls per env step. Must stay 1 after warmup."""
+        if self._cri_f_control_steps <= 0:
+            return 0.0
+        return self._cri_f_runtime_solves / self._cri_f_control_steps
+
+    @property
+    def cri_filter_scale(self) -> torch.Tensor:
+        """Per-env filter scale s. Shape is (num_instances,). Default 1 if unused."""
+        if self._cri_filter_s is None:
+            return torch.ones(self._root_physx_view.count, device=self.device)
+        return self._cri_filter_s
+
+    @property
+    def cri_filter_qd_cmd(self) -> torch.Tensor:
+        """Last filtered joint-velocity command. Shape is (num_instances, num_joints)."""
+        if self._cri_filter_qd_cmd is None:
+            return torch.zeros(
+                self._root_physx_view.count, int(self._root_physx_view.shared_metatype.dof_count), device=self.device
+            )
+        return self._cri_filter_qd_cmd
+
+    @property
+    def cri_filter_pre(self) -> torch.Tensor:
+        """Previous-step CRI from ``run_cri_filter`` only. Never AtMotionState.
+
+        Reset / first obs is zeros. After each control tick the cache is that tick's cri_pre,
+        which the next policy observation reads.
+        """
+        if self._CRI_float.data is None:
+            n = self._root_physx_view.count
+            self._CRI_float.data = torch.zeros(n, 1, device=self.device)
+        return self._CRI_float.data
 
     def _apply_cri_zero_vel_filter(self) -> None:
         """Force CRI=0 for envs whose joint speed is ~0 (e.g. first frame after reset).
@@ -1424,7 +1712,15 @@ class ArticulationData:
 
         Envs with near-zero joint velocity are forced to CRI=0 so post-reset obs/reward paths
         cannot keep a stale high CRI while ``qd`` is already cleared.
+
+        CRI-F: last ``run_cri_filter`` cache only. Never AtMotionState. Reset/first obs is 0.
         """
+        if self._cri_f_obs:
+            if self._CRI_float.data is None:
+                n = self._root_physx_view.count
+                self._CRI_float.data = torch.zeros(n, 1, device=self.device)
+                self._CRI.timestamp = self._sim_timestamp
+            return self._CRI_float.data
         if self._CRI.timestamp < self._sim_timestamp:
             self._recompute_cri_full()
         elif self._cri_dirty is not None and self._cri_dirty.any().item():

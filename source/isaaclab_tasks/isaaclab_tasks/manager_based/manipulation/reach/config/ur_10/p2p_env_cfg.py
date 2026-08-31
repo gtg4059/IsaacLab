@@ -22,17 +22,17 @@ import isaaclab.sim as sim_utils
 
 # --task Isaac-Reach-UR10-P2P-v0
 
-# CRI OVF curriculum schedule (env steps; 1 PPO iter = 24 steps).
-CRI_OVF_REWARD_START = 24 * 1000
-CRI_OVF_REWARD_STEPS = 24 * 2000
-CRI_OVF_CROSSFADE_START = 24 * 3500
-CRI_OVF_CROSSFADE_STEPS = 24 * 2000
+# CRI OVF curriculum schedule (env steps; 1 PPO iter = 48 steps).
+CRI_OVF_REWARD_START = 48 * 1000
+CRI_OVF_REWARD_STEPS = 48 * 2000
+CRI_OVF_CROSSFADE_START = 48 * 3500
+CRI_OVF_CROSSFADE_STEPS = 48 * 2000
 
 # termination_penalty: hold -200, then ramp to -2000.
 TERM_PENALTY_INITIAL_WEIGHT = -200.0
 TERM_PENALTY_FINAL_WEIGHT = -2000.0
-TERM_PENALTY_RAMP_START = 24 * 12000
-TERM_PENALTY_RAMP_STEPS = 24 * 2000
+TERM_PENALTY_RAMP_START = 48 * 12000
+TERM_PENALTY_RAMP_STEPS = 48 * 2000
 
 
 @configclass
@@ -117,8 +117,8 @@ class P2PCurriculumCfg:
         func=mdp.reach_success_criteria_curriculum,
         params={
             "ease_factor": 5.0,
-            "start_step": 24 * 2000,
-            "num_steps": 24 * 2000,
+            "start_step": 48 * 2000,
+            "num_steps": 48 * 2000,
         },
     )
     termination_penalty = CurrTerm(
@@ -201,4 +201,5 @@ class UR10ReachP2PEnvCfg_PLAY(UR10ReachP2PEnvCfg):
         self.curriculum.termination_penalty = None
         self.terminations.OVF.params["threshold"] = 0.96
         if hasattr(self.rewards, "CRI_OVF"):
-            self.rewards.CRI_OVF.params["threshold"] = 0.96
+            self.rewards.CRI_OVF.params.pop("threshold", None)
+            self.rewards.CRI_OVF.params["limit"] = 0.96
