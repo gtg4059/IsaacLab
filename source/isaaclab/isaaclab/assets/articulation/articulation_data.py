@@ -108,11 +108,13 @@ class ArticulationData:
         # Isaac-Reach-UR10-v0 and every other env keep AtMotionState.
         self._cri_f_obs: bool = False
         self._cri_filter_mode: bool = False
-        self._cri_filter_s: torch.Tensor | None = None
+        self._cri_filter_delta: torch.Tensor | None = None
+        self._cri_filter_cri_out: torch.Tensor | None = None
         self._cri_filter_qd_cmd: torch.Tensor | None = None
         self._cri_filter_qd_rl: torch.Tensor | None = None
-        self._cri_filter_lib_min_scale: float = 1.0
-        self._cri_filter_limit: float = 1.0
+        self._cri_filter_limit: float = 0.96
+        self._cri_filter_cbf_alpha: float = 0.02
+        self._cri_filter_approach_limit: float = 0.96 * (1.0 - 0.02)
         self._cri_filter_enabled: bool = False
         self._cri_atmotion_warmed: bool = False
         self._cri_f_runtime_ready: bool = False
@@ -1443,12 +1445,15 @@ class ArticulationData:
         self._CRI.timestamp = -1.0
         self._clear_cri_dirty()
 
-    def enable_cri_filter_mode(self, cri_limit: float = 1.0, filter_enabled: bool = False) -> None:
-        """Prepare CRI-F: CRI only from ``run_cri_filter``. Existing AtMotionState envs must not call this.
+    def enable_cri_filter_mode(
+        self, cri_limit: float = 0.96, filter_enabled: bool = True, cbf_alpha: float = 0.02
+    ) -> None:
+        """Prepare CRI-F: CRI and ``qd_cmd`` only from CBF ``run_cri_filter``.
 
-        Reset / first obs: CRI=0, s=1, no solver (qd≈0).
-        Each later tick: one ``run_cri_filter(q, qd_RL)``; next obs is that CRI.
-        ``filter_enabled`` only toggles Newton scale (s=1 vs s*).
+        Existing AtMotionState envs must not call this.
+        Reset / first obs: CRI=0, ``qd_cmd=0``, no solver.
+        Each later tick: one ``run_cri_filter(q, qd_RL)``; command is library ``qd_cmd``.
+        Time-scale ``s`` is not applied on the Isaac side.
         """
         if not hasattr(self.solver, "run_cri_filter"):
             raise RuntimeError(
@@ -1457,16 +1462,32 @@ class ArticulationData:
             )
         self._cri_f_obs = True
         self._cri_filter_mode = True
-        self._cri_filter_limit = float(cri_limit) if cri_limit > 0.0 else 1.0
+        self._cri_filter_limit = float(cri_limit) if cri_limit > 0.0 else 0.96
+        self._cri_filter_cbf_alpha = float(cbf_alpha) if cbf_alpha > 0.0 else 0.02
         n = self._root_physx_view.count
         j = int(self._root_physx_view.shared_metatype.dof_count)
-        if self._cri_filter_s is None:
-            self._cri_filter_s = torch.ones(n, device=self.device, dtype=torch.float32)
+        if self._cri_filter_qd_cmd is None:
+            self._cri_filter_delta = torch.zeros(n, device=self.device, dtype=torch.float32)
+            self._cri_filter_cri_out = torch.zeros(n, 1, device=self.device, dtype=torch.float32)
             self._cri_filter_qd_cmd = torch.zeros(n, j, device=self.device, dtype=torch.float32)
             self._cri_filter_qd_rl = torch.zeros(n, j, device=self.device, dtype=torch.float32)
-        if hasattr(self.solver, "set_cri_filter_limit"):
-            self.solver.set_cri_filter_limit(self._cri_filter_limit)
-        self.set_cri_filter_enabled(filter_enabled)
+        else:
+            if self._cri_filter_delta is None:
+                self._cri_filter_delta = torch.zeros(n, device=self.device, dtype=torch.float32)
+            if self._cri_filter_cri_out is None:
+                self._cri_filter_cri_out = torch.zeros(n, 1, device=self.device, dtype=torch.float32)
+        from isaaclab.assets.articulation.cri_realtime_monitor import configure_cri_filter
+
+        cfg = configure_cri_filter(
+            self.solver,
+            cri_limit=self._cri_filter_limit,
+            alpha=self._cri_filter_cbf_alpha,
+            enabled=filter_enabled,
+        )
+        self._cri_filter_limit = float(cfg["cri_limit"])
+        self._cri_filter_cbf_alpha = float(cfg["cbf_alpha"])
+        self._cri_filter_approach_limit = float(cfg["approach_limit"])
+        self.set_cri_filter_enabled(bool(cfg["enabled"]))
         self._warmup_cri_filter_solver()
         self._reset_cri_filter_rows(None)
         if self._CRI.data is not None:
@@ -1476,8 +1497,9 @@ class ArticulationData:
         self._cri_f_runtime_solves = 0
         self._cri_f_last_solve_timestamp = -1.0
         print(
-            f"[CRI] CRI-F (newton={self._cri_filter_enabled}, limit={self._cri_filter_limit:g}): "
-            f"CRI from run_cri_filter only, one solve per env step, first obs=0",
+            f"[CRI] CBF-F (enabled={self._cri_filter_enabled}, limit={self._cri_filter_limit:g}, "
+            f"alpha={self._cri_filter_cbf_alpha:g}, approach={self._cri_filter_approach_limit:g}): "
+            f"CRI and qd_cmd from run_cri_filter, one solve per env step, first obs=0",
             flush=True,
         )
 
@@ -1491,7 +1513,7 @@ class ArticulationData:
         self._CRI.data = zeros.to(dtype=torch.float64)
 
     def set_cri_filter_enabled(self, enabled: bool) -> None:
-        """Toggle Newton scale. CRI is still computed with ``run_cri_filter``."""
+        """Toggle CBF command filter. CRI is still computed with ``run_cri_filter``."""
         self._cri_filter_enabled = bool(enabled)
         if hasattr(self.solver, "set_cri_filter_enabled"):
             self.solver.set_cri_filter_enabled(self._cri_filter_enabled)
@@ -1512,12 +1534,15 @@ class ArticulationData:
         print(f"[CRI] filter warm-up: {rounds} rounds", flush=True)
 
     def _reset_cri_filter_rows(self, env_ids: torch.Tensor | slice | None) -> None:
-        """Spec t=0: no solver, CRI=0, s=1, qd_cmd=0."""
-        if self._cri_filter_s is None or self._cri_filter_qd_cmd is None or self._cri_filter_qd_rl is None:
+        """Spec t=0: no solver, CRI=0, delta=0, qd_cmd=0."""
+        if self._cri_filter_qd_cmd is None or self._cri_filter_qd_rl is None:
             return
         self._ensure_cri_obs_buffers()
         if env_ids is None or env_ids == slice(None):
-            self._cri_filter_s.fill_(1.0)
+            if self._cri_filter_delta is not None:
+                self._cri_filter_delta.zero_()
+            if self._cri_filter_cri_out is not None:
+                self._cri_filter_cri_out.zero_()
             self._cri_filter_qd_cmd.zero_()
             self._cri_filter_qd_rl.zero_()
             if self._CRI.data is not None:
@@ -1526,7 +1551,10 @@ class ArticulationData:
                 self._CRI_float.data.zero_()
             return
         if isinstance(env_ids, slice):
-            self._cri_filter_s[env_ids] = 1.0
+            if self._cri_filter_delta is not None:
+                self._cri_filter_delta[env_ids] = 0.0
+            if self._cri_filter_cri_out is not None:
+                self._cri_filter_cri_out[env_ids] = 0.0
             self._cri_filter_qd_cmd[env_ids] = 0.0
             self._cri_filter_qd_rl[env_ids] = 0.0
             if self._CRI.data is not None:
@@ -1537,7 +1565,10 @@ class ArticulationData:
         ids = env_ids.reshape(-1).to(device=self.device, dtype=torch.long)
         if ids.numel() == 0:
             return
-        self._cri_filter_s.index_fill_(0, ids, 1.0)
+        if self._cri_filter_delta is not None:
+            self._cri_filter_delta.index_fill_(0, ids, 0.0)
+        if self._cri_filter_cri_out is not None:
+            self._cri_filter_cri_out.index_fill_(0, ids, 0.0)
         self._cri_filter_qd_cmd.index_fill_(0, ids, 0.0)
         self._cri_filter_qd_rl.index_fill_(0, ids, 0.0)
         if self._CRI.data is not None:
@@ -1545,52 +1576,26 @@ class ArticulationData:
         if self._CRI_float.data is not None:
             self._CRI_float.data.index_fill_(0, ids, 0.0)
 
-    @staticmethod
-    def _reduce_over_points(tensor: torch.Tensor, reduce_fn) -> torch.Tensor:
-        """Reduce ``[N, P]`` or ``[B, N, P]`` to per-env ``[N]``."""
-        if tensor.dim() == 3:
-            return reduce_fn(tensor, dim=(0, 2))
-        return reduce_fn(tensor, dim=-1)
-
-    def _per_env_cri_scale(
-        self,
-        cri_pre: torch.Tensor,
-        scale_factor: torch.Tensor | None,
-        cri_limit: float,
-        lib_min_scale: float,
-    ) -> torch.Tensor:
-        """Per-env s: 1 if max CRI_pre <= limit, else min_p scale_factor (clamped to (0, 1])."""
-        cri_max = self._reduce_over_points(cri_pre, torch.amax)
-        n = cri_max.shape[0]
-        if not isinstance(scale_factor, torch.Tensor) or scale_factor.numel() == 0:
-            scale_factor = None
-        if scale_factor is not None:
-            s_from_scale = self._reduce_over_points(scale_factor, torch.amin).to(dtype=torch.float32)
-        else:
-            s_from_scale = torch.full((n,), float(lib_min_scale), device=cri_max.device, dtype=torch.float32)
-        s_from_scale = s_from_scale.clamp(min=0.0, max=1.0)
-        over = cri_max > cri_limit
-        return torch.where(over, s_from_scale, torch.ones_like(s_from_scale))
-
     def apply_cri_filter(self, qd_rl: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """One ``run_cri_filter(q, qd_RL)`` per env step; store CRI for the next observation.
 
-        Newton off: library returns s=1, qd_cmd=qd_RL. Never calls AtMotionState.
-        Opt-in only via :meth:`enable_cri_filter_mode` (CRI-F action). Other envs stay on AtMotionState.
+        Returns ``(cri_pre, delta, qd_cmd)`` where ``delta = ||qd_cmd - qd_RL||`` and
+        ``qd_cmd`` is the library CBF command. Never multiplies by a time-scale ``s``.
+        Opt-in only via :meth:`enable_cri_filter_mode`. Other envs stay on AtMotionState.
         """
         if not self._cri_f_obs:
             raise RuntimeError(
                 "apply_cri_filter is only for Isaac-Reach-UR10-CRI-F-v0. "
-                "Call enable_cri_filter_mode from JointVelocityCriFilterAction; "
+                "Call enable_cri_filter_mode from JointPositionCriFilterAction; "
                 "other envs use AtMotionState via asset.data.CRI."
             )
         if (
             self._cri_f_last_solve_timestamp == self._sim_timestamp
             and self._CRI_float.data is not None
-            and self._cri_filter_s is not None
+            and self._cri_filter_delta is not None
             and self._cri_filter_qd_cmd is not None
         ):
-            return self._CRI_float.data, self._cri_filter_s, self._cri_filter_qd_cmd
+            return self._CRI_float.data, self._cri_filter_delta, self._cri_filter_qd_cmd
 
         q_in, _ = self._cri_input_tensors()
         if qd_rl.shape != q_in.shape:
@@ -1610,37 +1615,47 @@ class ArticulationData:
         cri_pre = result["cri_pre"]
         if cri_pre is None:
             raise RuntimeError("run_cri_filter returned empty cri_pre")
-        self._cri_filter_lib_min_scale = float(result.get("min_scale", 1.0))
         self._cri_filter_limit = float(result.get("cri_limit", self._cri_filter_limit))
+        self._cri_filter_cbf_alpha = float(result.get("cbf_alpha", self._cri_filter_cbf_alpha))
+        self._cri_filter_approach_limit = float(result.get("approach_limit", self._cri_filter_approach_limit))
         lib_enabled = bool(result.get("enabled", self._cri_filter_enabled))
 
-        assert self._cri_filter_s is not None and self._cri_filter_qd_cmd is not None
+        assert self._cri_filter_qd_cmd is not None
         assert self._cri_filter_qd_rl is not None
-        if not lib_enabled:
-            s = self._cri_filter_s
-            qd_cmd = qd_rl
+        if self._cri_filter_delta is None:
+            self._cri_filter_delta = torch.zeros(qd_rl.shape[0], device=qd_rl.device, dtype=torch.float32)
+
+        lib_qd = result.get("qd_cmd")
+        if lib_enabled and isinstance(lib_qd, torch.Tensor) and lib_qd.numel() > 0:
+            qd_cmd = lib_qd.to(dtype=qd_rl.dtype, device=qd_rl.device)
+            if qd_cmd.shape != qd_rl.shape:
+                qd_cmd = qd_cmd.reshape_as(qd_rl)
         else:
-            s = self._per_env_cri_scale(
-                cri_pre, result.get("scale_factor"), self._cri_filter_limit, self._cri_filter_lib_min_scale
-            )
-            qd_cmd = s.to(dtype=qd_rl.dtype, device=qd_rl.device).unsqueeze(-1) * qd_rl
-            self._cri_filter_s.copy_(s.to(dtype=self._cri_filter_s.dtype))
-            self._cri_filter_qd_cmd.copy_(qd_cmd.to(dtype=self._cri_filter_qd_cmd.dtype))
+            qd_cmd = qd_rl
+        delta = torch.linalg.norm((qd_cmd - qd_rl).reshape(qd_rl.shape[0], -1), dim=-1)
+        self._cri_filter_delta.copy_(delta.to(dtype=self._cri_filter_delta.dtype))
+        cri_out = result.get("cri")
+        if isinstance(cri_out, torch.Tensor) and cri_out.numel() > 0:
+            cri_out = cri_out.to(dtype=torch.float32, device=qd_rl.device)
+            if self._cri_filter_cri_out is None or self._cri_filter_cri_out.shape != cri_out.shape:
+                self._cri_filter_cri_out = cri_out.clone()
+            else:
+                self._cri_filter_cri_out.copy_(cri_out)
+        self._cri_filter_qd_cmd.copy_(qd_cmd.to(dtype=self._cri_filter_qd_cmd.dtype))
         self._cri_filter_qd_rl.copy_(qd_rl)
         self._store_cri_output_buffers(cri_pre)
         self._CRI.timestamp = self._sim_timestamp
         self._clear_cri_dirty()
 
         if os.environ.get("SFD_CRI_FILTER_VERIFY", "0") == "1":
-            self._verify_cri_filter_reforward(q_in, qd_in, s, self._cri_filter_limit)
-        return self._CRI_float.data, s, qd_cmd
+            self._verify_cri_filter_reforward(q_in, qd_cmd, self._cri_filter_limit)
+        return self._CRI_float.data, self._cri_filter_delta, qd_cmd
 
     def _verify_cri_filter_reforward(
-        self, q_in: torch.Tensor, qd_rl: torch.Tensor, s: torch.Tensor, cri_limit: float
+        self, q_in: torch.Tensor, qd_cmd: torch.Tensor, cri_limit: float
     ) -> None:
-        """Offline re-forward: CRI(q, s*qd_RL) should stay near the limit. Not on the hot path."""
-        qd_scaled = qd_rl * s.to(dtype=qd_rl.dtype, device=qd_rl.device).unsqueeze(-1)
-        cri_after = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_scaled)
+        """Offline re-forward: CRI(q, qd_cmd) should stay near the hard limit. Not on the hot path."""
+        cri_after = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_cmd)
         if cri_after is None:
             return
         max_after = float(cri_after.amax().item())
@@ -1658,11 +1673,26 @@ class ArticulationData:
         return self._cri_f_runtime_solves / self._cri_f_control_steps
 
     @property
-    def cri_filter_scale(self) -> torch.Tensor:
-        """Per-env filter scale s. Shape is (num_instances,). Default 1 if unused."""
-        if self._cri_filter_s is None:
-            return torch.ones(self._root_physx_view.count, device=self.device)
-        return self._cri_filter_s
+    def cri_filter_delta(self) -> torch.Tensor:
+        """Per-env CBF correction ``||qd_cmd - qd_RL||``. Shape is (num_instances,)."""
+        if self._cri_filter_delta is None:
+            return torch.zeros(self._root_physx_view.count, device=self.device)
+        return self._cri_filter_delta
+
+    @property
+    def cri_filter_out(self) -> torch.Tensor:
+        """Library post-filter CRI (hard-clamped at ``cri_limit``)."""
+        if self._cri_filter_cri_out is None:
+            return torch.zeros(self._root_physx_view.count, 1, device=self.device)
+        return self._cri_filter_cri_out
+
+    @property
+    def cri_filter_cbf_alpha(self) -> float:
+        return self._cri_filter_cbf_alpha
+
+    @property
+    def cri_filter_approach_limit(self) -> float:
+        return self._cri_filter_approach_limit
 
     @property
     def cri_filter_qd_cmd(self) -> torch.Tensor:
@@ -1672,6 +1702,15 @@ class ArticulationData:
                 self._root_physx_view.count, int(self._root_physx_view.shared_metatype.dof_count), device=self.device
             )
         return self._cri_filter_qd_cmd
+
+    @property
+    def cri_filter_qd_rl(self) -> torch.Tensor:
+        """Last requested joint-velocity before the CBF filter."""
+        if self._cri_filter_qd_rl is None:
+            return torch.zeros(
+                self._root_physx_view.count, int(self._root_physx_view.shared_metatype.dof_count), device=self.device
+            )
+        return self._cri_filter_qd_rl
 
     @property
     def cri_filter_pre(self) -> torch.Tensor:

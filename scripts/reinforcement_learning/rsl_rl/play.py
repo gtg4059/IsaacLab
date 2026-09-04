@@ -17,8 +17,20 @@ import cli_args  # isort: skip
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Train an RL agent with RSL-RL.")
-parser.add_argument("--video", action="store_true", default=False, help="Record videos during training.")
-parser.add_argument("--video_length", type=int, default=200, help="Length of the recorded video (in steps).")
+parser.add_argument(
+    "--video",
+    dest="video",
+    action="store_true",
+    help="Record an rgb video under the checkpoint log directory (default: on).",
+)
+parser.add_argument(
+    "--no_video",
+    dest="video",
+    action="store_false",
+    help="Disable video recording.",
+)
+parser.set_defaults(video=True)
+parser.add_argument("--video_length", type=int, default=200, help="Length of the recorded video (in env steps).")
 parser.add_argument(
     "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
 )
@@ -143,14 +155,18 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         env = multi_agent_to_single_agent(env)
 
     # wrap for video recording
+    video_dir = os.path.join(log_dir, "videos", "play")
     if args_cli.video:
+        os.makedirs(video_dir, exist_ok=True)
+        ckpt_stem = os.path.splitext(os.path.basename(resume_path))[0]
         video_kwargs = {
-            "video_folder": os.path.join(log_dir, "videos", "play"),
+            "video_folder": video_dir,
             "step_trigger": lambda step: step == 0,
             "video_length": args_cli.video_length,
+            "name_prefix": f"play_{ckpt_stem}",
             "disable_logger": True,
         }
-        print("[INFO] Recording videos during training.")
+        print(f"[INFO] Recording play video to: {video_dir}")
         print_dict(video_kwargs, nesting=4)
         env = gym.wrappers.RecordVideo(env, **video_kwargs)
 
@@ -240,8 +256,10 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         if args_cli.real_time and sleep_time > 0:
             time.sleep(sleep_time)
 
-    # close the simulator
+    # close the simulator (flushes RecordVideo)
     env.close()
+    if args_cli.video:
+        print(f"[INFO] Play video written under: {video_dir}")
 
 
 if __name__ == "__main__":

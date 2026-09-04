@@ -8,11 +8,19 @@ SFD_CoreService_Test 의 RealTimeBudgetReport / RealTimePassGrade 와 동일 기
 
 사용 예 (IsaacLab / sfd_coreservice):
 
-    from cri_realtime_monitor import CriRealtimeMonitor, run_cri_at_motion_state
+    from cri_realtime_monitor import (
+        CriRealtimeMonitor,
+        configure_cri_filter,
+        run_cri_at_motion_state,
+        run_cri_filter,
+    )
 
+    configure_cri_filter(service, cri_limit=0.96, alpha=0.02)
     monitor = CriRealtimeMonitor.from_env()
     for i, (q, qd) in enumerate(ticks):
-        cri, wall_ms = run_cri_at_motion_state(service, q, qd, monitor=monitor, index=i)
+        # 전방만: run_cri_at_motion_state
+        # CRI_F 필터: run_cri_filter(service, q, qd_rl)
+        out, wall_ms = run_cri_filter(service, q, qd, monitor=monitor, index=i)
     monitor.print_report("control loop")
     monitor.raise_if_not_pass()
 """
@@ -355,6 +363,89 @@ class CriRealtimeMonitor:
 
     def check_last_within_budget(self, wall_ms: float) -> bool:
         return wall_ms <= self.config.hard_budget_ms
+
+
+def _call_service(solver_service: Any, snake: str, camel: str, *args: Any, **kwargs: Any) -> Any:
+    fn = getattr(solver_service, snake, None)
+    if callable(fn):
+        return fn(*args, **kwargs)
+    fn = getattr(solver_service, camel, None)
+    if callable(fn):
+        return fn(*args, **kwargs)
+    raise AttributeError(f"{type(solver_service).__name__} has neither {snake} nor {camel}")
+
+
+def configure_cri_filter(
+    solver_service: Any,
+    cri_limit: float = 0.96,
+    alpha: float = 0.02,
+    enabled: bool | None = True,
+) -> dict[str, float | bool]:
+    """Isaac CRI_F: LoadAnalysis 이후 1회. 하드 한도 0.96 + 근방 계수 α=0.02."""
+    _call_service(solver_service, "set_cri_filter_limit", "RunSolver_CUDA_SetCriFilterLimit", cri_limit)
+    _call_service(solver_service, "set_cbf_alpha", "RunSolver_CUDA_SetCbfAlpha", alpha)
+    if enabled is not None:
+        _call_service(solver_service, "set_cri_filter_enabled", "RunSolver_CUDA_SetCriFilterEnabled", enabled)
+    approach = _call_service(
+        solver_service, "cri_filter_approach_limit", "cudaCriFilterApproachLimit"
+    )
+    return {
+        "cri_limit": float(cri_limit),
+        "cbf_alpha": float(alpha),
+        "approach_limit": float(approach),
+        "enabled": True if enabled is None else bool(enabled),
+    }
+
+
+def run_cri_filter(
+    solver_service: Any,
+    q_batch: Any,
+    qd_rl: Any,
+    *,
+    enabled: bool | None = None,
+    monitor: CriRealtimeMonitor | None = None,
+    index: int | None = None,
+    iter: int = -1,
+    step: int = -1,
+    label: str = "",
+    silent_native_io: Any | None = None,
+) -> tuple[Any, float]:
+    """
+    CRI_F: RunSolver_CUDA_CRI_Filter(q, qd_RL). GPU sync 포함 wall time.
+    반환 (result, wall_ms). result는 dict(cri, qd_cmd, cbf_alpha, ...) 또는 C++ 구조체.
+    """
+    import torch
+
+    torch.cuda.synchronize()
+    t0 = time.perf_counter()
+    kwargs: dict[str, Any] = {}
+    if enabled is not None:
+        kwargs["enabled"] = enabled
+    if silent_native_io is not None:
+        with silent_native_io():
+            result = _call_service(
+                solver_service, "run_cri_filter", "RunSolver_CUDA_CRI_Filter", q_batch, qd_rl, **kwargs
+            )
+    else:
+        result = _call_service(
+            solver_service, "run_cri_filter", "RunSolver_CUDA_CRI_Filter", q_batch, qd_rl, **kwargs
+        )
+    torch.cuda.synchronize()
+    wall_ms = (time.perf_counter() - t0) * 1000.0
+
+    if monitor is not None:
+        monitor.record(wall_ms, iter=iter, step=step, label=label)
+        _ = index
+    cri = result["cri"] if isinstance(result, dict) else getattr(result, "CRI", None)
+    if cri is not None and bool(getattr(cri, "is_cuda", False)):
+        if isinstance(result, dict):
+            result = dict(result)
+            result["cri"] = cri.clone()
+            if result.get("cri_pre") is not None and bool(getattr(result["cri_pre"], "is_cuda", False)):
+                result["cri_pre"] = result["cri_pre"].clone()
+            if result.get("qd_cmd") is not None and bool(getattr(result["qd_cmd"], "is_cuda", False)):
+                result["qd_cmd"] = result["qd_cmd"].clone()
+    return result, wall_ms
 
 
 def run_cri_at_motion_state(

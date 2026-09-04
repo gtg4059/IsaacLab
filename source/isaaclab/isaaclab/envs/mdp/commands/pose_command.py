@@ -200,32 +200,43 @@ class UniformPoseTrigCommand(CommandTrigTerm):
         r = torch.empty(n, device=self.device)
         theta = torch.empty(n, device=self.device)
         z = torch.empty(n, device=self.device)
-        pending = torch.ones(n, dtype=torch.bool, device=self.device)
+        r.uniform_(*self.cfg.ranges.pos_r)
+        theta.uniform_(*self.cfg.ranges.pos_th)
+        z.uniform_(*self.cfg.ranges.pos_z)
         exclude_r = self.cfg.ranges.exclude_pos_r
         exclude_z = self.cfg.ranges.exclude_pos_z
-        max_tries = 32
-        for _ in range(max_tries):
-            if not pending.any():
-                break
-            idx = pending.nonzero(as_tuple=False).squeeze(-1)
-            r_new = torch.empty(idx.numel(), device=self.device)
-            theta_new = torch.empty(idx.numel(), device=self.device)
-            z_new = torch.empty(idx.numel(), device=self.device)
-            r_new.uniform_(*self.cfg.ranges.pos_r)
-            theta_new.uniform_(*self.cfg.ranges.pos_th)
-            z_new.uniform_(*self.cfg.ranges.pos_z)
-            r[idx] = r_new
-            theta[idx] = theta_new
-            z[idx] = z_new
-            if exclude_r is None or exclude_z is None:
-                pending.zero_()
-                break
-            pending[idx] = (
-                (r_new >= exclude_r[0])
-                & (r_new <= exclude_r[1])
-                & (z_new >= exclude_z[0])
-                & (z_new <= exclude_z[1])
+        if exclude_r is not None and exclude_z is not None:
+            # Keep (r, theta); redraw z only while the sample is in the exclude box.
+            pending = (
+                (r >= exclude_r[0])
+                & (r <= exclude_r[1])
+                & (z >= exclude_z[0])
+                & (z <= exclude_z[1])
             )
+            for _ in range(32):
+                if not pending.any():
+                    break
+                idx = pending.nonzero(as_tuple=False).squeeze(-1)
+                z_new = torch.empty(idx.numel(), device=self.device)
+                z_new.uniform_(*self.cfg.ranges.pos_z)
+                z[idx] = z_new
+                pending[idx] = (z_new >= exclude_z[0]) & (z_new <= exclude_z[1])
+
+        max_norm = self.cfg.ranges.max_pos_norm
+        if max_norm is not None:
+            # Keep theta; redraw r and z while the sample is outside the origin-centered ball.
+            pending = (r * r + z * z) > (max_norm * max_norm)
+            for _ in range(32):
+                if not pending.any():
+                    break
+                idx = pending.nonzero(as_tuple=False).squeeze(-1)
+                r_new = torch.empty(idx.numel(), device=self.device)
+                z_new = torch.empty(idx.numel(), device=self.device)
+                r_new.uniform_(*self.cfg.ranges.pos_r)
+                z_new.uniform_(*self.cfg.ranges.pos_z)
+                r[idx] = r_new
+                z[idx] = z_new
+                pending[idx] = (r_new * r_new + z_new * z_new) > (max_norm * max_norm)
 
         x = r * torch.cos(theta)
         y = r * torch.sin(theta)

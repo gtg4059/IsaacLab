@@ -110,6 +110,7 @@ def configure_p2p_style_eval(
     disable_resample: bool,
     freeze_finished_envs: bool = True,
     deterministic_sim: bool = False,
+    disable_ovf: bool = False,
 ) -> None:
     """Align play eval with P2P-Play: strict thresholds, optional one target per attempt.
 
@@ -130,12 +131,25 @@ def configure_p2p_style_eval(
             curriculum_cfg.cri_ovf_term_threshold = None
         if hasattr(curriculum_cfg, "cri_ovf_reward_weight"):
             curriculum_cfg.cri_ovf_reward_weight = None
+        if hasattr(curriculum_cfg, "ee_pose_pos_r"):
+            pos_r_term = curriculum_cfg.ee_pose_pos_r
+            final_pos_r = None
+            if pos_r_term is not None:
+                final_pos_r = getattr(pos_r_term, "params", {}).get("modify_params", {}).get("final_range")
+            curriculum_cfg.ee_pose_pos_r = None
+            ranges = getattr(getattr(getattr(env_cfg, "commands", None), "ee_pose", None), "ranges", None)
+            if ranges is not None and final_pos_r is not None:
+                ranges.pos_r = tuple(final_pos_r)
 
     terminations_cfg = getattr(env_cfg, "terminations", None)
     if terminations_cfg is not None and hasattr(terminations_cfg, "OVF"):
-        ovf = terminations_cfg.OVF
-        if ovf is not None and getattr(ovf, "params", None) is not None:
-            ovf.params["threshold"] = 0.96
+        if disable_ovf:
+            # Timeout geography: do not end the episode on CRI (PLAY/curriculum still force 0.96).
+            terminations_cfg.OVF = None
+        else:
+            ovf = terminations_cfg.OVF
+            if ovf is not None and getattr(ovf, "params", None) is not None:
+                ovf.params["threshold"] = 0.96
 
     if freeze_finished_envs and terminations_cfg is not None and hasattr(terminations_cfg, "reach_success"):
         # Success is scored in play_reach_csv; keep the robot pose (no mid-eval reset).

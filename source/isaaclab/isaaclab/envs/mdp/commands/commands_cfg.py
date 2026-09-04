@@ -217,10 +217,13 @@ class UniformPoseTrigCommandCfg(CommandTermCfg):
         """Height range [m] above the command origin (robot base), not world/table z."""
 
         exclude_pos_r: tuple[float, float] | None = None
-        """If set with :attr:`exclude_pos_z`, resample when ``r`` and ``z`` both fall in these ranges."""
+        """If set with :attr:`exclude_pos_z`, reject samples whose ``r`` and ``z`` both fall here."""
 
         exclude_pos_z: tuple[float, float] | None = None
-        """If set with :attr:`exclude_pos_r`, resample when ``r`` and ``z`` both fall in these ranges."""
+        """If set with :attr:`exclude_pos_r`, redraw only ``z`` (keep ``r``, ``theta``) while both fall here."""
+
+        max_pos_norm: float | None = None
+        """If set, redraw ``r`` and ``z`` (keep ``theta``) while ``hypot(r, z)`` exceeds this [m]."""
 
         roll: tuple[float, float] = MISSING
         """Roll angle range [rad]."""

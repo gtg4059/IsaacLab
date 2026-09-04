@@ -2,11 +2,13 @@
 
 articulation/__init__.py 맨 위 (ArticulationData import 전) 에 configure_cudacri 호출.
 
-lib/<major.minor>/ 번들 (예: lib/3.11, lib/3.12) 에 libcrypto++.so.8, libjsoncpp.so.25 등이 포함된다.
-configure_cudacri 는 실행 중 Python 버전에 맞는 디렉터리를 고른다 (구형 평탄 lib/ 도 허용).
+lib/<major.minor>[-cu128]/ 번들 (예: lib/3.11, lib/3.12, lib/3.12-cu128) 에
+libcrypto++.so.8, libjsoncpp.so.25 등이 포함된다.
+configure_cudacri 는 Python 버전 + CUDA 태그(SFD_CUDACRI_CUDA / Isaac Sim)로 디렉터리를 고른다
+(구형 평탄 lib/ 도 허용).
 TensorRT: Engine/.../model_fp16.engine 우선, deserialize 실패 시 같은 폴더 model.onnx 로 런타임 빌드.
 Isaac Sim: export SAFETICS_TRT_PREFER_ONNX=1 로 engine 건너뛰기 가능.
-cmake --build build --target isaaclab_deploy 로 patchelf 적용 lib/{3.11,3.12}/·Engine/ 을 IsaacLab articulation 에 배포.
+cmake --build build --target isaaclab_deploy 로 patchelf 적용 lib/{3.11,3.12,3.12-cu128}/·Engine/ 을 IsaacLab articulation 에 배포.
 
 Realtime tail-spike mitigation (SafeGiver SFD_CoreService_Test + Isaac host tuning):
     SFD_LOCK_GPU_CLOCK=1     → nvidia-smi -pm 1 + -lgc MAX,MAX
@@ -776,21 +778,156 @@ def _python_version_tag() -> str:
     return f"{sys.version_info.major}.{sys.version_info.minor}"
 
 
-def _resolve_cudacri_lib_dir(root: Path) -> Path:
-    """Pick lib/<major.minor>/ for this interpreter; fall back to a flat lib/ bundle."""
-    version = _python_version_tag()
-    versioned = root / "lib" / version
-    if versioned.is_dir() and any(versioned.iterdir()):
-        return versioned
+def _normalize_cuda_tag(raw: str | None) -> str | None:
+    """Map env / version strings to a deploy tag (``cu128``) or ``None`` (default bundle)."""
+    if raw is None:
+        return None
+    value = raw.strip().lower()
+    if not value:
+        return None
+    if value in ("cu128", "12.8", "128", "cuda12.8", "cuda128"):
+        return "cu128"
+    if value in ("cu130", "13.0", "13", "cuda13", "cuda13.0", "cu13"):
+        return None
+    return value.lstrip("-")
 
-    flat = root / "lib"
+
+def _explicit_cudacri_lib_dir() -> Path | None:
+    env = os.environ.get("SFD_CUDACRI_LIB_DIR", "").strip()
+    if not env:
+        return None
+    root = Path(env).expanduser()
+    if root.is_dir():
+        return root.resolve()
+    return None
+
+
+def _is_isaac_sim_torch(torch_lib: Path) -> bool:
+    text = str(torch_lib)
+    return (
+        "omni.isaac.ml_archive" in text
+        or "/isaac-sim/" in text
+        or "/isaacsim/" in text
+        or "isaacsim-ml-prebundle" in text
+    )
+
+
+def _detect_cuda_tag(torch_lib: Path | None = None) -> str | None:
+    """Prefer ``cu128`` for Arena Docker / Isaac Sim; host CUDA 13 stays untagged."""
+    tagged = _normalize_cuda_tag(os.environ.get("SFD_CUDACRI_CUDA"))
+    if "SFD_CUDACRI_CUDA" in os.environ:
+        return tagged
+
+    lib = torch_lib
+    if lib is None:
+        try:
+            import torch
+
+            lib = Path(torch.__file__).resolve().parent / "lib"
+        except Exception:
+            lib = None
+
+    # Host conda torch can also be cu128 with only libcudart.so.12 — that must
+    # keep lib/3.12 (linked to that env's libtorch). Tagged cu128 is Isaac Sim 2.10.
+    if lib is not None and _is_isaac_sim_torch(lib):
+        return "cu128"
+    return None
+
+
+def _resolve_cudacri_lib_dir(root: Path) -> Path:
+    """Pick ``lib/<major.minor>[-cu128]/``; fall back to untagged then a flat ``lib/``."""
+    explicit = _explicit_cudacri_lib_dir()
+    if explicit is not None:
+        return explicit
+
+    version = _python_version_tag()
+    lib_root = root / "lib"
+    tag = _detect_cuda_tag()
+    candidates: list[Path] = []
+    if tag:
+        candidates.append(lib_root / f"{version}-{tag}")
+    candidates.append(lib_root / version)
+
+    for candidate in candidates:
+        if candidate.is_dir() and any(candidate.iterdir()):
+            return candidate
+
+    flat = lib_root
     if flat.is_dir() and any(flat.glob("sfd_coreservice*.so")):
         return flat
 
+    searched = ", ".join(str(p) for p in candidates)
     raise FileNotFoundError(
-        f"CUDACRI lib for Python {version} not found: {versioned} "
-        f"(build with -DSFD_PYBIND_PYTHON_VERSION={version} and target cudacri_deploy)"
+        f"CUDACRI lib for Python {version} not found (tried {searched}). "
+        f"Build with -DSFD_PYBIND_PYTHON_VERSION={version}"
+        + (f" -DSFD_PYBIND_CUDA_TAG={tag}" if tag else "")
+        + " and target cudacri_deploy"
     )
+
+
+def _torch_cuda_runtime_dir(torch_lib: Path) -> Path | None:
+    """Isaac Sim prebundle ships libcudart next to torch, not inside torch/lib."""
+    for candidate in (
+        torch_lib.parent.parent / "nvidia" / "cuda_runtime" / "lib",
+        torch_lib.parent / "nvidia" / "cuda_runtime" / "lib",
+    ):
+        root = candidate.resolve()
+        if (root / "libcudart.so.12").is_file() or (root / "libcudart.so.13").is_file():
+            return root
+    return None
+
+
+def _tensorrt_lib_dirs() -> list[Path]:
+    """TensorRT 10 dirs: env override, then Docker apt path, then optional pip/host caches."""
+    found: list[Path] = []
+    seen: set[str] = set()
+
+    def _add(path: Path | None) -> None:
+        if path is None:
+            return
+        root = path.expanduser().resolve()
+        key = str(root)
+        if key in seen or not root.is_dir():
+            return
+        if not (root / "libnvinfer.so.10").is_file():
+            return
+        seen.add(key)
+        found.append(root)
+
+    for env_key in ("SFD_TENSORRT_LIB_DIR", "TENSORRT_LIB_DIR"):
+        env = os.environ.get(env_key)
+        if env:
+            _add(Path(env))
+
+    # Isaac Lab Arena docker/setup/install_tensorrt.sh installs here.
+    for candidate in (
+        Path("/usr/lib/x86_64-linux-gnu"),
+        Path("/usr/lib64"),
+        Path("/usr/lib"),
+    ):
+        _add(candidate)
+
+    try:
+        import tensorrt_libs  # type: ignore[import-not-found]
+
+        _add(Path(tensorrt_libs.__file__).resolve().parent)
+    except Exception:
+        pass
+
+    return found
+
+
+def _preload_runtime_libs(paths: list[Path]) -> None:
+    """``RTLD_GLOBAL`` preload. Changing LD_LIBRARY_PATH in-process is not enough for dlopen."""
+    import ctypes
+
+    for path in paths:
+        if not path.is_file():
+            continue
+        try:
+            ctypes.CDLL(str(path), mode=ctypes.RTLD_GLOBAL)
+        except OSError:
+            continue
 
 
 def configure_cudacri(cudacri_dir: str | Path) -> Path:
@@ -806,13 +943,33 @@ def configure_cudacri(cudacri_dir: str | Path) -> Path:
         sys.path.insert(0, str(lib_dir))
 
     torch_lib = Path(torch.__file__).resolve().parent / "lib"
-    os.environ["LD_LIBRARY_PATH"] = ":".join(
-        p
-        for p in (
-            str(lib_dir),
-            str(torch_lib),
-            os.environ.get("LD_LIBRARY_PATH", ""),
-        )
-        if p
-    )
+    extra_dirs = [lib_dir, torch_lib]
+    cuda_rt = _torch_cuda_runtime_dir(torch_lib)
+    if cuda_rt is not None:
+        extra_dirs.append(cuda_rt)
+    extra_dirs.extend(_tensorrt_lib_dirs())
+
+    path_entries = [str(p) for p in extra_dirs if p.is_dir()]
+    previous = os.environ.get("LD_LIBRARY_PATH", "")
+    os.environ["LD_LIBRARY_PATH"] = ":".join(p for p in (*path_entries, previous) if p)
+
+    preload: list[Path] = []
+    for name in (
+        "libcudart.so.12",
+        "libcudart.so.13",
+        "libc10.so",
+        "libc10_cuda.so",
+        "libtorch_cpu.so",
+        "libtorch_cuda.so",
+        "libtorch.so",
+        "libtorch_python.so",
+    ):
+        preload.append(torch_lib / name)
+        if cuda_rt is not None:
+            preload.append(cuda_rt / name)
+    for trt_dir in _tensorrt_lib_dirs():
+        preload.append(trt_dir / "libnvinfer.so.10")
+        preload.append(trt_dir / "libnvonnxparser.so.10")
+        preload.append(trt_dir / "libnvinfer_plugin.so.10")
+    _preload_runtime_libs(preload)
     return lib_dir

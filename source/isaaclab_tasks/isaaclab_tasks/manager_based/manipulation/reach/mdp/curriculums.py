@@ -254,6 +254,20 @@ def cri_ovf_threshold_by_step(
     return threshold_final
 
 
+def command_range_step_by_step(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    data: tuple[float, float],
+    switch_step: int,
+    initial_range: tuple[float, float],
+    final_range: tuple[float, float],
+) -> tuple[float, float]:
+    """Hold ``initial_range`` until ``switch_step``, then jump to ``final_range``."""
+    if env.common_step_counter < switch_step:
+        return (float(initial_range[0]), float(initial_range[1]))
+    return (float(final_range[0]), float(final_range[1]))
+
+
 def reward_weight_step_by_step(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],
@@ -266,6 +280,34 @@ def reward_weight_step_by_step(
     if env.common_step_counter < switch_step:
         return initial_weight
     return final_weight
+
+
+def hold_steps_by_step(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    data: int,
+    switch_step: int,
+    initial_hold_steps: int = 1,
+    final_hold_steps: int = 8,
+    interval_steps: int | None = None,
+    increment: int = 2,
+) -> int:
+    """Hold ``initial_hold_steps`` until ``switch_step``, then raise toward ``final_hold_steps``.
+
+    * ``interval_steps`` unset or ``<= 0``: jump once to ``final_hold_steps``.
+    * Otherwise: at ``switch_step`` add ``increment``, then again every ``interval_steps``.
+
+    This only changes the success gate. :class:`~isaaclab_tasks.manager_based.manipulation.reach.mdp.rewards.ReachSuccessCriteria`
+    scales the bonus from ``hold_count`` (new max / ``hold_reward_ref``, plus stay).
+    """
+    initial = int(initial_hold_steps)
+    final = int(final_hold_steps)
+    if env.common_step_counter < switch_step:
+        return initial
+    if interval_steps is None or interval_steps <= 0:
+        return final
+    stages = (env.common_step_counter - switch_step) // int(interval_steps) + 1
+    return int(min(final, initial + stages * int(increment)))
 
 
 def termination_penalty_weight_by_step(

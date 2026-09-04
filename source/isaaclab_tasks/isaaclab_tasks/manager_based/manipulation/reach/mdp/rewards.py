@@ -73,31 +73,43 @@ def reach_success_criteria(
 
 
 class ReachSuccessCriteria(ManagerTermBase):
-    """Reach success: ramped pose with dwell, then pose+vel+acc.
+    """In-gate hold tracker: pose+vel+acc with consecutive settle count.
 
     Position tolerance goes linearly from ``pos_ease_factor * max_distance`` to
     ``max_distance`` over ``pos_ramp_steps``. Until ``vel_switch_step``,
-    velocity/acceleration are ignored and success requires ``hold_steps``
-    consecutive in-tolerance steps. After that, configured pose+vel+acc apply
-    with no dwell.
+    velocity/acceleration are ignored.
 
-    Terminations run before rewards, so :meth:`compute_success` is idempotent per
-    ``env.common_step_counter``.
+    There is no target ``hold_steps`` for the reward. Each env step pays, in
+    units of ``hold_reward_ref`` (default: episode length in steps):
+
+    * **progress**: newly reached episode-max consecutive hold.
+    * **stay**: 1 while still in the gate this step.
+
+    :meth:`compute_success` is True only when ``hold_steps > 0`` and the
+    consecutive count reaches that gate (unused if reach termination is off).
+    It is idempotent per ``env.common_step_counter``.
     """
 
     def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRLEnv):
         super().__init__(cfg, env)
         self._hold_count = torch.zeros(env.num_envs, dtype=torch.long, device=env.device)
+        self._max_hold = torch.zeros(env.num_envs, dtype=torch.long, device=env.device)
         self._last_success = torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)
+        self._last_shaped = torch.zeros(env.num_envs, dtype=torch.float, device=env.device)
         self._updated_step = -1
+        self._rewarded_step = -1
 
     def reset(self, env_ids: Sequence[int] | None = None) -> None:
         if env_ids is None or isinstance(env_ids, slice):
             self._hold_count.zero_()
+            self._max_hold.zero_()
             self._last_success.zero_()
+            self._last_shaped.zero_()
             return
         self._hold_count[env_ids] = 0
+        self._max_hold[env_ids] = 0
         self._last_success[env_ids] = False
+        self._last_shaped[env_ids] = 0.0
 
     def _ramped_distance(self, step: int, max_distance: float, pos_ease_factor: float, pos_ramp_steps: int | None) -> float:
         if pos_ramp_steps is None or pos_ramp_steps <= 0:
@@ -121,10 +133,11 @@ class ReachSuccessCriteria(ManagerTermBase):
         hold_steps: int,
     ) -> tuple[float, float, float, float, float, float, int]:
         step = env.common_step_counter
+        hold = max(int(hold_steps), 0)
         distance = self._ramped_distance(step, max_distance, pos_ease_factor, pos_ramp_steps)
         if vel_switch_step is None or step >= vel_switch_step:
-            return max_distance, max_angle_rad, max_lin_vel, max_ang_vel, max_lin_acc, max_ang_acc, 0
-        return distance, max_angle_rad, float("inf"), float("inf"), float("inf"), float("inf"), hold_steps
+            return max_distance, max_angle_rad, max_lin_vel, max_ang_vel, max_lin_acc, max_ang_acc, hold
+        return distance, max_angle_rad, float("inf"), float("inf"), float("inf"), float("inf"), hold
 
     def compute_success(
         self,
@@ -142,6 +155,7 @@ class ReachSuccessCriteria(ManagerTermBase):
         pos_ease_factor: float = 3.0,
         hold_steps: int = 0,
         command_b: torch.Tensor | None = None,
+        **_unused,
     ) -> torch.Tensor:
         if self._updated_step == env.common_step_counter:
             return self._last_success
@@ -171,12 +185,11 @@ class ReachSuccessCriteria(ManagerTermBase):
             max_ang_acc=ang_acc,
             command_b=command_b,
         )
-        if hold <= 0:
-            self._hold_count.zero_()
-            self._last_success[:] = instant
-        else:
-            self._hold_count[:] = torch.where(instant, self._hold_count + 1, torch.zeros_like(self._hold_count))
+        self._hold_count[:] = torch.where(instant, self._hold_count + 1, torch.zeros_like(self._hold_count))
+        if hold > 0:
             self._last_success[:] = self._hold_count >= hold
+        else:
+            self._last_success.zero_()
         self._updated_step = env.common_step_counter
         return self._last_success
 
@@ -195,8 +208,10 @@ class ReachSuccessCriteria(ManagerTermBase):
         pos_ramp_steps: int | None = None,
         pos_ease_factor: float = 3.0,
         hold_steps: int = 0,
+        hold_reward_ref: int | None = None,
+        stay_scale: float = 1.0,
     ) -> torch.Tensor:
-        return self.compute_success(
+        self.compute_success(
             env,
             command_name=command_name,
             asset_cfg=asset_cfg,
@@ -210,7 +225,22 @@ class ReachSuccessCriteria(ManagerTermBase):
             pos_ramp_steps=pos_ramp_steps,
             pos_ease_factor=pos_ease_factor,
             hold_steps=hold_steps,
-        ).float()
+        )
+        if self._rewarded_step == env.common_step_counter:
+            return self._last_shaped
+
+        count = self._hold_count
+        new_max = torch.maximum(self._max_hold, count)
+        if hold_reward_ref is not None:
+            ref = float(max(int(hold_reward_ref), 1))
+        else:
+            ref = float(max(int(env.max_episode_length), 1))
+        progress = (new_max - self._max_hold).to(dtype=self._last_shaped.dtype) / ref
+        stay = (count > 0).to(dtype=self._last_shaped.dtype) / ref
+        self._last_shaped[:] = progress + float(stay_scale) * stay
+        self._max_hold[:] = new_max
+        self._rewarded_step = env.common_step_counter
+        return self._last_shaped
 
 
 class reach_success_bonus(ManagerTermBase):
@@ -377,6 +407,37 @@ def position_orientation_command_error_fine_grained(
     curr_quat_w = asset.data.body_quat_w[:, bid]
     # Last-mile basin (~4x tighter): 1/e at ~0.125 m, ~0.25 rad, toward 3 cm / 0.1 rad.
     return torch.exp(-6.0 * distance) * torch.exp(-3.0 * quat_error_magnitude(curr_quat_w, des_quat_w))
+
+
+def position_orientation_command_error_last_centimeter(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+    asset_cfg: SceneEntityCfg,
+    pos_scale: float = 25.0,
+    ori_scale: float = 8.0,
+    pos_cutoff: float = 0.08,
+) -> torch.Tensor:
+    """Last-centimeter basin. Zero outside ``pos_cutoff`` so it does not widen FG.
+
+    Default ``pos_scale=25`` has 1/e at 4 cm (gate is 3 cm). At 3.5 cm vs 3.0 cm the
+    raw kernel differs by ~0.055; FG's 3.5–3.0 step is ~0.05, so weight 2.0 adds ~2x
+    last-cm slope. Episode-mean last-cm is then about one third of FG.
+    """
+    asset: RigidObject = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+
+    des_pos_b = command[:, :3]
+    origin_pos_w, origin_quat_w = command_origin_pose_w(env, command_name, asset)
+    des_pos_w, _ = combine_frame_transforms(origin_pos_w, origin_quat_w, des_pos_b)
+    bid = _body_idx_single(env, asset_cfg)
+    curr_pos_w = asset.data.body_pos_w[:, bid]
+    distance = torch.norm(curr_pos_w - des_pos_w, dim=1)
+
+    des_quat_b = command[:, 3:7]
+    des_quat_w = quat_mul(origin_quat_w, des_quat_b)
+    curr_quat_w = asset.data.body_quat_w[:, bid]
+    kernel = torch.exp(-pos_scale * distance) * torch.exp(-ori_scale * quat_error_magnitude(curr_quat_w, des_quat_w))
+    return torch.where(distance < pos_cutoff, kernel, torch.zeros_like(kernel))
 
 
 def position_command_error_tanh(

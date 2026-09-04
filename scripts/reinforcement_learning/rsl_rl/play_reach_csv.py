@@ -157,6 +157,12 @@ parser.add_argument(
     default=0,
     help="Exit after this many env steps (0 = run until all envs finish one attempt).",
 )
+parser.add_argument(
+    "--no_ovf",
+    action="store_true",
+    default=False,
+    help="Disable OVF termination so attempts can run to timeout (PLAY defaults to CRI 0.96).",
+)
 cli_args.add_rsl_rl_args(parser)
 AppLauncher.add_app_launcher_args(parser)
 args_cli, hydra_args = parser.parse_known_args()
@@ -467,6 +473,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         disable_resample=disable_resample,
         freeze_finished_envs=disable_reach_success_term,
         deterministic_sim=bool(args_cli.deterministic_sim),
+        disable_ovf=bool(args_cli.no_ovf),
     )
     # Seed before env construction (PhysX / scene spawn paths also read global RNGs).
     _configure_eval_rng(eval_seeds[0])
@@ -539,6 +546,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         f"{'enabled (--deterministic_sim)' if args_cli.deterministic_sim else 'disabled (default)'}"
     )
     print(f"[INFO] Mid-episode target resample: {'enabled' if args_cli.keep_resample_on_reach else 'disabled'}")
+    print(f"[INFO] OVF termination: {'disabled (--no_ovf)' if args_cli.no_ovf else 'enabled (threshold 0.96)'}")
     print(
         "[INFO] Strict reach thresholds: "
         f"max_distance={strict_reach_params['max_distance']}, "

@@ -66,10 +66,10 @@ def cri_filter_pre(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntity
     return asset.data.cri_filter_pre
 
 
-def cri_filter_scale(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
-    """Per-env CRI filter scale s. Shape is (num_envs, 1)."""
+def cri_filter_delta(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Per-env CBF command correction ``||qd_cmd - qd_RL||``. Shape is (num_envs, 1)."""
     asset: Articulation = env.scene[asset_cfg.name]
-    return asset.data.cri_filter_scale.unsqueeze(-1)
+    return asset.data.cri_filter_delta.unsqueeze(-1)
 
 
 def episode_progress(env: ManagerBasedRLEnv) -> torch.Tensor:
