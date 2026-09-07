@@ -1604,7 +1604,23 @@ class ArticulationData:
 
         track_timing = os.environ.get("SFD_CRI_TIMING", "0") == "1"
         wall0 = time.perf_counter() if track_timing else 0.0
-        result = self.solver.run_cri_filter(q_in, qd_in)
+        try:
+            result = self.solver.run_cri_filter(q_in, qd_in)
+        except Exception as exc:
+            logger.warning("CRI filter failed; passthrough qd_RL. %s", exc)
+            if (
+                self._CRI_float.data is not None
+                and self._cri_filter_delta is not None
+                and self._cri_filter_qd_cmd is not None
+            ):
+                self._cri_filter_qd_cmd.copy_(qd_rl.to(dtype=self._cri_filter_qd_cmd.dtype))
+                self._cri_filter_qd_rl.copy_(qd_rl)
+                self._cri_filter_delta.zero_()
+                if self._cri_f_runtime_ready:
+                    self._cri_f_control_steps += 1
+                    self._cri_f_last_solve_timestamp = self._sim_timestamp
+                return self._CRI_float.data, self._cri_filter_delta, qd_rl
+            raise
         if self._cri_f_runtime_ready:
             self._cri_f_control_steps += 1
             self._cri_f_runtime_solves += 1
@@ -1614,6 +1630,16 @@ class ArticulationData:
 
         cri_pre = result["cri_pre"]
         if cri_pre is None:
+            logger.warning("run_cri_filter returned empty cri_pre; passthrough qd_RL")
+            if (
+                self._CRI_float.data is not None
+                and self._cri_filter_delta is not None
+                and self._cri_filter_qd_cmd is not None
+            ):
+                self._cri_filter_qd_cmd.copy_(qd_rl.to(dtype=self._cri_filter_qd_cmd.dtype))
+                self._cri_filter_qd_rl.copy_(qd_rl)
+                self._cri_filter_delta.zero_()
+                return self._CRI_float.data, self._cri_filter_delta, qd_rl
             raise RuntimeError("run_cri_filter returned empty cri_pre")
         self._cri_filter_limit = float(result.get("cri_limit", self._cri_filter_limit))
         self._cri_filter_cbf_alpha = float(result.get("cbf_alpha", self._cri_filter_cbf_alpha))

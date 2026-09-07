@@ -553,8 +553,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         f"max_angle_rad={strict_reach_params['max_angle_rad']}, "
         f"max_lin_vel={strict_reach_params['max_lin_vel']}, "
         f"max_ang_vel={strict_reach_params['max_ang_vel']}, "
-        f"max_lin_acc={strict_reach_params['max_lin_acc']}, "
-        f"max_ang_acc={strict_reach_params['max_ang_acc']}"
+        f"max_lin_acc={strict_reach_params.get('max_lin_acc', float('inf'))}, "
+        f"max_ang_acc={strict_reach_params.get('max_ang_acc', float('inf'))}"
     )
     if args_cli.export_csv_always:
         print("[INFO] export_csv_always: keep traj rows after reach (outcome still one-shot).")

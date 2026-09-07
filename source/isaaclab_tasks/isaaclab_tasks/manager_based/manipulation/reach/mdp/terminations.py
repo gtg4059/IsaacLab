@@ -37,7 +37,7 @@ def reach_success(
     func = term_cfg.func
     if isinstance(func, ReachSuccessCriteria):
         return func.compute_success(env, **term_cfg.params)
-    params = {key: term_cfg.params[key] for key in _CRITERIA_KEYS}
+    params = {key: term_cfg.params[key] for key in _CRITERIA_KEYS if key in term_cfg.params}
     return reach_success_criteria(env, **params)
 
 
