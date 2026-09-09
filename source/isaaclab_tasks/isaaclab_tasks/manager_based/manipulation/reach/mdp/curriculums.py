@@ -42,7 +42,9 @@ class reach_success_criteria_curriculum(ManagerTermBase):
     Reward/event term configs hold the **final** (strictest) thresholds. This curriculum starts from
     relaxed values (``ease_factor`` times final).
 
-    * Default: linear ``ease_factor → 1`` over ``num_steps`` after ``start_step``.
+    * Default: ``ease_factor → 1`` over ``num_steps`` after ``start_step``.
+      ``decay_alpha=1`` is linear; ``decay_alpha=0.8`` is PCCL power cooling
+      (slower at first, then faster toward the final gates).
     * Piecewise (when ``mid_factor`` is set): ``ease_factor → mid_factor`` over ``num_steps``,
       hold ``mid_factor`` for ``hold_steps``, then ``mid_factor → 1`` over ``num_steps_final``.
 
@@ -67,7 +69,8 @@ class reach_success_criteria_curriculum(ManagerTermBase):
         )
 
         primary_cfg = self._reward_term_cfgs[self._reward_term_names[0]]
-        self._final_params = {key: primary_cfg.params[key] for key in _REACH_CRITERIA_PARAM_KEYS}
+        self._param_keys = tuple(key for key in _REACH_CRITERIA_PARAM_KEYS if key in primary_cfg.params)
+        self._final_params = {key: primary_cfg.params[key] for key in self._param_keys}
         self._ease_factor = cfg.params.get("ease_factor", 5.0)
         self._mid_factor = cfg.params.get("mid_factor")
         initial_override = cfg.params.get("initial_params")
@@ -88,37 +91,38 @@ class reach_success_criteria_curriculum(ManagerTermBase):
         self._num_steps = cfg.params["num_steps"]
         self._hold_steps = cfg.params.get("hold_steps", 0)
         self._num_steps_final = cfg.params.get("num_steps_final", self._num_steps)
+        self._decay_alpha = float(cfg.params.get("decay_alpha", 1.0))
         self._last_params_key: tuple[float, ...] | None = None
 
         self._apply_params(self._initial_params)
 
-    def _lerp(self, start: dict[str, float], end: dict[str, float], progress: float) -> dict[str, float]:
-        return {key: start[key] + progress * (end[key] - start[key]) for key in _REACH_CRITERIA_PARAM_KEYS}
+    def _blend(self, start: dict[str, float], end: dict[str, float], k: int, span: int) -> dict[str, float]:
+        """PCCL cooling: ``end + ((span-k)/span)**alpha * (start-end)``. ``alpha=1`` is linear."""
+        remaining = max(span - max(k, 0), 0) / max(span, 1)
+        weight = remaining ** self._decay_alpha
+        return {key: end[key] + weight * (start[key] - end[key]) for key in self._param_keys}
 
     def _interpolate_params(self, step: int) -> dict[str, float]:
         if step < self._start_step:
             return dict(self._initial_params)
 
         if self._mid_params is None:
-            progress = min(1.0, (step - self._start_step) / max(self._num_steps, 1))
-            return self._lerp(self._initial_params, self._final_params, progress)
+            return self._blend(self._initial_params, self._final_params, step - self._start_step, self._num_steps)
 
         first_end = self._start_step + self._num_steps
         hold_end = first_end + self._hold_steps
         second_end = hold_end + self._num_steps_final
 
         if step < first_end:
-            progress = min(1.0, (step - self._start_step) / max(self._num_steps, 1))
-            return self._lerp(self._initial_params, self._mid_params, progress)
+            return self._blend(self._initial_params, self._mid_params, step - self._start_step, self._num_steps)
         if step < hold_end:
             return dict(self._mid_params)
         if step < second_end:
-            progress = min(1.0, (step - hold_end) / max(self._num_steps_final, 1))
-            return self._lerp(self._mid_params, self._final_params, progress)
+            return self._blend(self._mid_params, self._final_params, step - hold_end, self._num_steps_final)
         return dict(self._final_params)
 
     def _apply_params(self, params: dict[str, float]) -> None:
-        params_key = tuple(round(params[key], 8) for key in _REACH_CRITERIA_PARAM_KEYS)
+        params_key = tuple(round(params[key], 8) for key in self._param_keys)
         if params_key == self._last_params_key:
             return
 
@@ -148,6 +152,7 @@ class reach_success_criteria_curriculum(ManagerTermBase):
         mid_factor: float | None = None,
         hold_steps: int = 0,
         num_steps_final: int | None = None,
+        decay_alpha: float = 1.0,
     ) -> dict[str, float]:
         params = self._interpolate_params(env.common_step_counter)
         self._apply_params(params)

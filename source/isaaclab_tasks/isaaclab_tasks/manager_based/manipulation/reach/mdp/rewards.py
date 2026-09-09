@@ -87,12 +87,8 @@ class ReachSuccessCriteria(ManagerTermBase):
     ``max_distance`` over ``pos_ramp_steps``. Until ``vel_switch_step``,
     velocity/acceleration are ignored.
 
-    Each in-gate step before success pays ``count^2`` (1, 4, 9) on the
-    **first streak only**. Leaving the gate ends increment pay for the
-    rest of the episode, so 1-4-9 cannot be farmed by re-entering.
-
-    The success step pays ``hold^2`` once (4 → 16), even if the first
-    streak already ended. Timeout keeps only the increments already paid.
+    Intermediate holds pay ``hold_step_bonus``. The success step returns 1
+    so the applied bonus is ``weight * dt``. Timeout pays 0.
 
     :meth:`compute_success` is True when the consecutive count reaches
     ``hold_steps``, or ``hold_square_max`` if ``hold_steps`` is 0.
@@ -102,7 +98,6 @@ class ReachSuccessCriteria(ManagerTermBase):
     def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRLEnv):
         super().__init__(cfg, env)
         self._hold_count = torch.zeros(env.num_envs, dtype=torch.long, device=env.device)
-        self._left_after_hold = torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)
         self._last_success = torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)
         self._last_shaped = torch.zeros(env.num_envs, dtype=torch.float, device=env.device)
         self._updated_step = -1
@@ -111,12 +106,10 @@ class ReachSuccessCriteria(ManagerTermBase):
     def reset(self, env_ids: Sequence[int] | None = None) -> None:
         if env_ids is None or isinstance(env_ids, slice):
             self._hold_count.zero_()
-            self._left_after_hold.zero_()
             self._last_success.zero_()
             self._last_shaped.zero_()
             return
         self._hold_count[env_ids] = 0
-        self._left_after_hold[env_ids] = False
         self._last_success[env_ids] = False
         self._last_shaped[env_ids] = 0.0
 
@@ -197,8 +190,6 @@ class ReachSuccessCriteria(ManagerTermBase):
             max_ang_acc=ang_acc,
             command_b=command_b,
         )
-        left = (~instant) & (self._hold_count > 0)
-        self._left_after_hold |= left
         self._hold_count[:] = torch.where(instant, self._hold_count + 1, torch.zeros_like(self._hold_count))
         if hold > 0:
             self._last_success[:] = self._hold_count >= hold
@@ -223,6 +214,7 @@ class ReachSuccessCriteria(ManagerTermBase):
         pos_ease_factor: float = 3.0,
         hold_steps: int = 0,
         hold_square_max: int = 10,
+        hold_step_bonus: float = 0.1,
     ) -> torch.Tensor:
         self.compute_success(
             env,
@@ -247,14 +239,12 @@ class ReachSuccessCriteria(ManagerTermBase):
         hold = max(int(hold_steps), 0)
         if hold <= 0:
             hold = max(int(hold_square_max), 1)
-        # 1, 4, 9 on the first streak; hold^2 once on the success step.
-        squares = count.to(dtype=self._last_shaped.dtype).square()
         increment = torch.where(
-            (count > 0) & (count < hold) & ~self._left_after_hold,
-            squares,
+            (count > 0) & (count < hold),
+            torch.full_like(self._last_shaped, float(hold_step_bonus)),
             torch.zeros_like(self._last_shaped),
         )
-        success = torch.where(count == hold, squares, torch.zeros_like(self._last_shaped))
+        success = torch.where(count == hold, torch.ones_like(self._last_shaped), torch.zeros_like(self._last_shaped))
         self._last_shaped[:] = increment + success
         self._rewarded_step = env.common_step_counter
         return self._last_shaped
@@ -433,16 +423,20 @@ def position_orientation_command_error_last_centimeter(
     pos_scale: float = 50.0,
     ori_scale: float = 8.0,
     pos_cutoff: float = 0.04,
+    still_cutoff: float = 0.02,
     lin_vel_scale: float = 25.0,
     ang_vel_scale: float = 25.0,
     still_mix: float = 0.5,
+    approach_vel: float = 0.05,
+    approach_floor: float = 0.15,
 ) -> torch.Tensor:
-    """Last-centimeter basin with a near-target still bonus. Zero outside ``pos_cutoff``.
+    """Last-centimeter basin: pull into the hold, still inside it.
 
-    Pose kernel: ``pos_scale=50`` is 1/e at the 2 cm hold gate. Cutoff is 4 cm.
-    Linear and angular velocity kernels are 1/e at 2x the hold gates (0.04 m/s,
-    0.04 rad/s). ``still_mix`` keeps a pose-only floor so a fast approach still
-    gets last-cm pull; 1.0 is fully settled. No acceleration term.
+    Zero outside ``pos_cutoff``. Between ``still_cutoff`` and ``pos_cutoff``
+    the kernel is ``pose * (approach_floor + (1-floor)*approach)`` so a parked
+    pose at 3 cm still has a small gradient into 2 cm, while closing pays more.
+    Inside ``still_cutoff`` it is ``pose * (still_mix + (1-still_mix)*still)``.
+    ``pos_scale=50`` is 1/e at 2 cm. Vel scales of 50 are 1/e at the 0.02 gates.
     """
     asset: RigidObject = env.scene[asset_cfg.name]
     command = env.command_manager.get_command(command_name)
@@ -452,17 +446,29 @@ def position_orientation_command_error_last_centimeter(
     des_pos_w, _ = combine_frame_transforms(origin_pos_w, origin_quat_w, des_pos_b)
     bid = _body_idx_single(env, asset_cfg)
     curr_pos_w = asset.data.body_pos_w[:, bid]
-    distance = torch.norm(curr_pos_w - des_pos_w, dim=1)
+    offset = curr_pos_w - des_pos_w
+    distance = torch.norm(offset, dim=1)
 
     des_quat_b = command[:, 3:7]
     des_quat_w = quat_mul(origin_quat_w, des_quat_b)
     curr_quat_w = asset.data.body_quat_w[:, bid]
     pose = torch.exp(-pos_scale * distance) * torch.exp(-ori_scale * quat_error_magnitude(curr_quat_w, des_quat_w))
-    lin_spd = torch.norm(asset.data.body_lin_vel_w[:, bid, :], dim=-1)
+    lin_vel = asset.data.body_lin_vel_w[:, bid, :]
+    lin_spd = torch.norm(lin_vel, dim=-1)
     ang_spd = torch.norm(asset.data.body_ang_vel_w[:, bid, :], dim=-1)
     still = torch.exp(-lin_vel_scale * lin_spd) * torch.exp(-ang_vel_scale * ang_spd)
     mix = min(max(float(still_mix), 0.0), 1.0)
-    kernel = pose * (mix + (1.0 - mix) * still)
+    still_kernel = pose * (mix + (1.0 - mix) * still)
+
+    radial = offset / distance.clamp(min=1e-6).unsqueeze(-1)
+    closing = -(lin_vel * radial).sum(dim=-1)
+    ref = max(float(approach_vel), 1e-6)
+    approach = (closing / ref).clamp(min=0.0, max=1.0)
+    floor = min(max(float(approach_floor), 0.0), 1.0)
+    approach_kernel = pose * (floor + (1.0 - floor) * approach)
+
+    in_hold = distance < still_cutoff
+    kernel = torch.where(in_hold, still_kernel, approach_kernel)
     return torch.where(distance < pos_cutoff, kernel, torch.zeros_like(kernel))
 
 

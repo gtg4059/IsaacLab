@@ -29,12 +29,6 @@ from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 import isaaclab_tasks.manager_based.manipulation.reach.mdp as mdp
 
-# CRI OVF curriculum schedule (env steps; 1 PPO iter = 48 steps).
-# CRI_OVF_REWARD_START = 48 * 12000
-# CRI_OVF_CROSSFADE_START = 48 * 20000
-# REACH_SUCCESS_CRITERIA_START = 48 * 00000
-# REACH_CRITERIA_RAMP_STEPS = 48 * 40000
-
 @configclass
 class CRIReachSceneCfg(InteractiveSceneCfg):
     """Scene for CRI reach training."""
@@ -152,25 +146,29 @@ class CRIRewardsCfg:
     )
     end_effector_pos_orientation_tracking_fine_grained = RewTerm(
         func=mdp.position_orientation_command_error_fine_grained,
-        weight=0.5,
+        weight=1.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
-    # 4 cm cutoff; pose 1/e at the 2 cm hold gate. Inside the cutoff, low
-    # lin/ang vel (1/e at 2x the 0.02 m/s and 0.02 rad/s gates) raises the term.
-    # still_mix=0.5 keeps a pose-only floor. No acceleration kernel.
-    end_effector_pos_orientation_tracking_last_centimeter = RewTerm(
-        func=mdp.position_orientation_command_error_last_centimeter,
-        weight=2.0,
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
-            "command_name": "ee_pose",
-            "pos_scale": 50.0,
-            "pos_cutoff": 0.04,
-            "lin_vel_scale": 25.0,
-            "ang_vel_scale": 25.0,
-            "still_mix": 0.5,
-        },
-    )
+    # 4 cm basin, 2 cm hold. Outside the hold, a small pose floor (0.15)
+    # pulls 3 cm parks inward; closing adds the rest. Inside the hold,
+    # 80% of the term needs stillness. Pose 1/e at 2 cm. Approach
+    # saturates at 3 cm/s. Vel 1/e at the 0.02 gates.
+    # end_effector_pos_orientation_tracking_last_centimeter = RewTerm(
+    #     func=mdp.position_orientation_command_error_last_centimeter,
+    #     weight=2.0,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
+    #         "command_name": "ee_pose",
+    #         "pos_scale": 50.0,
+    #         "pos_cutoff": 0.04,
+    #         "still_cutoff": 0.02,
+    #         "lin_vel_scale": 50.0,
+    #         "ang_vel_scale": 50.0,
+    #         "still_mix": 0.2,
+    #         "approach_vel": 0.03,
+    #         "approach_floor": 0.15,
+    #     },
+    # )
     # OVF only (time_out is time_out=True; reach no longer terminates).
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-600.0)
     action_rate = RewTerm(func=mdp.action_rate_l2_clamped, weight=-0.1)
@@ -190,20 +188,18 @@ class CRIRewardsCfg:
     is_alive = RewTerm(
         func=mdp.is_alive_time_ramp,
         weight=-1.0,
-        params={"ramp_start_s": 8.0, "ramp_end_s": 16.0, "initial": 0.2, "final": 1.0},
+        params={"ramp_start_s": 8.0, "ramp_end_s": 16.0, "initial": 0.2, "final": 0.2},
     )
-    # Off until timeout_no_reach_weight @ iter 24000. time_out term only
-    # (reach_success is time_out=True and is not penalized).
+    # time_out term only (reach_success is time_out=True and is not penalized).
     timeout_no_reach = RewTerm(
         func=mdp.timeout_no_reach_penalty,
-        weight=-200.0,
+        weight=0.0,
         params={"reward_term_name": "reach_success_bonus"},
     )
-    # Square payments 1, 4, 9 on the first streak only (re-entry pays 0).
-    # The 4th hold pays 4^2 = 16 once and ends the episode.
+    # 1-hold pays hold_step_bonus (0.1 → applied 4). 2-hold pays 1 (applied 40).
     reach_success_bonus = RewTerm(
         func=mdp.ReachSuccessCriteria,
-        weight=30.0,
+        weight=600.0,
         params={
             "command_name": "ee_pose",
             "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
@@ -213,24 +209,28 @@ class CRIRewardsCfg:
             "max_angle_rad": 0.1,
             "max_lin_vel": 0.02,
             "max_ang_vel": 0.02,
-            "hold_square_max": 4,
+            "hold_square_max": 2,
+            "hold_step_bonus": 0.1,
         },
     )
 
 
 @configclass
 class CRICurriculumCfg:
-    # reach_success_criteria = CurrTerm(
-    #     func=mdp.reach_success_criteria_curriculum,
-    #     params={
-    #         "ease_factor": 3.0,
-    #         "start_step": REACH_SUCCESS_CRITERIA_START,
-    #         "num_steps": REACH_CRITERIA_RAMP_STEPS,
-    #         "reward_term_names": ["reach_success_bonus"],
-    #         # Thresholds live on reward terms; terminations.reach_success reads them from there.
-    #         "event_term_name": None,
-    #     },
-    # )
+    # Hold 4x pose/vel gates until 12000, then power cooling with alpha>1:
+    # steep early, shallow late (opposite of PCCL alpha=0.8).
+    # terminations.reach_success reads these params.
+    reach_success_criteria = CurrTerm(
+        func=mdp.reach_success_criteria_curriculum,
+        params={
+            "ease_factor": 4.0,
+            "decay_alpha": 2.0,
+            "start_step": 48 * 18000,
+            "num_steps": 48 * 6000,
+            "reward_term_names": ["reach_success_bonus"],
+            "event_term_name": None,
+        },
+    )
     # Phase 1: fine-grained pulls into the 3 cm basin; timeout penalty stays 0 so
     # the only sparse target is reach_success_bonus. Phase 2: drop the sit subsidy
     # and turn on timeout (1/2 of OVF -600) so lingering at the goal is not free.
@@ -290,18 +290,18 @@ class CRICurriculumCfg:
     # # Park ~-1156 vs explore-OVF through ~37 s. Reach +1200 still dominates.
     # # Early suicide (~-609) is the cheap give-up; CRI_OVF -10 and tracking
     # # keep that from being the default.
-    # timeout_no_reach_weight = CurrTerm(
-    #     func=mdp.modify_term_cfg,
-    #     params={
-    #         "address": "rewards.timeout_no_reach.weight",
-    #         "modify_fn": mdp.reward_weight_step_by_step,
-    #         "modify_params": {
-    #             "switch_step": 48 * 24000,
-    #             "initial_weight": 0.0,
-    #             "final_weight": -400.0,
-    #         },
-    #     },
-    # )
+    timeout_no_reach_weight = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "rewards.timeout_no_reach.weight",
+            "modify_fn": mdp.reward_weight_step_by_step,
+            "modify_params": {
+                "switch_step": 48 * 36000,
+                "initial_weight": 0.0,
+                "final_weight": -300.0,
+            },
+        },
+    )
     # Hold length is not a curriculum. Reward already scales with episode-max
     # consecutive hold and in-gate total; no interval / hold_steps schedule.
     # reach_settle_hold = CurrTerm(
@@ -355,7 +355,7 @@ class CRICurriculumCfg:
     #         "address": "rewards.is_alive.weight",
     #         "modify_fn": mdp.termination_penalty_weight_by_step,
     #         "modify_params": {
-    #             "switch_step": 48 * 18000,
+    #             "switch_step": 48 * 12000,
     #             "initial_weight": -0.2,
     #             "final_weight": -1.0,
     #         },
@@ -404,7 +404,7 @@ class CRICurriculumCfg:
             "address": "terminations.OVF.params.threshold",
             "modify_fn": mdp.cri_ovf_threshold_by_step,
             "modify_params": {
-                "crossfade_start": 48 * 8000,
+                "crossfade_start": 48 * 6000,
                 "threshold_initial": 2.0,
                 "threshold_final": 0.96,
             },
