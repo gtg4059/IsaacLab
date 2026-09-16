@@ -204,6 +204,10 @@ def freeze_finished_env_controls(
 def apply_strict_reach_params_to_env(env: ManagerBasedRLEnv, strict_params: dict[str, Any]) -> None:
     """Force reward/event reach thresholds to the captured strict finals."""
     criteria = {key: strict_params[key] for key in _REACH_CRITERIA_PARAM_KEYS if key in strict_params}
+    if "hold_square_max" in strict_params:
+        criteria["hold_square_max"] = int(strict_params["hold_square_max"])
+    if "hold_steps" in strict_params:
+        criteria["hold_steps"] = int(strict_params["hold_steps"])
     if not criteria:
         return
 
@@ -228,6 +232,7 @@ def open_traj_csv_writers(
     os.makedirs(csv_dir, exist_ok=True)
     fieldnames = (
         ["global_step", "sim_time_s", "reach_event", "max_CRI"]
+        + ["pos_err", "ang_err", "lin_spd", "ang_spd"]
         + list(_CMD_POSE_FIELDS)
         + [f"q_{name}" for name in joint_names]
         + [f"qd_{name}" for name in joint_names]
@@ -252,7 +257,22 @@ def open_episode_reach_csv(csv_dir: str) -> tuple[IO[str], csv.DictWriter]:
     handle = open(path, "w", newline="", encoding="utf-8")
     writer = csv.DictWriter(
         handle,
-        fieldnames=["env_idx", "episode_id", "ended_at_s", "reached", "outcome", *_CMD_POSE_FIELDS],
+        fieldnames=[
+            "env_idx",
+            "episode_id",
+            "ended_at_s",
+            "reached",
+            "outcome",
+            *_CMD_POSE_FIELDS,
+            "min_pos_err",
+            "min_ang_err",
+            "last_pos_err",
+            "last_ang_err",
+            "last_lin_vel",
+            "last_ang_vel",
+            "max_cri",
+            "last_cri",
+        ],
     )
     writer.writeheader()
     handle.flush()
@@ -376,6 +396,10 @@ def append_traj_rows(
     env_log_mask: torch.Tensor,
     reach_event: torch.Tensor,
     command: torch.Tensor | None = None,
+    pos_err: torch.Tensor | None = None,
+    ang_err: torch.Tensor | None = None,
+    lin_spd: torch.Tensor | None = None,
+    ang_spd: torch.Tensor | None = None,
 ) -> None:
     """Append one CSV row per active env using the pre-reset CRI motion snapshot.
 
@@ -396,6 +420,10 @@ def append_traj_rows(
         cri = cri.detach().cpu().numpy()
         reach_np = reach_event.detach().cpu().numpy()
         cmd_np = None if command is None else command.detach().cpu().numpy()
+        pos_np = None if pos_err is None else pos_err.detach().cpu().numpy()
+        ang_np = None if ang_err is None else ang_err.detach().cpu().numpy()
+        lin_np = None if lin_spd is None else lin_spd.detach().cpu().numpy()
+        wsp_np = None if ang_spd is None else ang_spd.detach().cpu().numpy()
 
     mask = env_log_mask.detach().bool().cpu()
     num_cri = int(cri.shape[1]) if cri.ndim == 2 else 0
@@ -409,6 +437,10 @@ def append_traj_rows(
             "sim_time_s": sim_time_s,
             "reach_event": int(bool(reach_np[env_idx])),
             "max_CRI": float(cri[env_idx].max()) if num_cri > 0 else float("nan"),
+            "pos_err": float(pos_np[env_idx]) if pos_np is not None else float("nan"),
+            "ang_err": float(ang_np[env_idx]) if ang_np is not None else float("nan"),
+            "lin_spd": float(lin_np[env_idx]) if lin_np is not None else float("nan"),
+            "ang_spd": float(wsp_np[env_idx]) if wsp_np is not None else float("nan"),
         }
         cmd_vec = cmd_np[env_idx] if cmd_np is not None and env_idx < int(cmd_np.shape[0]) else None
         row.update(command_pose_row(cmd_vec))
@@ -439,6 +471,7 @@ def record_attempt(
     reached: bool,
     outcome: str,
     command_pose: Any | None = None,
+    extras: dict[str, Any] | None = None,
 ) -> None:
     row: dict[str, Any] = {
         "env_idx": env_idx,
@@ -448,6 +481,19 @@ def record_attempt(
         "outcome": outcome,
     }
     row.update(command_pose_row(command_pose))
+    extra_keys = (
+        "min_pos_err",
+        "min_ang_err",
+        "last_pos_err",
+        "last_ang_err",
+        "last_lin_vel",
+        "last_ang_vel",
+        "max_cri",
+        "last_cri",
+    )
+    extra_vals = extras or {}
+    for key in extra_keys:
+        row[key] = extra_vals.get(key, "")
     writer.writerow(row)
     handle.flush()
 

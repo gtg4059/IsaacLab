@@ -163,6 +163,13 @@ parser.add_argument(
     default=False,
     help="Disable OVF termination so attempts can run to timeout (PLAY defaults to CRI 0.96).",
 )
+parser.add_argument(
+    "--hold_square_max",
+    type=int,
+    default=None,
+    help="Override reach_success_bonus hold_square_max (e.g. 1 = first in-gate step is success). "
+    "Default keeps the env cfg value.",
+)
 cli_args.add_rsl_rl_args(parser)
 AppLauncher.add_app_launcher_args(parser)
 args_cli, hydra_args = parser.parse_known_args()
@@ -189,9 +196,13 @@ from isaaclab.envs import (
     ManagerBasedRLEnvCfg,
     multi_agent_to_single_agent,
 )
+from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils.assets import retrieve_file_path
 from isaaclab.utils.dict import print_dict
+from isaaclab.utils.math import combine_frame_transforms, quat_error_magnitude, quat_mul
 from isaaclab.utils.seed import configure_seed
+from isaaclab_tasks.manager_based.manipulation.reach.mdp.observations import command_origin_pose_w
+from isaaclab_tasks.manager_based.manipulation.reach.mdp.rewards import _body_idx_single
 
 
 def _configure_eval_rng(seed: int) -> None:
@@ -213,6 +224,36 @@ from isaaclab_tasks.utils.hydra import hydra_task_config
 import reach_traj_csv_utils as csv_utils
 
 installed_version = metadata.version("rsl-rl-lib")
+
+
+def _ee_tracking(base_env: ManagerBasedRLEnv, command: torch.Tensor) -> tuple[torch.Tensor, ...]:
+    asset_cfg = SceneEntityCfg("robot", body_names="ee_link")
+    asset_cfg.resolve(base_env.scene)
+    asset = base_env.scene[asset_cfg.name]
+    bid = _body_idx_single(base_env, asset_cfg)
+    origin_pos_w, origin_quat_w = command_origin_pose_w(base_env, "ee_pose", asset)
+    des_pos_w, _ = combine_frame_transforms(origin_pos_w, origin_quat_w, command[:, :3])
+    pos_err = torch.norm(asset.data.body_pos_w[:, bid] - des_pos_w, dim=1)
+    des_quat_w = quat_mul(origin_quat_w, command[:, 3:7])
+    ang_err = quat_error_magnitude(asset.data.body_quat_w[:, bid], des_quat_w)
+    lin_vel = torch.norm(asset.data.body_lin_vel_w[:, bid, :], dim=-1)
+    ang_vel = torch.norm(asset.data.body_ang_vel_w[:, bid, :], dim=-1)
+    cri = torch.max(asset.data.CRI, dim=1).values
+    return pos_err, ang_err, lin_vel, ang_vel, cri
+
+
+def _attempt_extras(i: int, *bufs: torch.Tensor) -> dict[str, float]:
+    keys = (
+        "min_pos_err",
+        "min_ang_err",
+        "last_pos_err",
+        "last_ang_err",
+        "last_lin_vel",
+        "last_ang_vel",
+        "max_cri",
+        "last_cri",
+    )
+    return {key: float(buf[i].item()) for key, buf in zip(keys, bufs)}
 
 
 def _parse_eval_seeds(default_seed: int) -> list[int]:
@@ -302,6 +343,14 @@ def _run_one_shot_eval(
                     log_active = torch.ones(base_env.num_envs, device=base_env.device, dtype=torch.bool)
                     attempt_active = torch.ones(base_env.num_envs, device=base_env.device, dtype=torch.bool)
                     episode_ids = torch.zeros(base_env.num_envs, device=base_env.device, dtype=torch.long)
+                    min_pos_err = torch.full((base_env.num_envs,), float("inf"), device=base_env.device)
+                    min_ang_err = torch.full((base_env.num_envs,), float("inf"), device=base_env.device)
+                    max_cri = torch.zeros(base_env.num_envs, device=base_env.device)
+                    last_pos_err = torch.zeros(base_env.num_envs, device=base_env.device)
+                    last_ang_err = torch.zeros(base_env.num_envs, device=base_env.device)
+                    last_lin_vel = torch.zeros(base_env.num_envs, device=base_env.device)
+                    last_ang_vel = torch.zeros(base_env.num_envs, device=base_env.device)
+                    last_cri = torch.zeros(base_env.num_envs, device=base_env.device)
 
                 assert (
                     attempt_active is not None
@@ -313,6 +362,16 @@ def _run_one_shot_eval(
 
                 reach_ev = csv_utils.resolve_reach_event(base_env, reach_cmd_snapshot, strict_reach_params)
                 done_mask = dones.detach().bool().view(-1)
+                pos_err, ang_err, lin_vel, ang_vel, cri = _ee_tracking(base_env, reach_cmd_snapshot)
+                live = attempt_active
+                min_pos_err[live] = torch.minimum(min_pos_err[live], pos_err[live])
+                min_ang_err[live] = torch.minimum(min_ang_err[live], ang_err[live])
+                max_cri[live] = torch.maximum(max_cri[live], cri[live])
+                last_pos_err[live] = pos_err[live]
+                last_ang_err[live] = ang_err[live]
+                last_lin_vel[live] = lin_vel[live]
+                last_ang_vel[live] = ang_vel[live]
+                last_cri[live] = cri[live]
 
                 if write_traj and csv_writers is not None:
                     csv_utils.append_traj_rows(
@@ -323,6 +382,10 @@ def _run_one_shot_eval(
                         log_active & attempt_active,
                         reach_ev,
                         command=reach_cmd_snapshot,
+                        pos_err=pos_err,
+                        ang_err=ang_err,
+                        lin_spd=lin_vel,
+                        ang_spd=ang_vel,
                     )
                     if csv_files is not None:
                         for handle in csv_files.values():
@@ -341,6 +404,17 @@ def _run_one_shot_eval(
                             reached=True,
                             outcome="success",
                             command_pose=reach_cmd_snapshot[int(env_idx)],
+                            extras=_attempt_extras(
+                                int(env_idx),
+                                min_pos_err,
+                                min_ang_err,
+                                last_pos_err,
+                                last_ang_err,
+                                last_lin_vel,
+                                last_ang_vel,
+                                max_cri,
+                                last_cri,
+                            ),
                         )
                     total_episodes += int(newly_success.sum().item())
                     total_reached_episodes += int(newly_success.sum().item())
@@ -362,6 +436,17 @@ def _run_one_shot_eval(
                             reached=False,
                             outcome=outcome,
                             command_pose=reach_cmd_snapshot[int(env_idx)],
+                            extras=_attempt_extras(
+                                int(env_idx),
+                                min_pos_err,
+                                min_ang_err,
+                                last_pos_err,
+                                last_ang_err,
+                                last_lin_vel,
+                                last_ang_vel,
+                                max_cri,
+                                last_cri,
+                            ),
                         )
                     total_episodes += int(newly_fail.sum().item())
                     episode_ids[newly_fail] += 1
@@ -459,6 +544,15 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     export_csv_root = args_cli.export_csv_dir or os.path.join(log_dir, "joint_trajectory")
     env_cfg.log_dir = log_dir
 
+    if args_cli.hold_square_max is not None:
+        bonus = getattr(getattr(env_cfg, "rewards", None), "reach_success_bonus", None)
+        if bonus is None or getattr(bonus, "params", None) is None:
+            raise ValueError("--hold_square_max requires rewards.reach_success_bonus.params")
+        bonus.params["hold_square_max"] = int(args_cli.hold_square_max)
+        # hold_steps==0 means use hold_square_max; keep that so 1-hold is first in-gate step.
+        if int(bonus.params.get("hold_steps", 0) or 0) > 0:
+            bonus.params["hold_steps"] = int(args_cli.hold_square_max)
+
     strict_reach_params = csv_utils.strict_reach_params_from_env_cfg(env_cfg)
     if strict_reach_params is None:
         raise ValueError(
@@ -554,7 +648,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         f"max_lin_vel={strict_reach_params['max_lin_vel']}, "
         f"max_ang_vel={strict_reach_params['max_ang_vel']}, "
         f"max_lin_acc={strict_reach_params.get('max_lin_acc', float('inf'))}, "
-        f"max_ang_acc={strict_reach_params.get('max_ang_acc', float('inf'))}"
+        f"max_ang_acc={strict_reach_params.get('max_ang_acc', float('inf'))}, "
+        f"hold_square_max={strict_reach_params.get('hold_square_max', 'cfg')}"
     )
     if args_cli.export_csv_always:
         print("[INFO] export_csv_always: keep traj rows after reach (outcome still one-shot).")

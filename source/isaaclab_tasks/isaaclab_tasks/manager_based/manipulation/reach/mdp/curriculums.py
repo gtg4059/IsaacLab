@@ -50,6 +50,12 @@ class reach_success_criteria_curriculum(ManagerTermBase):
 
     Set ``event_term_name`` to ``None`` when reach success ends the episode (no in-episode resample).
     ``terminations.reach_success`` reads thresholds from the reward term, so it tracks automatically.
+
+    ``cool_end_factor`` (default 1) sets the cooled gate scale relative to the
+    reward term finals (e.g. ``2.0`` stops at 2 cm when final distance is 1 cm).
+
+    If ``mix_half_and_one_after`` is true after cooling, each env draws 2× vs 1×
+    gates (mult 1.0 vs 0.5 on the cooled base) with probability 1/2 at reset.
     """
 
     def __init__(self, cfg: CurriculumTermCfg, env: ManagerBasedRLEnv):
@@ -86,6 +92,10 @@ class reach_success_criteria_curriculum(ManagerTermBase):
             if self._mid_factor is not None
             else None
         )
+        self._cool_end_factor = float(cfg.params.get("cool_end_factor", 1.0))
+        self._end_params = {
+            key: value * self._cool_end_factor for key, value in self._final_params.items()
+        }
 
         self._start_step = cfg.params.get("start_step", 0)
         self._num_steps = cfg.params["num_steps"]
@@ -93,8 +103,19 @@ class reach_success_criteria_curriculum(ManagerTermBase):
         self._num_steps_final = cfg.params.get("num_steps_final", self._num_steps)
         self._decay_alpha = float(cfg.params.get("decay_alpha", 1.0))
         self._last_params_key: tuple[float, ...] | None = None
+        self._hinge_term_name = cfg.params.get("hinge_term_name")
+        self._hinge_param_name = cfg.params.get("hinge_param_name", "hinge_scale")
+        self._hinge_zero_after = bool(cfg.params.get("hinge_zero_after", False))
+        self._mix_half_and_one_after = bool(cfg.params.get("mix_half_and_one_after", False))
+        self._hinge_term_cfg = (
+            env.reward_manager.get_term_cfg(self._hinge_term_name) if self._hinge_term_name else None
+        )
+        self._last_hinge_scale: float | None = None
+        self._last_mix_flag: bool | None = None
 
         self._apply_params(self._initial_params)
+        self._apply_hinge_scale(1.0)
+        self._apply_mix_flag(False)
 
     def _blend(self, start: dict[str, float], end: dict[str, float], k: int, span: int) -> dict[str, float]:
         """PCCL cooling: ``end + ((span-k)/span)**alpha * (start-end)``. ``alpha=1`` is linear."""
@@ -107,7 +128,7 @@ class reach_success_criteria_curriculum(ManagerTermBase):
             return dict(self._initial_params)
 
         if self._mid_params is None:
-            return self._blend(self._initial_params, self._final_params, step - self._start_step, self._num_steps)
+            return self._blend(self._initial_params, self._end_params, step - self._start_step, self._num_steps)
 
         first_end = self._start_step + self._num_steps
         hold_end = first_end + self._hold_steps
@@ -118,8 +139,8 @@ class reach_success_criteria_curriculum(ManagerTermBase):
         if step < hold_end:
             return dict(self._mid_params)
         if step < second_end:
-            return self._blend(self._mid_params, self._final_params, step - hold_end, self._num_steps_final)
-        return dict(self._final_params)
+            return self._blend(self._mid_params, self._end_params, step - hold_end, self._num_steps_final)
+        return dict(self._end_params)
 
     def _apply_params(self, params: dict[str, float]) -> None:
         params_key = tuple(round(params[key], 8) for key in self._param_keys)
@@ -138,6 +159,30 @@ class reach_success_criteria_curriculum(ManagerTermBase):
             env.event_manager.set_term_cfg(self._event_term_name, self._event_term_cfg)
         self._last_params_key = params_key
 
+    def _cooling_end_step(self) -> int:
+        if self._mid_params is None:
+            return self._start_step + self._num_steps
+        return self._start_step + self._num_steps + self._hold_steps + self._num_steps_final
+
+    def _apply_hinge_scale(self, scale: float) -> None:
+        if self._hinge_term_cfg is None:
+            return
+        scale = max(float(scale), 0.0)
+        if self._last_hinge_scale is not None and abs(scale - self._last_hinge_scale) < 1e-12:
+            return
+        self._hinge_term_cfg.params[self._hinge_param_name] = scale
+        self._env.reward_manager.set_term_cfg(self._hinge_term_name, self._hinge_term_cfg)
+        self._last_hinge_scale = scale
+
+    def _apply_mix_flag(self, enabled: bool) -> None:
+        if self._last_mix_flag is enabled:
+            return
+        for term_cfg in self._reward_term_cfgs.values():
+            term_cfg.params["mix_half_and_one"] = enabled
+        for name, term_cfg in self._reward_term_cfgs.items():
+            self._env.reward_manager.set_term_cfg(name, term_cfg)
+        self._last_mix_flag = enabled
+
     def __call__(
         self,
         env: ManagerBasedRLEnv,
@@ -153,10 +198,23 @@ class reach_success_criteria_curriculum(ManagerTermBase):
         hold_steps: int = 0,
         num_steps_final: int | None = None,
         decay_alpha: float = 1.0,
+        hinge_term_name: str | None = None,
+        hinge_param_name: str = "hinge_scale",
+        hinge_zero_after: bool = False,
+        mix_half_and_one_after: bool = False,
+        cool_end_factor: float = 1.0,
     ) -> dict[str, float]:
         params = self._interpolate_params(env.common_step_counter)
         self._apply_params(params)
-        return params
+        cooled = env.common_step_counter >= self._cooling_end_step()
+        hinge = 0.0 if (self._hinge_zero_after and cooled) else 1.0
+        self._apply_hinge_scale(hinge)
+        self._apply_mix_flag(bool(self._mix_half_and_one_after and cooled))
+        out = dict(params)
+        if self._hinge_term_cfg is not None:
+            out[self._hinge_param_name] = hinge
+        out["mix_half_and_one"] = float(self._mix_half_and_one_after and cooled)
+        return out
 
 
 class modify_reward_weight_linear(ManagerTermBase):

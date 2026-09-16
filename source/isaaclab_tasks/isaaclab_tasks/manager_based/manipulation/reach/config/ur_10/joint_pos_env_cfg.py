@@ -40,7 +40,7 @@ class UR10ReachEnvCfg(CRIReachEnvCfg):
         self.events.reset_robot_joints.params["position_range"] = {
             "shoulder_pan_joint": (-math.pi, math.pi),
             "shoulder_lift_joint": (-math.pi, 0.0),
-            "elbow_joint": (-math.pi*2/3, math.pi*2/3),
+            "elbow_joint": (-math.pi * 2 / 3, math.pi * 2 / 3),
             "wrist_1_joint": (-math.pi, math.pi),
             "wrist_2_joint": (-math.pi, math.pi),
             "wrist_3_joint": (-math.pi, math.pi),

@@ -68,9 +68,9 @@ class CRICommandsCfg:
             # Horizontal cylinder r<0.35 is excluded via pos_r min. max_pos_norm clips
             # the (r, z) box to a 1 m ball about base_link. pos_z is metres above
             # base_link (mount); -0.90 is world floor (-1.05) plus 15 cm clearance.
-            pos_r=(0.4, 0.8),
-            pos_z=(0.0, 0.7),
-            max_pos_norm=0.8,
+            pos_r=(0.4, 1.1),
+            pos_z=(0.2, 1.0),
+            max_pos_norm=1.0,
             roll=MISSING,
             pitch=MISSING,
             yaw=MISSING,
@@ -88,17 +88,23 @@ class CRIActionsCfg:
 class CRIObservationsCfg:
     @configclass
     class PolicyCfg(ObsGroup):
+        # IndustReal / Isaac Lab gear: 목표·EE는 외수용 → mm·deg
         ee_pose_error = ObsTerm(
             func=mdp.ee_pose_error_to_command,
             params={"command_name": "ee_pose", "asset_cfg": SceneEntityCfg("robot", body_names="ee_link")},
+            noise=Unoise(n_min=-0.002, n_max=0.002),  # ±2 mm, ±0.002 rad
         )
-        CRI = ObsTerm(func=mdp.collision_risk_index)
-        joint_pos = ObsTerm(func=mdp.joint_pos, noise=Unoise(n_min=-0.001, n_max=0.001))
-        joint_vel = ObsTerm(func=mdp.joint_vel, noise=Unoise(n_min=-0.001, n_max=0.001))
+        CRI = ObsTerm(
+            func=mdp.collision_risk_index,
+            noise=Unoise(n_min=-0.001, n_max=0.001),
+        )
+        joint_pos = ObsTerm(func=mdp.joint_pos)
+        joint_vel = ObsTerm(func=mdp.joint_vel)
         pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "ee_pose"})
         actions = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
+            self.enable_corruption = True
             self.concatenate_terms = True
             self.history_length = 5
 
@@ -149,34 +155,50 @@ class CRIRewardsCfg:
         weight=1.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
-    # 4 cm basin, 2 cm hold. Outside the hold, a small pose floor (0.15)
-    # pulls 3 cm parks inward; closing adds the rest. Inside the hold,
-    # 80% of the term needs stillness. Pose 1/e at 2 cm. Approach
-    # saturates at 3 cm/s. Vel 1/e at the 0.02 gates.
+    # Pay iff d <= support_distance (8 cm). Mean of four slacks toward 0.
+    # Slack widths stay at 8× of the 1× finals; they do not cool.
+    end_effector_pose_twist_linear = RewTerm(
+        func=mdp.distance_linear_approach_reward,
+        weight=2.0,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
+            "command_name": "ee_pose",
+            "support_distance": 0.01 * 8.0,
+            "max_angle_rad": 0.05 * 8.0,
+            "max_lin_vel": 0.01 * 8.0,
+            "max_ang_vel": 0.01 * 8.0,
+        },
+    )
+    # 1.5x support (3 cm / 0.15 rad). Strong pose 1/e at the gates
+    # (2 cm) and half-gate ori (0.05 rad) so 0.105 vs 0.100 has slope.
+    # Still kernels 1/e at 1.5x twist. Hold stays at the gates.
     # end_effector_pos_orientation_tracking_last_centimeter = RewTerm(
     #     func=mdp.position_orientation_command_error_last_centimeter,
-    #     weight=2.0,
+    #     weight=0.0,
     #     params={
     #         "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
     #         "command_name": "ee_pose",
+    #         "pos_cutoff": 0.03,
+    #         "ori_cutoff_basin": 0.15,
     #         "pos_scale": 50.0,
-    #         "pos_cutoff": 0.04,
+    #         "ori_scale": 20.0,
     #         "still_cutoff": 0.02,
-    #         "lin_vel_scale": 50.0,
-    #         "ang_vel_scale": 50.0,
+    #         "ori_cutoff": 0.1,
+    #         "lin_vel_scale": 1.0 / 0.03,
+    #         "ang_vel_scale": 1.0 / 0.03,
     #         "still_mix": 0.2,
     #         "approach_vel": 0.03,
     #         "approach_floor": 0.15,
     #     },
     # )
     # OVF only (time_out is time_out=True; reach no longer terminates).
-    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-600.0)
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-400.0)
     action_rate = RewTerm(func=mdp.action_rate_l2_clamped, weight=-0.1)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-7)
     CRI_OVF = RewTerm(
         func=mdp.CRI_OVF_exp,
-        weight=-10.0,
-        params={"limit": 0.96, "sigma": 20.0},
+        weight=-6.0,
+        params={"limit": 0.96, "sigma": 12.0},
     )
     # Applied living cost is magnitude * |weight| per second (dt cancels).
     # last-cm hover is ~0.3 / s; success 1200 is applied 80. Until 8 s the
@@ -185,64 +207,75 @@ class CRIRewardsCfg:
     # sitting to the 32 s timeout is net negative while a 16 s success
     # stays ~+74 after the living cost. Weight is overwritten by
     # is_alive_penalty (near 0 until 4-hold exists, then -1).
-    is_alive = RewTerm(
-        func=mdp.is_alive_time_ramp,
-        weight=-1.0,
-        params={"ramp_start_s": 8.0, "ramp_end_s": 16.0, "initial": 0.2, "final": 0.2},
-    )
+    # is_alive = RewTerm(
+    #     func=mdp.is_alive_time_ramp,
+    #     weight=-1.0,
+    #     params={"ramp_start_s": 8.0, "ramp_end_s": 16.0, "initial": 0.2, "final": 0.2},
+    # )
     # time_out term only (reach_success is time_out=True and is not penalized).
-    timeout_no_reach = RewTerm(
-        func=mdp.timeout_no_reach_penalty,
-        weight=0.0,
-        params={"reward_term_name": "reach_success_bonus"},
-    )
-    # 1-hold pays hold_step_bonus (0.1 → applied 4). 2-hold pays 1 (applied 40).
+    # timeout_no_reach = RewTerm(
+    #     func=mdp.timeout_no_reach_penalty,
+    #     weight=0.0,
+    #     params={"reward_term_name": "reach_success_bonus"},
+    # )
+    # No hold: +1 on every in-gate step (curriculum ε). Applied weight * dt.
     reach_success_bonus = RewTerm(
         func=mdp.ReachSuccessCriteria,
-        weight=600.0,
+        weight=4.0,
         params={
             "command_name": "ee_pose",
             "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
-            # Arrival gates from Dynamic Non-Prehensile Transport (2 cm, 0.02 m/s,
-            # 0.02 rad/s). Goal orientation is not specified there; 0.1 rad kept.
-            "max_distance": 0.02,
-            "max_angle_rad": 0.1,
-            "max_lin_vel": 0.02,
-            "max_ang_vel": 0.02,
-            "hold_square_max": 2,
-            "hold_step_bonus": 0.1,
+            # 1× finals. Curriculum cools 8× → 2× and stays at the 2 cm
+            # / 0.1 rad / 0.02 / 0.02 arrival gates (no 1× mix).
+            "max_distance": 0.01,
+            "max_angle_rad": 0.05,
+            "max_lin_vel": 0.01,
+            "max_ang_vel": 0.01,
+            "hold_square_max": 0,
         },
     )
 
 
 @configclass
 class CRICurriculumCfg:
-    # Hold 4x pose/vel gates until 12000, then power cooling with alpha>1:
-    # steep early, shallow late (opposite of PCCL alpha=0.8).
-    # terminations.reach_success reads these params.
+    cri_ovf_term_threshold = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "terminations.OVF.params.threshold",
+            "modify_fn": mdp.cri_ovf_threshold_by_step,
+            "modify_params": {
+                "crossfade_start": 48 * 4000,
+                "threshold_initial": 2.0,
+                "threshold_final": 0.96,
+            },
+        },
+    )
+
+    # Cool 8× → 2× (2 cm / 0.1 rad / 0.02) and hold that gate.
     reach_success_criteria = CurrTerm(
         func=mdp.reach_success_criteria_curriculum,
         params={
-            "ease_factor": 4.0,
+            "ease_factor": 8.0,
+            "cool_end_factor": 2.0,
             "decay_alpha": 2.0,
-            "start_step": 48 * 18000,
-            "num_steps": 48 * 6000,
+            "start_step": 48 * 7000,
+            "num_steps": 48 * 9000,
             "reward_term_names": ["reach_success_bonus"],
             "event_term_name": None,
+            "mix_half_and_one_after": False,
         },
     )
-    # Phase 1: fine-grained pulls into the 3 cm basin; timeout penalty stays 0 so
-    # the only sparse target is reach_success_bonus. Phase 2: drop the sit subsidy
-    # and turn on timeout (1/2 of OVF -600) so lingering at the goal is not free.
+    # Hold fine-grained tracking at 1.0 until 36k, then drop it so the
+    # coarse pose terms and hold bonus remain the only pose pull.
     # fine_grained_tracking_weight = CurrTerm(
     #     func=mdp.modify_term_cfg,
     #     params={
     #         "address": "rewards.end_effector_pos_orientation_tracking_fine_grained.weight",
     #         "modify_fn": mdp.reward_weight_step_by_step,
     #         "modify_params": {
-    #             "switch_step": 48 * 12000,
+    #             "switch_step": 48 * 24000,
     #             "initial_weight": 1.0,
-    #             "final_weight": 0.5,
+    #             "final_weight": 0.0,
     #         },
     #     },
     # )
@@ -271,15 +304,15 @@ class CRICurriculumCfg:
     #         },
     #     },
     # )
-    # # Same switch as is_alive_ramp_final. Pulls 8 cm → 3 cm after living
-    # # pressure turns on; FG alone is flat at the current ~20 cm plateau.
+    # Off until gates are tight. Then weight 2 so the 1.5x last-cm box
+    # (3 cm / 0.15 rad / 0.03 m/s / 0.03 rad/s) gets a pose/twist gradient.
     # last_centimeter_weight = CurrTerm(
     #     func=mdp.modify_term_cfg,
     #     params={
     #         "address": "rewards.end_effector_pos_orientation_tracking_last_centimeter.weight",
     #         "modify_fn": mdp.reward_weight_step_by_step,
     #         "modify_params": {
-    #             "switch_step": 48 * 24000,
+    #             "switch_step": 48 * 48000,
     #             "initial_weight": 0.0,
     #             "final_weight": 2.0,
     #         },
@@ -290,18 +323,18 @@ class CRICurriculumCfg:
     # # Park ~-1156 vs explore-OVF through ~37 s. Reach +1200 still dominates.
     # # Early suicide (~-609) is the cheap give-up; CRI_OVF -10 and tracking
     # # keep that from being the default.
-    timeout_no_reach_weight = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "rewards.timeout_no_reach.weight",
-            "modify_fn": mdp.reward_weight_step_by_step,
-            "modify_params": {
-                "switch_step": 48 * 36000,
-                "initial_weight": 0.0,
-                "final_weight": -300.0,
-            },
-        },
-    )
+    # timeout_no_reach_weight = CurrTerm(
+    #     func=mdp.modify_term_cfg,
+    #     params={
+    #         "address": "rewards.timeout_no_reach.weight",
+    #         "modify_fn": mdp.reward_weight_step_by_step,
+    #         "modify_params": {
+    #             "switch_step": 48 * 36000,
+    #             "initial_weight": 0.0,
+    #             "final_weight": -300.0,
+    #         },
+    #     },
+    # )
     # Hold length is not a curriculum. Reward already scales with episode-max
     # consecutive hold and in-gate total; no interval / hold_steps schedule.
     # reach_settle_hold = CurrTerm(
@@ -398,31 +431,17 @@ class CRICurriculumCfg:
     #         },
     #     },
     # )
-    cri_ovf_term_threshold = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "terminations.OVF.params.threshold",
-            "modify_fn": mdp.cri_ovf_threshold_by_step,
-            "modify_params": {
-                "crossfade_start": 48 * 6000,
-                "threshold_initial": 2.0,
-                "threshold_final": 0.96,
-            },
-        },
-    )
-
+    
 
 @configclass
 class CRITerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    # Ends the episode when hold_square_max consecutive in-gate steps are
-    # reached. time_out=True so termination_penalty (-600) does not fire;
-    # the hold increment on that step is still paid (reward after done).
-    reach_success = DoneTerm(
-        func=mdp.reach_success,
-        params={"reward_term_name": "reach_success_bonus"},
-        time_out=True,
-    )
+    # Success no longer resets; hold bonus can fire more than once per episode.
+    # reach_success = DoneTerm(
+    #     func=mdp.reach_success,
+    #     params={"reward_term_name": "reach_success_bonus"},
+    #     time_out=True,
+    # )
     OVF = DoneTerm(
         func=mdp.CRI_OVF,
         params={"threshold": 0.96},
@@ -431,7 +450,7 @@ class CRITerminationsCfg:
 
 @configclass
 class CRIReachEnvCfg(ManagerBasedRLEnvCfg):
-    """Reach environment with CRI observation; episode resets on reach, timeout, or OVF."""
+    """Reach environment with CRI observation; episode resets on timeout or OVF."""
 
     scene: CRIReachSceneCfg = CRIReachSceneCfg(num_envs=4096, env_spacing=2.5)
     observations: CRIObservationsCfg = CRIObservationsCfg()
@@ -441,6 +460,7 @@ class CRIReachEnvCfg(ManagerBasedRLEnvCfg):
     terminations: CRITerminationsCfg = CRITerminationsCfg()
     events: CRIEventCfg = CRIEventCfg()
     curriculum: CRICurriculumCfg = CRICurriculumCfg()
+    # curriculum = None
 
     def __post_init__(self):
         self.k = 3.2
