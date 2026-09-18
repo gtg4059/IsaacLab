@@ -88,7 +88,8 @@ def _gate_masks(env, params: dict) -> dict[str, torch.Tensor]:
     lin_acc = torch.norm(asset.data.body_lin_acc_w[:, bid, :], dim=-1)
     ang_acc = torch.norm(asset.data.body_ang_acc_w[:, bid, :], dim=-1)
     pose_ok = (distance <= params["max_distance"]) & (quat_err <= params["max_angle_rad"])
-    vel_ok = (lin_spd <= params["max_lin_vel"]) & (ang_spd <= params["max_ang_vel"])
+    twist = torch.sqrt(lin_spd.square() + ang_spd.square())
+    vel_ok = twist <= params["max_lin_vel"]
     acc_ok = (lin_acc <= params["max_lin_acc"]) & (ang_acc <= params["max_ang_acc"])
     return {
         "pose_ok": pose_ok,

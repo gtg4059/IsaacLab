@@ -43,14 +43,15 @@ def reach_success_criteria(
     max_distance: float,
     max_angle_rad: float,
     max_lin_vel: float,
-    max_ang_vel: float,
+    max_ang_vel: float | None = None,
     max_lin_acc: float = float("inf"),
     max_ang_acc: float = float("inf"),
     command_b: torch.Tensor | None = None,
 ) -> torch.Tensor:
-    """Boolean (num_envs,): EE meets pose and velocity tolerances.
+    """Boolean (num_envs,): EE meets pose and combined-twist tolerances.
 
-    Acceleration limits default to disabled (``inf``).
+    Twist is Jawale's ``||(v, ω)||_2`` vs ``max_lin_vel``. Acceleration
+    limits default to disabled (``inf``).
     """
     asset: RigidObject = env.scene[asset_cfg.name]
     command = command_b if command_b is not None else env.command_manager.get_command(command_name)
@@ -68,9 +69,11 @@ def reach_success_criteria(
     quat_err_rad = quat_error_magnitude(curr_quat_w, des_quat_w)
     lin_spd = torch.norm(asset.data.body_lin_vel_w[:, bid, :], dim=-1)
     ang_spd = torch.norm(asset.data.body_ang_vel_w[:, bid, :], dim=-1)
+    # Jawale: ||(v, ω)||_2. ``max_ang_vel`` is unused; keep it equal to ``max_lin_vel``.
+    twist = torch.sqrt(lin_spd.square() + ang_spd.square())
 
     pose_ok = torch.logical_and(distance <= max_distance, quat_err_rad <= max_angle_rad)
-    vel_ok = torch.logical_and(lin_spd <= max_lin_vel, ang_spd <= max_ang_vel)
+    vel_ok = twist <= max_lin_vel
     ok = torch.logical_and(pose_ok, vel_ok)
     if math.isfinite(max_lin_acc) or math.isfinite(max_ang_acc):
         lin_acc = torch.norm(asset.data.body_lin_acc_w[:, bid, :], dim=-1)
@@ -147,7 +150,7 @@ class ReachSuccessCriteria(ManagerTermBase):
         max_distance: float,
         max_angle_rad: float,
         max_lin_vel: float,
-        max_ang_vel: float,
+        max_ang_vel: float | None,
         max_lin_acc: float,
         max_ang_acc: float,
         pos_ramp_steps: int | None,
@@ -170,7 +173,7 @@ class ReachSuccessCriteria(ManagerTermBase):
         max_distance: float,
         max_angle_rad: float,
         max_lin_vel: float,
-        max_ang_vel: float,
+        max_ang_vel: float | None = None,
         max_lin_acc: float = float("inf"),
         max_ang_acc: float = float("inf"),
         vel_switch_step: int | None = None,
@@ -184,6 +187,8 @@ class ReachSuccessCriteria(ManagerTermBase):
     ) -> torch.Tensor:
         if self._updated_step == env.common_step_counter:
             return self._last_success
+        if max_ang_vel is None:
+            max_ang_vel = max_lin_vel
 
         if mix_half_and_one and not self._mix_armed:
             self._mix_armed = True
@@ -240,7 +245,7 @@ class ReachSuccessCriteria(ManagerTermBase):
         max_distance: float,
         max_angle_rad: float,
         max_lin_vel: float,
-        max_ang_vel: float,
+        max_ang_vel: float | None = None,
         max_lin_acc: float = float("inf"),
         max_ang_acc: float = float("inf"),
         vel_switch_step: int | None = None,
@@ -317,7 +322,7 @@ class reach_success_bonus(ManagerTermBase):
         max_distance: float,
         max_angle_rad: float,
         max_lin_vel: float,
-        max_ang_vel: float,
+        max_ang_vel: float | None = None,
         max_lin_acc: float = float("inf"),
         max_ang_acc: float = float("inf"),
     ) -> torch.Tensor:
@@ -462,20 +467,18 @@ def distance_linear_approach_reward(
     support_distance: float = 0.08,
     max_angle_rad: float = 0.4,
     max_lin_vel: float = 0.08,
-    max_ang_vel: float = 0.08,
 ) -> torch.Tensor:
-    """Mean of four linear slacks toward zero error inside ``support_distance``.
+    """Mean of pose/twist slacks toward zero error inside ``support_distance``.
 
     Pay/no-pay is ``d <= support_distance`` only. Slack widths are the cfg
-    8× bounds and do not follow the success curriculum. Over those bounds
-    that axis contributes 0 to the mean and does not turn the term off.
-    Peak 1 only at ``(d, θ, v, ω) = 0``.
+    8× bounds and do not follow the success curriculum. Twist is Jawale's
+    ``||(v, ω)||_2`` vs ``max_lin_vel``. Over a bound that axis is 0 in the
+    mean. Peak 1 only at ``(d, θ, twist) = 0``.
     """
     support_d = max(float(support_distance), 1e-6)
     eps_d = support_d
     max_angle = max(float(max_angle_rad), 1e-6)
-    max_lin_vel = max(float(max_lin_vel), 1e-6)
-    max_ang_vel = max(float(max_ang_vel), 1e-6)
+    max_twist = max(float(max_lin_vel), 1e-6)
 
     asset: RigidObject = env.scene[asset_cfg.name]
     command = env.command_manager.get_command(command_name)
@@ -490,12 +493,12 @@ def distance_linear_approach_reward(
     ang_err = quat_error_magnitude(asset.data.body_quat_w[:, bid], des_quat_w)
     lin_spd = torch.norm(asset.data.body_lin_vel_w[:, bid, :], dim=-1)
     ang_spd = torch.norm(asset.data.body_ang_vel_w[:, bid, :], dim=-1)
+    twist = torch.sqrt(lin_spd.square() + ang_spd.square())
 
     s_d = torch.clamp(1.0 - distance / eps_d, min=0.0, max=1.0)
     s_th = torch.clamp(1.0 - ang_err / max_angle, min=0.0, max=1.0)
-    s_v = torch.clamp(1.0 - lin_spd / max_lin_vel, min=0.0, max=1.0)
-    s_w = torch.clamp(1.0 - ang_spd / max_ang_vel, min=0.0, max=1.0)
-    shaped = (s_d + s_th + s_v + s_w) * 0.25
+    s_tw = torch.clamp(1.0 - twist / max_twist, min=0.0, max=1.0)
+    shaped = (s_d + s_th + s_tw) / 3.0
     return torch.where(distance <= support_d, shaped, torch.zeros_like(shaped))
 
 
@@ -539,6 +542,7 @@ def pose_twist_linear_error(
     ang_err = quat_error_magnitude(asset.data.body_quat_w[:, bid], des_quat_w)
     lin_spd = torch.norm(asset.data.body_lin_vel_w[:, bid, :], dim=-1)
     ang_spd = torch.norm(asset.data.body_ang_vel_w[:, bid, :], dim=-1)
+    twist = torch.sqrt(lin_spd.square() + ang_spd.square())
 
     in_support = distance <= outer_d
     in_gate = reach_success_criteria(
@@ -553,8 +557,7 @@ def pose_twist_linear_error(
     overflow = (
         torch.relu(distance - eps_d)
         + float(ori_scale) * torch.relu(ang_err - eps_th)
-        + float(lin_vel_scale) * torch.relu(lin_spd - eps_v)
-        + float(ang_vel_scale) * torch.relu(ang_spd - eps_w)
+        + float(lin_vel_scale) * torch.relu(twist - eps_v)
     )
     outer_flat = torch.full_like(distance, float(outer_flat_scale) * outer_d)
     if scale <= 0.0:
