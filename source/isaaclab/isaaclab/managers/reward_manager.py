@@ -120,9 +120,11 @@ class RewardManager(ManagerBase):
             extras["Episode_Reward/" + key] = episodic_sum_avg / self._env.max_episode_length_s
             # reset episodic sum
             self._episode_sums[key][env_ids] = 0.0
-        # reset all the reward terms
+        # reset all the reward terms; class terms may return extra log scalars
         for term_cfg in self._class_term_cfgs:
-            term_cfg.func.reset(env_ids=env_ids)
+            info = term_cfg.func.reset(env_ids=env_ids)
+            if info:
+                extras.update(info)
         # return logged information
         return extras
 
@@ -142,8 +144,9 @@ class RewardManager(ManagerBase):
         self._reward_buf[:] = 0.0
         # iterate over all the reward terms
         for term_idx, (name, term_cfg) in enumerate(zip(self._term_names, self._term_cfgs)):
-            # skip if weight is zero (kind of a micro-optimization)
-            if term_cfg.weight == 0.0:
+            # A zero weight adds nothing. Skip the call unless the term must
+            # still run, for example to rewind, while its penalty stays 0.
+            if term_cfg.weight == 0.0 and not term_cfg.run_at_zero_weight:
                 self._step_reward[:, term_idx] = 0.0
                 continue
             # compute term's value

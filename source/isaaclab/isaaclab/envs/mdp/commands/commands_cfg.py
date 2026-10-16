@@ -191,6 +191,13 @@ class UniformPoseTrigCommandCfg(CommandTermCfg):
 
     class_type: type = UniformPoseTrigCommand
 
+    keep_command_until_success: bool = False
+    """On reset, draw a new pose only after ``reach_success``.
+
+    Timeout and OVF keep ``ee_pose`` and only refill the resample timer.
+    The first reset, before any termination, still samples a pose.
+    """
+
     asset_name: str = MISSING
     """Name of the asset in the environment for which the commands are generated."""
 

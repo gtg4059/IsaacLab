@@ -343,7 +343,15 @@ class RewardTermCfg(ManagerTermBaseCfg):
     reward.
 
     Note:
-        If the weight is zero, the reward term is ignored.
+        If the weight is zero, the reward term is ignored unless
+        :attr:`run_at_zero_weight` is set. The added reward is still zero.
+    """
+
+    run_at_zero_weight: bool = False
+    """Call the term when ``weight`` is 0 so its side effects still run.
+
+    The value added to the return stays 0. Use this when a term rewinds or
+    otherwise updates the env and must keep doing so while its penalty is off.
     """
 
 

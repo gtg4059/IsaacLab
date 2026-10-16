@@ -112,6 +112,10 @@ class CRIFReachEnvCfg_PLAY(CRIFReachEnvCfg):
         self.viewer.eye = (4.5, 4.5, 4.5)
         self.observations.policy.enable_corruption = False
         self.terminations.OVF.params["threshold"] = 0.96
+        self.commands.ee_pose.keep_command_until_success = True
+        self.events.reset_robot_joints.params["keep_failed_spawn"] = False
+        if self.curriculum is not None and hasattr(self.curriculum, "resample_on_reset"):
+            self.curriculum.resample_on_reset.params["switch_step"] = 0
         self.commands.ee_pose.debug_vis = True
         if hasattr(self.rewards, "CRI_OVF"):
             self.rewards.CRI_OVF.params["limit"] = 0.96

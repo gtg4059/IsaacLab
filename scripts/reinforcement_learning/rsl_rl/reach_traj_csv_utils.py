@@ -111,6 +111,7 @@ def configure_p2p_style_eval(
     freeze_finished_envs: bool = True,
     deterministic_sim: bool = False,
     disable_ovf: bool = False,
+    ovf_threshold: float = 0.96,
 ) -> None:
     """Align play eval with P2P-Play: strict thresholds, optional one target per attempt.
 
@@ -149,7 +150,7 @@ def configure_p2p_style_eval(
         else:
             ovf = terminations_cfg.OVF
             if ovf is not None and getattr(ovf, "params", None) is not None:
-                ovf.params["threshold"] = 0.96
+                ovf.params["threshold"] = float(ovf_threshold)
 
     if freeze_finished_envs and terminations_cfg is not None and hasattr(terminations_cfg, "reach_success"):
         # Success is scored in play_reach_csv; keep the robot pose (no mid-eval reset).
@@ -228,20 +229,30 @@ def open_traj_csv_writers(
     num_envs: int,
     joint_names: list[str],
     num_cri_points: int,
+    *,
+    log_actions: bool = False,
+    action_dim: int = 0,
+    file_env_ids: list[int] | None = None,
 ) -> tuple[dict[int, IO[str]], dict[int, csv.DictWriter]]:
     os.makedirs(csv_dir, exist_ok=True)
+    action_fields = [f"a_{i}" for i in range(action_dim)] if log_actions and action_dim > 0 else []
     fieldnames = (
         ["global_step", "sim_time_s", "reach_event", "max_CRI"]
         + ["pos_err", "ang_err", "lin_spd", "ang_spd"]
         + list(_CMD_POSE_FIELDS)
+        + action_fields
         + [f"q_{name}" for name in joint_names]
         + [f"qd_{name}" for name in joint_names]
         + [f"CRI_{i}" for i in range(num_cri_points)]
     )
+    if file_env_ids is None:
+        file_env_ids = list(range(num_envs))
+    if len(file_env_ids) != num_envs:
+        raise ValueError(f"file_env_ids length {len(file_env_ids)} != num_envs {num_envs}.")
     files: dict[int, IO[str]] = {}
     writers: dict[int, csv.DictWriter] = {}
-    for env_idx in range(num_envs):
-        path = os.path.join(csv_dir, f"env_{env_idx}_traj.csv")
+    for env_idx, file_env_id in enumerate(file_env_ids):
+        path = os.path.join(csv_dir, f"env_{file_env_id}_traj.csv")
         handle = open(path, "w", newline="", encoding="utf-8")
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
@@ -293,9 +304,13 @@ def write_reach_summary_csv(
     seed: int | None = None,
     checkpoint: str | None = None,
     mean_success_latency_s: float | None = None,
+    latency_stats: dict[str, Any] | None = None,
 ) -> str:
     os.makedirs(csv_dir, exist_ok=True)
     path = os.path.join(csv_dir, "reach_summary.csv")
+    stats = dict(latency_stats or {})
+    if mean_success_latency_s is not None and stats.get("mean_success_latency_s") in (None, ""):
+        stats["mean_success_latency_s"] = round(float(mean_success_latency_s), 6)
     fieldnames = [
         "seed",
         "checkpoint",
@@ -304,40 +319,103 @@ def write_reach_summary_csv(
         "failed_episodes",
         "reach_percent",
         "mean_success_latency_s",
+        "median_success_latency_s",
+        "q1_success_latency_s",
+        "q3_success_latency_s",
+        "min_success_latency_s",
+        "max_success_latency_s",
+        "n_fail_timeout",
+        "n_fail_ovf",
+        "n_fail_other",
     ]
+    row = {
+        "seed": "" if seed is None else seed,
+        "checkpoint": checkpoint or "",
+        "total_episodes": total,
+        "reached_episodes": reached,
+        "failed_episodes": total - reached,
+        "reach_percent": round(reach_percent(reached, total), 4),
+    }
+    for key in fieldnames:
+        if key in row:
+            continue
+        row[key] = stats.get(key, "")
     with open(path, "w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerow(
-            {
-                "seed": "" if seed is None else seed,
-                "checkpoint": checkpoint or "",
-                "total_episodes": total,
-                "reached_episodes": reached,
-                "failed_episodes": total - reached,
-                "reach_percent": round(reach_percent(reached, total), 4),
-                "mean_success_latency_s": (
-                    "" if mean_success_latency_s is None else round(mean_success_latency_s, 6)
-                ),
-            }
-        )
+        writer.writerow(row)
     return os.path.abspath(path)
 
 
 def mean_success_latency_s_from_episode_csv(episode_csv_path: str) -> float | None:
     """Mean ``ended_at_s`` over successful attempts in ``episode_reach.csv``."""
+    stats = success_latency_stats_from_episode_csv(episode_csv_path)
+    mean = stats.get("mean_success_latency_s")
+    return None if mean in (None, "") else float(mean)
+
+
+def success_latency_stats_from_episode_csv(episode_csv_path: str) -> dict[str, Any]:
+    """Reach rate inputs plus success-time mean and quartiles from ``episode_reach.csv``.
+
+    Quartiles use the inclusive method so a single success reports that time for every
+    statistic, and larger sets match a linear percentile.
+    """
+    import statistics
+
+    empty: dict[str, Any] = {
+        "mean_success_latency_s": "",
+        "median_success_latency_s": "",
+        "q1_success_latency_s": "",
+        "q3_success_latency_s": "",
+        "min_success_latency_s": "",
+        "max_success_latency_s": "",
+        "n_success": 0,
+        "n_fail_timeout": 0,
+        "n_fail_ovf": 0,
+        "n_fail_other": 0,
+    }
     if not os.path.isfile(episode_csv_path):
-        return None
+        return empty
     latencies: list[float] = []
+    n_fail_timeout = 0
+    n_fail_ovf = 0
+    n_fail_other = 0
     with open(episode_csv_path, newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         for row in reader:
-            if int(row.get("reached", 0)) != 1:
-                continue
-            latencies.append(float(row["ended_at_s"]))
+            outcome = row.get("outcome", "")
+            if int(row.get("reached", 0)) == 1:
+                latencies.append(float(row["ended_at_s"]))
+            elif outcome == "fail_timeout":
+                n_fail_timeout += 1
+            elif outcome == "fail_ovf":
+                n_fail_ovf += 1
+            else:
+                n_fail_other += 1
+    empty["n_fail_timeout"] = n_fail_timeout
+    empty["n_fail_ovf"] = n_fail_ovf
+    empty["n_fail_other"] = n_fail_other
+    empty["n_success"] = len(latencies)
     if not latencies:
-        return None
-    return float(sum(latencies) / len(latencies))
+        return empty
+    latencies.sort()
+    mean = sum(latencies) / len(latencies)
+    if len(latencies) == 1:
+        q1 = median = q3 = latencies[0]
+    else:
+        q1, median, q3 = statistics.quantiles(latencies, n=4, method="inclusive")
+    return {
+        "mean_success_latency_s": round(mean, 6),
+        "median_success_latency_s": round(float(median), 6),
+        "q1_success_latency_s": round(float(q1), 6),
+        "q3_success_latency_s": round(float(q3), 6),
+        "min_success_latency_s": round(latencies[0], 6),
+        "max_success_latency_s": round(latencies[-1], 6),
+        "n_success": len(latencies),
+        "n_fail_timeout": n_fail_timeout,
+        "n_fail_ovf": n_fail_ovf,
+        "n_fail_other": n_fail_other,
+    }
 
 
 def write_multi_seed_summary_csv(csv_dir: str, seed_rows: list[dict[str, Any]]) -> str:
@@ -400,6 +478,7 @@ def append_traj_rows(
     ang_err: torch.Tensor | None = None,
     lin_spd: torch.Tensor | None = None,
     ang_spd: torch.Tensor | None = None,
+    actions: torch.Tensor | None = None,
 ) -> None:
     """Append one CSV row per active env using the pre-reset CRI motion snapshot.
 
@@ -424,6 +503,7 @@ def append_traj_rows(
         ang_np = None if ang_err is None else ang_err.detach().cpu().numpy()
         lin_np = None if lin_spd is None else lin_spd.detach().cpu().numpy()
         wsp_np = None if ang_spd is None else ang_spd.detach().cpu().numpy()
+        act_np = None if actions is None else actions.detach().cpu().numpy()
 
     mask = env_log_mask.detach().bool().cpu()
     num_cri = int(cri.shape[1]) if cri.ndim == 2 else 0
@@ -444,6 +524,9 @@ def append_traj_rows(
         }
         cmd_vec = cmd_np[env_idx] if cmd_np is not None and env_idx < int(cmd_np.shape[0]) else None
         row.update(command_pose_row(cmd_vec))
+        if act_np is not None and env_idx < int(act_np.shape[0]):
+            for act_idx in range(int(act_np.shape[1])):
+                row[f"a_{act_idx}"] = float(act_np[env_idx, act_idx])
         for joint_idx in range(num_joints):
             name = joint_names[joint_idx]
             row[f"q_{name}"] = float(joint_pos[env_idx, joint_idx])

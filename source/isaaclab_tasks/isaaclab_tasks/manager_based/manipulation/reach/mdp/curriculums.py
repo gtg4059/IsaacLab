@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
@@ -50,9 +51,7 @@ class reach_success_criteria_curriculum(ManagerTermBase):
 
     Set ``event_term_name`` to ``None`` when reach success ends the episode (no in-episode resample).
     ``terminations.reach_success`` reads thresholds from the reward term, so it tracks automatically.
-
-    ``cool_end_factor`` (default 1) sets the cooled gate scale relative to the
-    reward term finals (e.g. ``2.0`` stops at 2 cm when final distance is 1 cm).
+    Cooling always ends at the reward-term finals (1×).
 
     If ``mix_half_and_one_after`` is true after cooling, each env draws 2× vs 1×
     gates (mult 1.0 vs 0.5 on the cooled base) with probability 1/2 at reset.
@@ -92,10 +91,7 @@ class reach_success_criteria_curriculum(ManagerTermBase):
             if self._mid_factor is not None
             else None
         )
-        self._cool_end_factor = float(cfg.params.get("cool_end_factor", 1.0))
-        self._end_params = {
-            key: value * self._cool_end_factor for key, value in self._final_params.items()
-        }
+        self._end_params = dict(self._final_params)
 
         self._start_step = cfg.params.get("start_step", 0)
         self._num_steps = cfg.params["num_steps"]
@@ -121,7 +117,16 @@ class reach_success_criteria_curriculum(ManagerTermBase):
         """PCCL cooling: ``end + ((span-k)/span)**alpha * (start-end)``. ``alpha=1`` is linear."""
         remaining = max(span - max(k, 0), 0) / max(span, 1)
         weight = remaining ** self._decay_alpha
-        return {key: end[key] + weight * (start[key] - end[key]) for key in self._param_keys}
+        blended = {}
+        for key in self._param_keys:
+            start_v = start[key]
+            end_v = end[key]
+            # inf - inf is NaN. An unlimited gate (max_lin_vel=inf) stays unlimited.
+            if not (math.isfinite(start_v) and math.isfinite(end_v)):
+                blended[key] = start_v if not math.isfinite(start_v) else end_v
+            else:
+                blended[key] = end_v + weight * (start_v - end_v)
+        return blended
 
     def _interpolate_params(self, step: int) -> dict[str, float]:
         if step < self._start_step:
@@ -202,7 +207,6 @@ class reach_success_criteria_curriculum(ManagerTermBase):
         hinge_param_name: str = "hinge_scale",
         hinge_zero_after: bool = False,
         mix_half_and_one_after: bool = False,
-        cool_end_factor: float = 1.0,
     ) -> dict[str, float]:
         params = self._interpolate_params(env.common_step_counter)
         self._apply_params(params)
@@ -285,6 +289,34 @@ def linear_interpolate_by_step(
     return _linear_schedule(env.common_step_counter, start_step, num_steps, initial_value, final_value)
 
 
+def spline_offset_std_by_step(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    data: float,
+    hold_start: int,
+    hold_end: int,
+    cool_steps: int,
+    amplitude: float,
+) -> float:
+    """Std of the once-per-episode joint-velocity sample.
+
+    Zero until ``hold_start`` so a reach can exist before the path is bent.
+    ``amplitude`` until ``hold_end``, then a linear cool to 0. The event stops
+    drawing random numbers once this returns to 0 after the hold.
+    """
+    if amplitude <= 0.0:
+        return 0.0
+    step = env.common_step_counter
+    if step < hold_start:
+        return 0.0
+    if step < hold_end:
+        return amplitude
+    if cool_steps <= 0:
+        return 0.0
+    progress = min(1.0, (step - hold_end) / cool_steps)
+    return amplitude * (1.0 - progress)
+
+
 def cri_ovf_reward_weight_by_step(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],
@@ -310,11 +342,54 @@ def cri_ovf_threshold_by_step(
     crossfade_start: int = CRI_OVF_CROSSFADE_START,
     threshold_initial: float = CRI_OVF_THRESHOLD_INITIAL,
     threshold_final: float = CRI_OVF_THRESHOLD_FINAL,
+    num_steps: int | None = None,
+    decay_alpha: float = 2.0,
 ) -> float:
-    """Step OVF termination threshold: hold initial, then jump to final at crossfade_start."""
-    if env.common_step_counter < crossfade_start:
+    """Hold the OVF threshold, then cool toward ``threshold_final``.
+
+    Without ``num_steps`` the value jumps at ``crossfade_start``. With it, cooling
+    matches reach-gate PCCL: ``final + ((span-k)/span)**alpha * (initial-final)``.
+    ``decay_alpha=2`` moves most of the drop in the first half of the window.
+    """
+    step = env.common_step_counter
+    if step < crossfade_start:
         return threshold_initial
-    return threshold_final
+    if num_steps is None or num_steps <= 0:
+        return threshold_final
+    remaining = max(num_steps - (step - crossfade_start), 0) / num_steps
+    weight = remaining ** decay_alpha
+    return threshold_final + weight * (threshold_initial - threshold_final)
+
+
+def reach_bonus_time_decay_s(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    data: float,
+    start_step: int,
+    num_steps: int,
+    final_s: float = 6.0,
+    initial_s: float = 1.0e6,
+    decay_alpha: float = 1.0,
+) -> float:
+    """Cool the reach-bonus time constant from ``initial_s`` down to ``final_s``.
+
+    The bonus multiplies by ``exp(-t/τ)`` with ``t`` the time since the current
+    target was sampled. Shorter ``t`` always pays more; ``final_s`` is the
+    time constant, not a target arrival. ``τ`` is scheduled on the rate
+    ``1/τ``: zero until ``start_step``, then ``(1/final) * (1 - remaining**alpha)``.
+    ``decay_alpha=1`` raises that rate linearly. ``initial_s`` is large enough
+    that the multiplier stays at 1.
+    """
+    step = env.common_step_counter
+    if num_steps <= 0 or step < start_step:
+        return float(initial_s)
+    if step >= start_step + num_steps:
+        return float(final_s)
+    remaining = (num_steps - (step - start_step)) / num_steps
+    rate = (1.0 / float(final_s)) * (1.0 - remaining ** decay_alpha)
+    if rate <= 1.0 / float(initial_s):
+        return float(initial_s)
+    return 1.0 / rate
 
 
 def command_range_step_by_step(
@@ -329,6 +404,47 @@ def command_range_step_by_step(
     if env.common_step_counter < switch_step:
         return (float(initial_range[0]), float(initial_range[1]))
     return (float(final_range[0]), float(final_range[1]))
+
+
+class resample_on_reset_curriculum(ManagerTermBase):
+    """Draw a new target and arm on every early reset, then keep a failed attempt.
+
+    Before ``switch_step``, ``keep_command_until_success`` and ``keep_failed_spawn``
+    are false, so a reset samples ``ee_pose`` and the joint pose. At ``switch_step``
+    both become true: reach success still samples, and an OVF or horizon timeout
+    restores that attempt's spawn and target.
+
+    Curriculum runs at the start of reset, so the flags are already set when the
+    reset event and the command term run.
+    """
+
+    def __init__(self, cfg: CurriculumTermCfg, env: ManagerBasedRLEnv):
+        super().__init__(cfg, env)
+        self._switch_step = int(cfg.params["switch_step"])
+        self._command_name = cfg.params.get("command_name", "ee_pose")
+        self._event_term_name = cfg.params.get("event_term_name", "reset_robot_joints")
+        self._keeping: bool | None = None
+
+    def _apply(self, keep: bool) -> None:
+        if keep == self._keeping:
+            return
+        command = self._env.command_manager.get_term(self._command_name)
+        command.cfg.keep_command_until_success = keep
+        event_cfg = self._env.event_manager.get_term_cfg(self._event_term_name)
+        event_cfg.params["keep_failed_spawn"] = keep
+        self._keeping = keep
+
+    def __call__(
+        self,
+        env: ManagerBasedRLEnv,
+        env_ids: Sequence[int],
+        switch_step: int,
+        command_name: str = "ee_pose",
+        event_term_name: str = "reset_robot_joints",
+    ) -> float:
+        keep = env.common_step_counter >= self._switch_step
+        self._apply(keep)
+        return float(keep)
 
 
 def reward_weight_step_by_step(

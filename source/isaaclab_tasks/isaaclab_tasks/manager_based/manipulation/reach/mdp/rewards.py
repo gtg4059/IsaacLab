@@ -16,7 +16,7 @@ from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import ManagerTermBase, RewardTermCfg, SceneEntityCfg
 from isaaclab.utils.math import combine_frame_transforms, quat_error_magnitude, quat_mul
 
-from isaaclab_tasks.manager_based.manipulation.reach.mdp.observations import command_origin_pose_w
+from isaaclab_tasks.manager_based.manipulation.reach.mdp.observations import command_elapsed_s, command_origin_pose_w
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -109,20 +109,185 @@ class ReachSuccessCriteria(ManagerTermBase):
         self._mix_armed = False
         self._updated_step = -1
         self._rewarded_step = -1
+        self._path_step = -1
+        n = env.num_envs
+        dev = env.device
+        self._path_len = torch.zeros(n, device=dev)
+        self._start_dist = torch.zeros(n, device=dev)
+        self._started = torch.zeros(n, dtype=torch.bool, device=dev)
+        self._arrived = torch.zeros(n, dtype=torch.bool, device=dev)
+        self._success_time = torch.zeros(n, device=dev)
+        self._detour = torch.zeros(n, device=dev)
+        self._start_pos = torch.zeros(n, 3, device=dev)
+        self._goal_pos = torch.zeros(n, 3, device=dev)
+        self._mid_yz = torch.zeros(n, 2, device=dev)
+        self._mid_err = torch.full((n,), float("inf"), device=dev)
+        self._last_time_mean = 0.0
+        self._last_time_std = 0.0
+        self._last_detour_mean = 0.0
+        self._last_detour_std = 0.0
+        self._last_mid_spread = 0.0
+        self._last_start_dist = 0.0
+        self._last_far_time = 0.0
+        self._last_near_time = 0.0
 
-    def reset(self, env_ids: Sequence[int] | None = None) -> None:
+    def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, float]:
+        logs = self._arrival_logs(env_ids)
         if env_ids is None or isinstance(env_ids, slice):
             self._hold_count.zero_()
             self._last_success.zero_()
             self._last_shaped.zero_()
+            self._path_len.zero_()
+            self._start_dist.zero_()
+            self._started.zero_()
+            self._arrived.zero_()
+            self._success_time.zero_()
+            self._detour.zero_()
+            self._start_pos.zero_()
+            self._goal_pos.zero_()
+            self._mid_yz.zero_()
+            self._mid_err.fill_(float("inf"))
             if self._mix_armed:
                 self._resample_gate_mult(None)
-            return
+            return logs
         self._hold_count[env_ids] = 0
         self._last_success[env_ids] = False
         self._last_shaped[env_ids] = 0.0
+        self._path_len[env_ids] = 0.0
+        self._start_dist[env_ids] = 0.0
+        self._started[env_ids] = False
+        self._arrived[env_ids] = False
+        self._success_time[env_ids] = 0.0
+        self._detour[env_ids] = 0.0
+        self._start_pos[env_ids] = 0.0
+        self._goal_pos[env_ids] = 0.0
+        self._mid_yz[env_ids] = 0.0
+        self._mid_err[env_ids] = float("inf")
         if self._mix_armed:
             self._resample_gate_mult(env_ids)
+        return logs
+
+    def _arrival_logs(self, env_ids: Sequence[int] | None) -> dict[str, float]:
+        """Mean and spread of arrival time and path detour, over successes in this reset.
+
+        Arrival time, success count, and the near/far split use only arrivals
+        whose rewind count is still zero.
+        """
+        rewinds = getattr(self._env, "_ovf_rewind_count", None)
+        if env_ids is None or isinstance(env_ids, slice):
+            arrived = self._arrived
+            times_all = self._success_time
+            detours_all = self._detour
+            mids_all = self._mid_yz
+            dists_all = self._start_dist
+            rewind_at = rewinds
+        else:
+            arrived = self._arrived[env_ids]
+            times_all = self._success_time[env_ids]
+            detours_all = self._detour[env_ids]
+            mids_all = self._mid_yz[env_ids]
+            dists_all = self._start_dist[env_ids]
+            rewind_at = None if rewinds is None else rewinds[env_ids]
+        n = int(arrived.sum().item())
+        far_n = 0
+        if n > 0:
+            detours = detours_all[arrived]
+            mids = mids_all[arrived]
+            dists = dists_all[arrived]
+            self._last_detour_mean = float(detours.mean())
+            self._last_start_dist = float(dists.mean())
+            far_n = int((dists >= 0.6).sum().item())
+            if n > 1:
+                self._last_detour_std = float(detours.std(unbiased=False))
+                center = mids.mean(dim=0)
+                self._last_mid_spread = float(torch.sqrt((mids - center).square().sum(dim=-1).mean()))
+            else:
+                self._last_detour_std = 0.0
+                self._last_mid_spread = 0.0
+        # Time and success count: arrivals that never rewound. Short is < 0.6 m.
+        if rewind_at is None:
+            clean = arrived
+        else:
+            clean = arrived & (rewind_at <= 0)
+        clean_n = int(clean.sum().item())
+        if clean_n > 0:
+            clean_times = times_all[clean]
+            clean_dists = dists_all[clean]
+            self._last_time_mean = float(clean_times.mean())
+            self._last_time_std = float(clean_times.std(unbiased=False)) if clean_n > 1 else 0.0
+            far = clean_dists >= 0.6
+            near = ~far
+            if int(far.sum().item()) > 0:
+                self._last_far_time = float(clean_times[far].mean())
+            if int(near.sum().item()) > 0:
+                self._last_near_time = float(clean_times[near].mean())
+        if rewinds is None:
+            rewind_mean = 0.0
+        elif env_ids is None or isinstance(env_ids, slice):
+            rewind_mean = float(rewinds.mean())
+            rewinds.zero_()
+        else:
+            rewind_mean = float(rewinds[env_ids].mean())
+            rewinds[env_ids] = 0.0
+        return {
+            "Metrics/reach/success_time_s": self._last_time_mean,
+            "Metrics/reach/success_time_std_s": self._last_time_std,
+            "Metrics/reach/detour": self._last_detour_mean,
+            "Metrics/reach/detour_std": self._last_detour_std,
+            "Metrics/reach/midpoint_spread_m": self._last_mid_spread,
+            "Metrics/reach/successes": float(clean_n),
+            "Metrics/reach/ovf_rewinds": rewind_mean,
+            "Metrics/reach/start_dist_m": self._last_start_dist,
+            "Metrics/reach/success_time_far_s": self._last_far_time,
+            "Metrics/reach/far_successes": float(far_n),
+            "Metrics/reach/success_time_near_s": self._last_near_time,
+        }
+
+    def _note_path(self, env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg) -> None:
+        """Integrate EE path length, and record straight-line distance on the first step."""
+        if self._path_step == env.common_step_counter:
+            return
+        self._path_step = env.common_step_counter
+        asset: RigidObject = env.scene[asset_cfg.name]
+        bid = _body_idx_single(env, asset_cfg)
+        curr_pos = asset.data.body_pos_w[:, bid]
+        lin_spd = torch.norm(asset.data.body_lin_vel_w[:, bid, :], dim=-1)
+        self._path_len += lin_spd * float(env.step_dt)
+        fresh = ~self._started
+        if bool(fresh.any()):
+            command = env.command_manager.get_command(command_name)
+            origin_pos_w, origin_quat_w = command_origin_pose_w(env, command_name, asset)
+            des_pos_w, _ = combine_frame_transforms(origin_pos_w, origin_quat_w, command[:, :3])
+            dist = torch.norm(curr_pos - des_pos_w, dim=1)
+            self._start_dist = torch.where(fresh, dist, self._start_dist)
+            self._start_pos = torch.where(fresh.unsqueeze(-1), curr_pos, self._start_pos)
+            self._goal_pos = torch.where(fresh.unsqueeze(-1), des_pos_w, self._goal_pos)
+            self._mid_err = torch.where(fresh, torch.full_like(self._mid_err, float("inf")), self._mid_err)
+            self._started |= fresh
+        self._update_midpoint(curr_pos)
+
+    def _update_midpoint(self, curr_pos: torch.Tensor) -> None:
+        """Keep the EE offset, in the plane normal to start→goal, closest to halfway."""
+        delta = self._goal_pos - self._start_pos
+        dist = torch.norm(delta, dim=-1, keepdim=True).clamp_min(1.0e-3)
+        forward = delta / dist
+        up = torch.zeros_like(forward)
+        up[:, 2] = 1.0
+        side = torch.cross(up, forward, dim=-1)
+        side_norm = torch.norm(side, dim=-1, keepdim=True)
+        alt = torch.zeros_like(forward)
+        alt[:, 0] = 1.0
+        side = torch.where(side_norm > 1.0e-4, side, torch.cross(alt, forward, dim=-1))
+        side = side / torch.norm(side, dim=-1, keepdim=True).clamp_min(1.0e-6)
+        lift = torch.cross(forward, side, dim=-1)
+        rel = curr_pos - self._start_pos
+        along = (rel * forward).sum(dim=-1)
+        progress = along / dist.squeeze(-1)
+        lat = torch.stack(((rel * side).sum(dim=-1), (rel * lift).sum(dim=-1)), dim=-1)
+        err = (progress - 0.5).abs()
+        closer = self._started & (err < self._mid_err)
+        self._mid_err = torch.where(closer, err, self._mid_err)
+        self._mid_yz = torch.where(closer.unsqueeze(-1), lat, self._mid_yz)
 
     def _resample_gate_mult(self, env_ids: Sequence[int] | None) -> None:
         """50/50 2× base (mult=1) vs 1× final (mult=0.5) on the cooled gate params."""
@@ -256,6 +421,7 @@ class ReachSuccessCriteria(ManagerTermBase):
         hold_step_bonus: float = 0.1,
         mix_half_and_one: bool = False,
     ) -> torch.Tensor:
+        self._note_path(env, command_name, asset_cfg)
         self.compute_success(
             env,
             command_name=command_name,
@@ -290,6 +456,13 @@ class ReachSuccessCriteria(ManagerTermBase):
             )
             success = torch.where(count == hold, torch.ones_like(self._last_shaped), torch.zeros_like(self._last_shaped))
             self._last_shaped[:] = increment + success
+        arrived_now = self._last_success & ~self._arrived
+        if bool(arrived_now.any()):
+            elapsed = command_elapsed_s(env, command_name)
+            detour = self._path_len / self._start_dist.clamp_min(1.0e-3)
+            self._success_time = torch.where(arrived_now, elapsed, self._success_time)
+            self._detour = torch.where(arrived_now, detour, self._detour)
+            self._arrived |= arrived_now
         self._rewarded_step = env.common_step_counter
         return self._last_shaped
 
@@ -442,7 +615,12 @@ def position_orientation_command_error(
 def position_orientation_command_error_fine_grained(
     env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg
 ) -> torch.Tensor:
-    """Reward fine-grained tracking of position and orientation using tighter exponential kernels."""
+    """Reward position and orientation as a sum, so angle still pays while the hand is far.
+
+    Position stays a tight kernel (1/e at 1/6 m). Orientation uses a wide kernel
+    (1/e at 1 rad) and is not multiplied by the position term. The average keeps
+    the peak at 1, so an existing positive weight means the same maximum rate.
+    """
     asset: RigidObject = env.scene[asset_cfg.name]
     command = env.command_manager.get_command(command_name)
 
@@ -456,8 +634,29 @@ def position_orientation_command_error_fine_grained(
     des_quat_b = command[:, 3:7]
     des_quat_w = quat_mul(origin_quat_w, des_quat_b)
     curr_quat_w = asset.data.body_quat_w[:, bid]
-    # Last-mile basin (~4x tighter): 1/e at ~0.125 m, ~0.25 rad, toward 3 cm / 0.1 rad.
-    return torch.exp(-6.0 * distance) * torch.exp(-3.0 * quat_error_magnitude(curr_quat_w, des_quat_w))
+    angle = quat_error_magnitude(curr_quat_w, des_quat_w)
+    return 0.5 * (torch.exp(-6.0 * distance) + torch.exp(-angle))
+
+
+def position_orientation_twist_command_error_fine_grained(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+    asset_cfg: SceneEntityCfg,
+    max_lin_vel: float = 0.10,
+) -> torch.Tensor:
+    """Scale the pose sum by combined twist so the peak is a stop in the pose.
+
+    Twist is ``||(v, ω)||_2`` and is 1/e at ``max_lin_vel``. The factor is 1
+    only when stopped, so the peak rate stays the reward weight.
+    """
+    pose = position_orientation_command_error_fine_grained(env, command_name, asset_cfg)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    bid = _body_idx_single(env, asset_cfg)
+    lin_spd = torch.norm(asset.data.body_lin_vel_w[:, bid, :], dim=-1)
+    ang_spd = torch.norm(asset.data.body_ang_vel_w[:, bid, :], dim=-1)
+    twist = torch.sqrt(lin_spd.square() + ang_spd.square())
+    twist_scale = max(float(max_lin_vel), 1.0e-6)
+    return pose * torch.exp(-twist / twist_scale)
 
 
 def distance_linear_approach_reward(
@@ -683,3 +882,105 @@ def CRI_OVF_exp(
     span = max(threshold - limit, 1e-6)
     lin_pen = (excess / span).clamp(max=1.0)
     return exp_pen + lin_pen
+
+
+def CRI_OVF_lin(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    limit: float = 0.96,
+) -> torch.Tensor:
+    """Zero at or below ``limit``, then linear up to 1 at the live OVF threshold.
+
+    Same ``max(CRI)`` readout as :func:`CRI_OVF_exp` and the OVF termination.
+    No penalty on the approach below ``limit``. Above it, the value is
+    ``(CRI - limit) / (threshold - limit)``, clamped to 1. Use a negative reward weight.
+    """
+    asset: Articulation = env.scene[asset_cfg.name]
+    cri, _ = torch.max(asset.data.CRI, dim=1)
+    try:
+        threshold = float(env.termination_manager.get_term_cfg("OVF").params["threshold"])
+    except (ValueError, KeyError, AttributeError):
+        threshold = limit
+    excess = (cri - limit).clamp(min=0.0)
+    span = max(threshold - limit, 1e-6)
+    return (excess / span).clamp(max=1.0)
+
+
+def ovf_rewind_bonus(env: ManagerBasedRLEnv) -> torch.Tensor:
+    """1 on a step ``rewind_arm_on_cri_limit`` will rewind, otherwise 0.
+
+    Reward runs before the interval event, so this repeats that event's test:
+    stored spawn exists, max CRI is above ``terminations.OVF``, and the env is
+    not already resetting. Weight 15 pays +1 on the return, one step of the clock.
+    """
+    n = env.num_envs
+    if not hasattr(env, "_reach_spawn_joint_pos"):
+        return torch.zeros(n, device=env.scene["robot"].device)
+    term = getattr(env, "termination_manager", None)
+    names = getattr(term, "active_terms", None)
+    if term is None or names is None or "OVF" not in names:
+        return torch.zeros(n, device=env.scene["robot"].device)
+    asset: Articulation = env.scene["robot"]
+    cri, _ = torch.max(asset.data.CRI, dim=1)
+    threshold = float(term.get_term_cfg("OVF").params["threshold"])
+    crossed = cri > threshold
+    reset_buf = getattr(env, "reset_buf", None)
+    if reset_buf is not None:
+        crossed = crossed & ~reset_buf
+    return crossed.float()
+
+
+class clean_attempt_time_bonus(ManagerTermBase):
+    """+1 each step of the current attempt, or minus the bank when it rewinds.
+
+    The reward manager multiplies by ``weight * dt``. A negative weight therefore
+    charges each second of an attempt that arrives without crossing the OVF
+    threshold, and refunds that charge on the rewind step. A positive weight
+    would pay a clean attempt for lasting longer.
+
+    Rewind is predicted the same way as :func:`ovf_rewind_bonus`, before the
+    interval event runs. Success and timeout do not refund: the bank is cleared
+    on episode reset after those rewards have already been applied.
+    """
+
+    def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRLEnv):
+        super().__init__(cfg, env)
+        self._bank = torch.zeros(env.num_envs, device=env.device)
+        self._last = torch.zeros(env.num_envs, device=env.device)
+        self._step = -1
+
+    def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, float]:
+        if env_ids is None or isinstance(env_ids, slice):
+            self._bank.zero_()
+        else:
+            self._bank[env_ids] = 0.0
+        return {}
+
+    def __call__(self, env: ManagerBasedRLEnv) -> torch.Tensor:
+        if self._step == env.common_step_counter:
+            return self._last
+        self._step = env.common_step_counter
+        rewind = _rewind_this_step(env)
+        self._last = torch.where(rewind, -self._bank, torch.ones_like(self._bank))
+        self._bank = torch.where(rewind, torch.zeros_like(self._bank), self._bank + 1.0)
+        return self._last
+
+
+def _rewind_this_step(env: ManagerBasedRLEnv) -> torch.Tensor:
+    """True where ``rewind_arm_on_cri_limit`` will rewind after this reward."""
+    n = env.num_envs
+    device = env.scene["robot"].device
+    if not hasattr(env, "_reach_spawn_joint_pos"):
+        return torch.zeros(n, dtype=torch.bool, device=device)
+    term = getattr(env, "termination_manager", None)
+    names = getattr(term, "active_terms", None)
+    if term is None or names is None or "OVF" not in names:
+        return torch.zeros(n, dtype=torch.bool, device=device)
+    asset: Articulation = env.scene["robot"]
+    cri, _ = torch.max(asset.data.CRI, dim=1)
+    threshold = float(term.get_term_cfg("OVF").params["threshold"])
+    crossed = cri > threshold
+    reset_buf = getattr(env, "reset_buf", None)
+    if reset_buf is not None:
+        crossed = crossed & ~reset_buf
+    return crossed

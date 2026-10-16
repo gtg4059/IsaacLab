@@ -22,6 +22,32 @@ if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv
 
 
+class JointVelocitySplineOffsetAction(JointVelocityAction):
+    """Joint velocity plus one per-episode sample, windowed over the episode.
+
+    The sample is fixed at reset. sin(pi * t / T) is 0 on the first and last
+    step and 1 at the halfway step, so the bend is in the middle of the path
+    and the arrival velocity is the policy command alone.
+    """
+
+    def apply_actions(self):
+        actions = self.processed_actions
+        offset = getattr(self, "_spline_offset", None)
+        if offset is not None:
+            denom = max(int(self._env.max_episode_length) - 1, 1)
+            phase = self._env.episode_length_buf.float() / float(denom)
+            window = torch.sin(phase * torch.pi).unsqueeze(-1)
+            actions = actions + offset * window
+        self._asset.set_joint_velocity_target(actions, joint_ids=self._joint_ids)
+
+
+@configclass
+class JointVelocitySplineOffsetActionCfg(JointVelocityActionCfg):
+    """Configuration for :class:`JointVelocitySplineOffsetAction`."""
+
+    class_type: type[ActionTerm] = JointVelocitySplineOffsetAction
+
+
 class JointVelocityCriFilterAction(JointVelocityAction):
     """Joint velocity action that evaluates CRI with CBF ``run_cri_filter`` only.
 

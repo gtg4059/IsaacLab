@@ -77,6 +77,28 @@ def episode_progress(env: ManagerBasedRLEnv) -> torch.Tensor:
     return (env.episode_length_buf.float() / env.max_episode_length).unsqueeze(1)
 
 
+def command_elapsed_s(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+    """Seconds since ``command_name`` was last sampled. Shape (num_envs,).
+
+    The command timer is refilled to ``resampling_time_range`` on every sample,
+    including an in-episode reach resample. The range must be a single duration
+    so remaining time converts back to elapsed time.
+    """
+    term = env.command_manager.get_term(command_name)
+    lo, hi = term.cfg.resampling_time_range
+    if abs(float(hi) - float(lo)) > 1.0e-6:
+        raise ValueError(
+            f"{command_name} resampling_time_range must be a single duration "
+            f"to recover elapsed time, got {(float(lo), float(hi))}."
+        )
+    return (float(hi) - term.time_left).clamp(min=0.0)
+
+
+def goal_elapsed_s(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+    """Seconds since the current pose command was sampled. Shape (num_envs, 1)."""
+    return command_elapsed_s(env, command_name).unsqueeze(1)
+
+
 def CRI_optimize(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Reward shaping term that encourages CRI to stay near 0.97."""
     asset: Articulation = env.scene[asset_cfg.name]

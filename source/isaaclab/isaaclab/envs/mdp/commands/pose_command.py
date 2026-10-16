@@ -183,6 +183,44 @@ class UniformPoseTrigCommand(CommandTrigTerm):
     def command(self) -> torch.Tensor:
         return self.pose_command_b
 
+    def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, float]:
+        if not self.cfg.keep_command_until_success:
+            return super().reset(env_ids)
+        if env_ids is None or isinstance(env_ids, slice):
+            env_ids_t = torch.arange(self.num_envs, device=self.device)
+        elif isinstance(env_ids, torch.Tensor):
+            env_ids_t = env_ids.to(device=self.device, dtype=torch.long)
+        else:
+            env_ids_t = torch.as_tensor(env_ids, device=self.device, dtype=torch.long)
+        keep = self._keep_failed_command(env_ids_t)
+        resample_ids = env_ids_t[~keep]
+        keep_ids = env_ids_t[keep]
+        if resample_ids.numel() > 0:
+            self.command_counter[resample_ids] = 0
+            self._resample(resample_ids)
+        if keep_ids.numel() > 0:
+            self.time_left[keep_ids] = self.time_left[keep_ids].uniform_(*self.cfg.resampling_time_range)
+        extras = {}
+        for metric_name, metric_value in self.metrics.items():
+            extras[metric_name] = torch.mean(metric_value[env_ids_t]).item()
+            metric_value[env_ids_t] = 0.0
+        return extras
+
+    def _keep_failed_command(self, env_ids: torch.Tensor) -> torch.Tensor:
+        """True when this reset is a timeout or OVF, and not a reach success."""
+        keep = torch.zeros(env_ids.numel(), dtype=torch.bool, device=self.device)
+        term = getattr(self._env, "termination_manager", None)
+        names = getattr(term, "active_terms", None)
+        if term is None or names is None or "reach_success" not in names:
+            return keep
+        failed = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+        if "time_out" in names:
+            failed |= term.get_term("time_out")
+        if "OVF" in names:
+            failed |= term.get_term("OVF")
+        failed &= ~term.get_term("reach_success")
+        return failed[env_ids]
+
     @property
     def origin_pos_w(self) -> torch.Tensor:
         if self.origin_body_idx is None:

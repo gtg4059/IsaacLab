@@ -50,3 +50,18 @@ def CRI_OVF(
     asset: Articulation = env.scene[asset_cfg.name]
     result, _ = torch.max(asset.data.CRI, dim=1)
     return result > threshold
+
+
+def cri_boundary_continue(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    threshold: float = 0.96,
+) -> torch.Tensor:
+    """Keep the episode alive when CRI exceeds ``threshold``.
+
+    The threshold stays on this term for the curriculum. Crossing does not end
+    the episode: ``rewind_arm_on_cri_limit`` rewinds to the spawn, and the −1
+    clock keeps running until a reach or the horizon.
+    """
+    del asset_cfg, threshold
+    return torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)

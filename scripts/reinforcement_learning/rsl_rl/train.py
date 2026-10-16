@@ -32,6 +32,30 @@ parser.add_argument(
 )
 parser.add_argument("--export_io_descriptors", action="store_true", default=False, help="Export IO descriptors.")
 parser.add_argument(
+    "--reset_critic",
+    action="store_true",
+    default=False,
+    help="After loading a checkpoint, reinitialize the critic MLP. The actor and the observation normalizer stay.",
+)
+parser.add_argument(
+    "--warmup_iters",
+    type=int,
+    default=0,
+    help="Number of initial iterations that update only the critic. The actor is frozen and the adaptive KL schedule is paused.",
+)
+parser.add_argument(
+    "--warmup_value_loss",
+    type=float,
+    default=None,
+    help="Keep updating only the critic until its mean value loss falls below this value. Std stays fixed if --freeze_std is set.",
+)
+parser.add_argument(
+    "--freeze_std",
+    action="store_true",
+    default=False,
+    help="Freeze the loaded per-joint action std. Does not replace it with the logged mean. Later updates change the action mean only.",
+)
+parser.add_argument(
     "--ray-proc-id", "-rid", type=int, default=None, help="Automatically configured by Ray integration, otherwise None."
 )
 # append RSL-RL cli arguments
@@ -145,6 +169,164 @@ def _resume_curriculum_from_checkpoint(
     print(f"[INFO] Resumed curriculum at common_step_counter={resumed_steps}")
 
 
+def _set_optimizer_lr(runner, learning_rate: float, schedule: str | None = None) -> None:
+    """Write the learning rate into PPO and every optimizer param group."""
+    runner.alg.learning_rate = float(learning_rate)
+    if schedule is not None:
+        runner.alg.schedule = schedule
+    for group in runner.alg.optimizer.param_groups:
+        group["lr"] = runner.alg.learning_rate
+
+
+def _install_lr_switch(runner, agent_cfg) -> None:
+    """Apply the runner learning rate, or switch it once at ``lr_switch_iter``.
+
+    Tasks without ``lr_switch_iter`` (or with it set to None) keep a single
+    learning rate. Before the switch iteration, ``algorithm.learning_rate`` and
+    ``algorithm.schedule`` apply and an adaptive schedule is free to move the
+    rate. At that iteration and after, ``lr_switch_learning_rate`` and
+    ``lr_switch_schedule`` are written on every update.
+    """
+    switch_iter = getattr(agent_cfg, "lr_switch_iter", None)
+    if switch_iter is None:
+        lr = float(agent_cfg.algorithm.learning_rate)
+        _set_optimizer_lr(runner, lr)
+        print(f"[INFO] Learning rate set to {lr:.3e}.")
+        return
+
+    switch_iter = int(switch_iter)
+    early_lr = float(agent_cfg.algorithm.learning_rate)
+    early_schedule = str(agent_cfg.algorithm.schedule)
+    late_lr = float(agent_cfg.lr_switch_learning_rate)
+    late_schedule = str(agent_cfg.lr_switch_schedule)
+    start_it = int(runner.current_learning_iteration)
+    state = {"n": 0, "announced_late": start_it >= switch_iter}
+
+    if start_it < switch_iter:
+        _set_optimizer_lr(runner, early_lr, early_schedule)
+        print(
+            f"[INFO] Learning rate {early_lr:.3e}, schedule {early_schedule} until iteration {switch_iter}."
+        )
+    else:
+        _set_optimizer_lr(runner, late_lr, late_schedule)
+        print(f"[INFO] Iteration {start_it}: learning rate {late_lr:.3e}, schedule {late_schedule}.")
+
+    original_update = runner.alg.update
+
+    def update_with_lr_switch():
+        it = start_it + state["n"]
+        state["n"] += 1
+        if it < switch_iter:
+            if runner.alg.schedule != early_schedule:
+                runner.alg.schedule = early_schedule
+        else:
+            _set_optimizer_lr(runner, late_lr, late_schedule)
+            if not state["announced_late"]:
+                state["announced_late"] = True
+                print(f"[INFO] Iteration {it}: learning rate {late_lr:.3e}, schedule {late_schedule}.")
+        return original_update()
+
+    runner.alg.update = update_with_lr_switch
+
+
+def _reset_critic(runner) -> None:
+    """Draw new critic MLP weights. Keep the actor and the critic's observation normalizer."""
+    critic = runner.alg.critic
+    mlp = getattr(critic, "mlp", None)
+    if mlp is None:
+        raise RuntimeError("Critic has no MLP to reinitialize.")
+    n_linear = 0
+    for module in mlp.modules():
+        if isinstance(module, torch.nn.Linear):
+            module.reset_parameters()
+            n_linear += 1
+    critic_params = {id(p) for p in critic.parameters()}
+    optimizer = runner.alg.optimizer
+    for group in optimizer.param_groups:
+        for param in group["params"]:
+            if id(param) in critic_params:
+                optimizer.state.pop(param, None)
+    print(f"[INFO] Reinitialized critic MLP ({n_linear} linear layers). Actor weights were kept.")
+
+
+def _freeze_actor_std(runner) -> set[int]:
+    """Stop the loaded per-joint action std from learning. Leave its values unchanged."""
+    dist = getattr(runner.alg.actor, "distribution", None)
+    if dist is None:
+        raise RuntimeError("Actor has no action distribution to freeze.")
+    if getattr(dist, "std_type", "scalar") == "log":
+        param = dist.log_std_param
+    else:
+        param = dist.std_param
+    param.requires_grad_(False)
+    frozen_ids = {id(param)}
+    for group in runner.alg.optimizer.param_groups:
+        for group_param in group["params"]:
+            if id(group_param) in frozen_ids:
+                runner.alg.optimizer.state.pop(group_param, None)
+    values = param.detach().float().view(-1).cpu()
+    shown = ", ".join(f"{v:.4f}" for v in values.tolist())
+    print(
+        f"[INFO] Actor std frozen at the loaded per-joint values [{shown}] "
+        f"(mean {float(values.mean()):.4f}). Updates will change the action mean only."
+    )
+    return frozen_ids
+
+
+def _install_critic_warmup(
+    runner, warmup_iters: int, value_limit: float | None, frozen_std_ids: set[int]
+) -> None:
+    """Update only the critic, then release the action mean. A frozen std stays frozen."""
+    alg = runner.alg
+    original_update = alg.update
+    state = {"left": 0 if value_limit is not None else int(warmup_iters), "by_value": value_limit is not None}
+
+    def _set_actor_mean_grad(enabled: bool) -> None:
+        for param in alg.actor.parameters():
+            if id(param) in frozen_std_ids:
+                param.requires_grad_(False)
+            else:
+                param.requires_grad_(enabled)
+
+    def update_critic_only():
+        critic_only = state["by_value"] or state["left"] > 0
+        saved_kl = alg.desired_kl
+        if critic_only:
+            alg.desired_kl = None
+            _set_actor_mean_grad(False)
+        try:
+            loss_dict = original_update()
+        finally:
+            if critic_only:
+                alg.desired_kl = saved_kl
+            _set_actor_mean_grad(True)
+        if critic_only:
+            value = float(loss_dict["value"])
+            if state["by_value"]:
+                if value < float(value_limit):
+                    state["by_value"] = False
+                    print(
+                        f"[INFO] Critic warmup finished. Value loss {value:.3f} is below {value_limit}. "
+                        "Actor mean updates resumed."
+                    )
+                else:
+                    print(f"[INFO] Critic warmup continues. Value loss {value:.3f}, target below {value_limit}.")
+            else:
+                state["left"] -= 1
+                if state["left"] == 0:
+                    print("[INFO] Critic warmup finished. Actor mean updates resumed.")
+        return loss_dict
+
+    alg.update = update_critic_only
+    if value_limit is not None:
+        print(
+            f"[INFO] Critic-only warmup until value loss < {value_limit}. "
+            "Actor mean and adaptive KL stay paused."
+        )
+    else:
+        print(f"[INFO] Critic-only warmup for {warmup_iters} iterations. Actor and adaptive KL are paused.")
+
+
 @hydra_task_config(args_cli.task, args_cli.agent)
 def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     """Train with RSL-RL agent."""
@@ -232,12 +414,24 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
     # create runner from rsl-rl
+    # The switch fields are read here. rsl_rl splats ``algorithm`` into PPO and rejects unknown keys.
+    train_cfg = agent_cfg.to_dict()
+    for key in ("lr_switch_iter", "lr_switch_learning_rate", "lr_switch_schedule"):
+        train_cfg.pop(key, None)
     if agent_cfg.class_name == "OnPolicyRunner":
-        runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
+        runner = OnPolicyRunner(env, train_cfg, log_dir=log_dir, device=agent_cfg.device)
     elif agent_cfg.class_name == "DistillationRunner":
-        runner = DistillationRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
+        runner = DistillationRunner(env, train_cfg, log_dir=log_dir, device=agent_cfg.device)
     else:
         raise ValueError(f"Unsupported runner class: {agent_cfg.class_name}")
+    # Episode rewards, metrics, curriculum, and terminations stay in TensorBoard.
+    _log = runner.logger.log
+
+    def _log_without_episode_extras(*args, **kwargs):
+        kwargs["print_minimal"] = True
+        return _log(*args, **kwargs)
+
+    runner.logger.log = _log_without_episode_extras
     # write git state to logs
     runner.add_git_repo_to_log(__file__)
     _wrap_runner_save_with_curriculum_state(runner, env)
@@ -247,6 +441,17 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         # load previously trained model
         resume_infos = runner.load(resume_path)
         _resume_curriculum_from_checkpoint(env, runner, agent_cfg, resume_infos)
+
+    # Force the configured learning rate over the value stored in a checkpoint.
+    _install_lr_switch(runner, agent_cfg)
+
+    if args_cli.reset_critic:
+        _reset_critic(runner)
+    frozen_std_ids: set[int] = set()
+    if args_cli.freeze_std:
+        frozen_std_ids = _freeze_actor_std(runner)
+    if args_cli.warmup_iters > 0 or args_cli.warmup_value_loss is not None:
+        _install_critic_warmup(runner, args_cli.warmup_iters, args_cli.warmup_value_loss, frozen_std_ids)
 
     # dump the configuration into log-directory
     dump_yaml(os.path.join(log_dir, "params", "env.yaml"), env_cfg)

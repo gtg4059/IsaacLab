@@ -15,8 +15,18 @@ class UR10ReachPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     save_interval = 500
     experiment_name = "reach_ur10"
     empirical_normalization = True
+
+    # None keeps algorithm.learning_rate and algorithm.schedule for the whole run.
+    # Set an iteration to switch once, at that iteration and after, to the values below.
+    # These stay on the runner config. rsl_rl passes ``algorithm`` into PPO, so a field
+    # placed there is rejected. P2P and CRI-F inherit this; set ``lr_switch_iter = None``
+    # on those classes when this one is enabled.
+    lr_switch_iter: int | None = None
+    lr_switch_learning_rate: float = 1.0e-5
+    lr_switch_schedule: str = "fixed"
+    
     policy = RslRlPpoActorCriticCfg(
-        init_noise_std=1.0,
+        init_noise_std=0.5,
         actor_hidden_dims=[1024, 512, 256, 128],
         critic_hidden_dims=[1024, 512, 256, 128],
         activation="elu",
