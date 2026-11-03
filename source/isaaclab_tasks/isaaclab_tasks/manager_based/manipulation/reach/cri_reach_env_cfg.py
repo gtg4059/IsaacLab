@@ -291,10 +291,8 @@ class CRIRewardsCfg:
         weight=-0.0,
         params={"ramp_start_s": 8.0, "ramp_end_s": 16.0, "initial": 1.0, "final": 1.0},
     )
-    # Extra per-second cost on an attempt that arrives without crossing OVF.
-    # A rewind refunds the bank. Weight −5 charges −5/s, same scale as the clock.
-    # A positive weight would pay a clean attempt for lasting longer.
-    # clean_attempt_time_weight holds this at 0 until iter 18000.
+    # 0 until a rewind. Weight +5 pays back is_alive's −5/s on that attempt.
+    # A clean arrival keeps the clock. clean_attempt_time_weight sets +5.
     clean_attempt_time = RewTerm(func=mdp.clean_attempt_time_bonus, weight=0.0)
     # One-shot +1 on the arrival step. weight * dt ≈ +40.
     # Staying in-gate does not keep paying.
@@ -379,17 +377,16 @@ class CRICurriculumCfg:
     #         },
     #     },
     # )
-    # After iter 18000, charge −5/s on attempts that arrive under OVF.
-    # The rewind step refunds that charge.
+    # After iter 120000, a rewind pays back is_alive (−5/s) for that attempt.
     clean_attempt_time_weight = CurrTerm(
         func=mdp.modify_term_cfg,
         params={
             "address": "rewards.clean_attempt_time.weight",
             "modify_fn": mdp.reward_weight_step_by_step,
             "modify_params": {
-                "switch_step": 48 * 48000,
+                "switch_step": 48 * 120000,
                 "initial_weight": 0.0,
-                "final_weight": -10.0,
+                "final_weight": 5.0,
             },
         },
     )
@@ -400,7 +397,7 @@ class CRICurriculumCfg:
             "address": "rewards.action_rate.weight",
             "modify_fn": mdp.reward_weight_step_by_step,
             "modify_params": {
-                "switch_step": 48 * 48000,
+                "switch_step": 48 * 120000,
                 "initial_weight": -0.1,
                 "final_weight": -0.001,
             },

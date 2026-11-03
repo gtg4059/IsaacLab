@@ -283,6 +283,7 @@ def open_episode_reach_csv(csv_dir: str) -> tuple[IO[str], csv.DictWriter]:
             "last_ang_vel",
             "max_cri",
             "last_cri",
+            "pure_duration_s",
         ],
     )
     writer.writeheader()
@@ -573,6 +574,7 @@ def record_attempt(
         "last_ang_vel",
         "max_cri",
         "last_cri",
+        "pure_duration_s",
     )
     extra_vals = extras or {}
     for key in extra_keys:

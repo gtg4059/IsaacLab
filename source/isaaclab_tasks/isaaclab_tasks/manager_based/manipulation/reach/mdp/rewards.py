@@ -931,16 +931,17 @@ def ovf_rewind_bonus(env: ManagerBasedRLEnv) -> torch.Tensor:
 
 
 class clean_attempt_time_bonus(ManagerTermBase):
-    """+1 each step of the current attempt, or minus the bank when it rewinds.
+    """Pay back the attempt's ``is_alive`` clock on the rewind step.
 
-    The reward manager multiplies by ``weight * dt``. A negative weight therefore
-    charges each second of an attempt that arrives without crossing the OVF
-    threshold, and refunds that charge on the rewind step. A positive weight
-    would pay a clean attempt for lasting longer.
+    Other steps return 0. The bank stores the raw ``is_alive`` value of each
+    step in the current attempt, including the rewind step. The reward manager
+    multiplies by ``weight * dt``. Weight +5 therefore returns +5 per second of
+    that attempt when ``is_alive`` weight is -5, and the two sums cancel.
+    Each rewind pays back only the attempt that just ended.
 
     Rewind is predicted the same way as :func:`ovf_rewind_bonus`, before the
-    interval event runs. Success and timeout do not refund: the bank is cleared
-    on episode reset after those rewards have already been applied.
+    interval event runs. Success and timeout do not pay back: the bank is
+    cleared on episode reset after those rewards have already been applied.
     """
 
     def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRLEnv):
@@ -960,10 +961,21 @@ class clean_attempt_time_bonus(ManagerTermBase):
         if self._step == env.common_step_counter:
             return self._last
         self._step = env.common_step_counter
+        alive = _is_alive_raw(env)
         rewind = _rewind_this_step(env)
-        self._last = torch.where(rewind, -self._bank, torch.ones_like(self._bank))
-        self._bank = torch.where(rewind, torch.zeros_like(self._bank), self._bank + 1.0)
+        refund = self._bank + alive
+        self._last = torch.where(rewind, refund, torch.zeros_like(refund))
+        self._bank = torch.where(rewind, torch.zeros_like(self._bank), self._bank + alive)
         return self._last
+
+
+def _is_alive_raw(env: ManagerBasedRLEnv) -> torch.Tensor:
+    """Same raw value as the ``is_alive`` reward, before its weight and dt."""
+    try:
+        params = env.reward_manager.get_term_cfg("is_alive").params
+    except (ValueError, KeyError, AttributeError):
+        params = {}
+    return is_alive_time_ramp(env, **params)
 
 
 def _rewind_this_step(env: ManagerBasedRLEnv) -> torch.Tensor:

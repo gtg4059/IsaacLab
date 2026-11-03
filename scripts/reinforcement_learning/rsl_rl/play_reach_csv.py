@@ -498,6 +498,7 @@ def _run_one_shot_eval(
                     min_pos_err = torch.full((base_env.num_envs,), float("inf"), device=base_env.device)
                     min_ang_err = torch.full((base_env.num_envs,), float("inf"), device=base_env.device)
                     max_cri = torch.zeros(base_env.num_envs, device=base_env.device)
+                    n_pure = torch.zeros(base_env.num_envs, device=base_env.device)
                     last_pos_err = torch.zeros(base_env.num_envs, device=base_env.device)
                     last_ang_err = torch.zeros(base_env.num_envs, device=base_env.device)
                     last_lin_vel = torch.zeros(base_env.num_envs, device=base_env.device)
@@ -524,6 +525,7 @@ def _run_one_shot_eval(
                 last_lin_vel[live] = lin_vel[live]
                 last_ang_vel[live] = ang_vel[live]
                 last_cri[live] = cri[live]
+                n_pure[live] += (cri[live] < float(args_cli.ovf_threshold)).to(n_pure.dtype)
 
                 if cri_trace_writer is not None and bool(live.any().item()):
                     live_idx = live.nonzero(as_tuple=False).view(-1)
@@ -566,17 +568,20 @@ def _run_one_shot_eval(
                             reached=True,
                             outcome="success",
                             command_pose=reach_cmd_snapshot[int(env_idx)],
-                            extras=_attempt_extras(
-                                int(env_idx),
-                                min_pos_err,
-                                min_ang_err,
-                                last_pos_err,
-                                last_ang_err,
-                                last_lin_vel,
-                                last_ang_vel,
-                                max_cri,
-                                last_cri,
-                            ),
+                            extras={
+                                **_attempt_extras(
+                                    int(env_idx),
+                                    min_pos_err,
+                                    min_ang_err,
+                                    last_pos_err,
+                                    last_ang_err,
+                                    last_lin_vel,
+                                    last_ang_vel,
+                                    max_cri,
+                                    last_cri,
+                                ),
+                                "pure_duration_s": float(n_pure[int(env_idx)].item()) * float(dt),
+                            },
                         )
                     total_episodes += int(newly_success.sum().item())
                     total_reached_episodes += int(newly_success.sum().item())
@@ -598,17 +603,20 @@ def _run_one_shot_eval(
                             reached=False,
                             outcome=outcome,
                             command_pose=reach_cmd_snapshot[int(env_idx)],
-                            extras=_attempt_extras(
-                                int(env_idx),
-                                min_pos_err,
-                                min_ang_err,
-                                last_pos_err,
-                                last_ang_err,
-                                last_lin_vel,
-                                last_ang_vel,
-                                max_cri,
-                                last_cri,
-                            ),
+                            extras={
+                                **_attempt_extras(
+                                    int(env_idx),
+                                    min_pos_err,
+                                    min_ang_err,
+                                    last_pos_err,
+                                    last_ang_err,
+                                    last_lin_vel,
+                                    last_ang_vel,
+                                    max_cri,
+                                    last_cri,
+                                ),
+                                "pure_duration_s": float(n_pure[int(env_idx)].item()) * float(dt),
+                            },
                         )
                     total_episodes += int(newly_fail.sum().item())
                     episode_ids[newly_fail] += 1
