@@ -220,6 +220,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     obs = env.get_observations()
     timestep = 0
     last_cmd_key: torch.Tensor | None = None
+    cri_log_path = os.environ.get("SFD_PLAY_MAX_CRI_CSV")
+    cri_rows: list[list[float]] = []
     # simulate environment
     while simulation_app.is_running():
         start_time = time.time()
@@ -240,12 +242,16 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             actions = policy(obs)
             # env stepping
             obs, _, dones, _ = env.step(actions)
+            if cri_log_path:
+                cri = base.scene["robot"].data.CRI.detach()
+                peak = cri.reshape(cri.shape[0], -1).amax(dim=-1).cpu().tolist()
+                cri_rows.append([float(v) for v in peak])
             # reset recurrent states for episodes that have terminated
             if version.parse(installed_version) >= version.parse("4.0.0"):
                 policy.reset(dones)
             else:
                 policy_nn.reset(dones)
-        if args_cli.video:
+        if args_cli.video or cri_log_path:
             timestep += 1
             # Exit the play loop after recording one video
             if timestep == args_cli.video_length:
@@ -256,6 +262,14 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         if args_cli.real_time and sleep_time > 0:
             time.sleep(sleep_time)
 
+    if cri_log_path and cri_rows:
+        os.makedirs(os.path.dirname(cri_log_path) or ".", exist_ok=True)
+        with open(cri_log_path, "w", encoding="utf-8") as handle:
+            n_env = len(cri_rows[0])
+            handle.write("step,time_s," + ",".join(f"env{i}_max_cri" for i in range(n_env)) + "\n")
+            for step, row in enumerate(cri_rows, start=1):
+                handle.write(f"{step},{step * dt:.6f}," + ",".join(f"{v:.6f}" for v in row) + "\n")
+        print(f"[INFO] Max CRI trace written: {cri_log_path}  steps={len(cri_rows)}")
     # close the simulator (flushes RecordVideo)
     env.close()
     if args_cli.video:

@@ -3,24 +3,19 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""CBF-filter reach environment (UR10).
+"""UR10 CRI reach with the direction filter wired but not applied.
 
-CRI is not computed here via AtMotionState / ``collision_risk_index``.
-The policy CRI term is the previous-step ``run_cri_filter`` cache
-(:func:`mdp.cri_filter_pre`). Reset / first obs: CRI=0. Each later tick
-solves once; the next policy obs is that CRI. The policy action is a joint
-delta ``Δq`` (OpenPI π0.5-DROID). The CBF-QP still filters velocity
-``qd_nom = Δq / dt``; the plant command is the integrated position
-``q + qd_cmd * dt``. Time-scale ``s`` is not an observation or control
-input. ``filter_enabled`` toggles the CBF filter.
+Scene, robot, commands, rewards, events, terminations, and curriculum are
+:class:`UR10ReachEnvCfg`. The arm action still calls ``run_cri_filter`` so the
+CRI observation stays :func:`mdp.cri_filter_pre`. ``filter_enabled`` is False,
+so the joint command is the policy velocity. Set it True to remove a fraction
+of incoming ``dir · v_lin`` at the highest-CRI point.
 
 Launch from the IsaacLab repo root:
 
 * Train: ``./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task Isaac-Reach-UR10-CRI-F-v0``
 * Play: ``./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/play.py --task Isaac-Reach-UR10-CRI-F-Play-v0 --num_envs 1``
 """
-
-import math
 
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
@@ -29,21 +24,24 @@ from isaaclab.utils import configclass
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 import isaaclab_tasks.manager_based.manipulation.reach.mdp as mdp
-from isaaclab_tasks.manager_based.manipulation.reach.cri_reach_env_cfg import CRIReachEnvCfg
-
-from isaaclab_assets import UR10_DC_MOTOR_CFG  # isort: skip
+from isaaclab_tasks.manager_based.manipulation.reach.config.ur_10.joint_pos_env_cfg import (
+    UR10ReachEnvCfg,
+    UR10ReachEnvCfg_PLAY,
+)
 
 
 @configclass
 class CRIFObservationsCfg:
-    """Same policy terms as :class:`CRIObservationsCfg`. No time-scale ``s``."""
+    """Policy observation for CRI-F. Actor and critic share this group."""
 
     @configclass
     class PolicyCfg(ObsGroup):
         ee_pose_error = ObsTerm(
             func=mdp.ee_pose_error_to_command,
             params={"command_name": "ee_pose", "asset_cfg": SceneEntityCfg("robot", body_names="ee_link")},
+            noise=Unoise(n_min=-0.002, n_max=0.002),
         )
+        # Previous control step's CRI. The trajectory filter is not part of this term.
         CRI = ObsTerm(func=mdp.cri_filter_pre)
         joint_pos = ObsTerm(func=mdp.joint_pos, noise=Unoise(n_min=-0.001, n_max=0.001))
         joint_vel = ObsTerm(func=mdp.joint_vel, noise=Unoise(n_min=-0.001, n_max=0.001))
@@ -51,71 +49,55 @@ class CRIFObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
+            self.enable_corruption = True
             self.concatenate_terms = True
             self.history_length = 5
 
     policy: PolicyCfg = PolicyCfg()
 
 
+def _use_direction_filter(cfg) -> None:
+    """Keep the direction-filter action, but send the policy velocity.
+
+    ``filter_enabled=False`` leaves ``dir · v_lin`` unchanged. Flip it to True
+    to cut the approach at the highest-CRI point. Speed scale stays off.
+    """
+    cfg.actions.arm_action = mdp.JointVelocityCriFilterActionCfg(
+        asset_name="robot",
+        joint_names=[".*"],
+        scale=0.5,
+        use_default_offset=True,
+        cri_limit=0.92,
+        direction_gain=0.8,
+        speed_enabled=False,
+        strong_cri=0.92,
+        strong_target=0.0095,
+        filter_enabled=False,
+    )
+
+
 @configclass
-class CRIFReachEnvCfg(CRIReachEnvCfg):
-    """UR10 reach env whose CRI and command come only from the CBF ``run_cri_filter``."""
+class CRIFReachEnvCfg(UR10ReachEnvCfg):
+    """:class:`UR10ReachEnvCfg` with the filter action off and :class:`CRIFObservationsCfg`."""
 
     observations: CRIFObservationsCfg = CRIFObservationsCfg()
 
     def __post_init__(self):
         super().__post_init__()
-
-        self.scene.robot = UR10_DC_MOTOR_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        self.commands.ee_pose.body_name = "ee_link"
-        self.actions.arm_action = mdp.JointPositionCriFilterActionCfg(
-            asset_name="robot",
-            joint_names=[".*"],
-            scale=0.05,
-            use_zero_offset=True,
-            cri_limit=0.96,
-            cbf_alpha=0.02,
-            filter_enabled=True,
-        )
-
-        self.events.reset_robot_joints.params["position_range"] = {
-            "shoulder_pan_joint": (-math.pi, math.pi),
-            "shoulder_lift_joint": (-math.pi, 0.0),
-            "elbow_joint": (-math.pi * 2 / 3, math.pi * 2 / 3),
-            "wrist_1_joint": (-math.pi, math.pi),
-            "wrist_2_joint": (-math.pi, math.pi),
-            "wrist_3_joint": (-math.pi, math.pi),
-        }
-        self.events.reset_robot_joints.params["velocity_range"] = {
-            "shoulder_pan_joint": (0.0, 0.0),
-            "shoulder_lift_joint": (0.0, 0.0),
-            "elbow_joint": (0.0, 0.0),
-            "wrist_1_joint": (0.0, 0.0),
-            "wrist_2_joint": (0.0, 0.0),
-            "wrist_3_joint": (0.0, 0.0),
-        }
-
-        self.commands.ee_pose.ranges.pos_th = (-math.pi, math.pi)
-        self.commands.ee_pose.ranges.roll = (-math.pi, math.pi)
-        self.commands.ee_pose.ranges.pitch = (-math.pi, math.pi)
-        self.commands.ee_pose.ranges.yaw = (-math.pi, math.pi)
+        _use_direction_filter(self)
 
 
 @configclass
-class CRIFReachEnvCfg_PLAY(CRIFReachEnvCfg):
-    """Single-env play variant of :class:`CRIFReachEnvCfg`."""
+class CRIFReachEnvCfg_PLAY(UR10ReachEnvCfg_PLAY):
+    """Play variant. Filter off, and no spawn rewind. This checkpoint is still the soft trajectory."""
+
+    observations: CRIFObservationsCfg = CRIFObservationsCfg()
 
     def __post_init__(self):
         super().__post_init__()
-        self.scene.num_envs = 1
-        self.scene.env_spacing = 2.5
-        self.viewer.eye = (4.5, 4.5, 4.5)
-        self.observations.policy.enable_corruption = False
-        self.terminations.OVF.params["threshold"] = 0.96
-        self.commands.ee_pose.keep_command_until_success = True
+        _use_direction_filter(self)
+        # Soft regime: a CRI crossing does not pull the arm back to the spawn,
+        # and a timeout does not restore that spawn.
+        if hasattr(self.events, "rewind_on_cri"):
+            self.events.rewind_on_cri.params["enabled"] = False
         self.events.reset_robot_joints.params["keep_failed_spawn"] = False
-        if self.curriculum is not None and hasattr(self.curriculum, "resample_on_reset"):
-            self.curriculum.resample_on_reset.params["switch_step"] = 0
-        self.commands.ee_pose.debug_vis = True
-        if hasattr(self.rewards, "CRI_OVF"):
-            self.rewards.CRI_OVF.params["limit"] = 0.96

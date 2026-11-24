@@ -794,6 +794,12 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         disable_ovf=bool(args_cli.no_ovf),
         ovf_threshold=float(args_cli.ovf_threshold),
     )
+    # Fixed c-spline tasks are compared as continuous motion. A rewind would
+    # replace the learned path with the spawn pose.
+    if args_cli.task_traj_dir and hasattr(getattr(env_cfg, "events", None), "rewind_on_cri"):
+        env_cfg.events.rewind_on_cri.params["enabled"] = False
+        print("[INFO] Fixed-task rollout: rewind_on_cri disabled.", flush=True)
+
     # Seed before env construction (PhysX / scene spawn paths also read global RNGs).
     _configure_eval_rng(eval_seeds[0])
 

@@ -8,10 +8,6 @@ import math
 from isaaclab.utils import configclass
 
 import isaaclab_tasks.manager_based.manipulation.reach.mdp as mdp
-from isaaclab_tasks.manager_based.manipulation.reach.cri_F_reach_env_cfg import (
-    CRIFReachEnvCfg,
-    CRIFReachEnvCfg_PLAY,
-)
 from isaaclab_tasks.manager_based.manipulation.reach.cri_reach_env_cfg import (
     CRIReachEnvCfg,
     _spawn_ur10_base_collider_only,
@@ -74,10 +70,23 @@ class UR10ReachEnvCfg_PLAY(UR10ReachEnvCfg):
         self.scene.env_spacing = 2.5
         self.viewer.eye = (4.5, 4.5, 4.5)
         self.observations.policy.enable_corruption = False
-        self.terminations.OVF.params["threshold"] = 0.96
-        # Match training: a timeout keeps the target and draws a new arm.
+        # Same rewind line as training. 0.96 is only the soft penalty, and that weight is 0 here.
+        self.terminations.OVF.params["threshold"] = 1.99
+        if self.curriculum is not None and hasattr(self.curriculum, "ovf_threshold"):
+            self.curriculum.ovf_threshold = None
+        if self.curriculum is not None and hasattr(self.curriculum, "rewind_on_cri"):
+            self.curriculum.rewind_on_cri = None
+        if self.curriculum is not None and hasattr(self.curriculum, "ovf_rewind_bonus_weight"):
+            self.curriculum.ovf_rewind_bonus_weight = None
+        if self.curriculum is not None and hasattr(self.curriculum, "keep_failed_spawn"):
+            self.curriculum.keep_failed_spawn = None
+        if hasattr(self.events, "rewind_on_cri"):
+            self.events.rewind_on_cri.params["enabled"] = True
+        if hasattr(self.rewards, "ovf_rewind_bonus"):
+            self.rewards.ovf_rewind_bonus.weight = 0.0
+        # Match the post-switch regime: a timeout keeps the target and the start pose.
         self.commands.ee_pose.keep_command_until_success = True
-        self.events.reset_robot_joints.params["keep_failed_spawn"] = False
+        self.events.reset_robot_joints.params["keep_failed_spawn"] = True
         if self.curriculum is not None and hasattr(self.curriculum, "resample_on_reset"):
             self.curriculum.resample_on_reset.params["switch_step"] = 0
         if hasattr(self.events, "early_spline_velocity_offset"):
@@ -89,7 +98,3 @@ class UR10ReachEnvCfg_PLAY(UR10ReachEnvCfg):
         if hasattr(self.rewards, "CRI_OVF"):
             self.rewards.CRI_OVF.params["limit"] = 0.96
 
-
-# CRI-F 본체는 cri_F_reach_env_cfg.py. 여기 이름은 Gym/기존 import 호환용.
-UR10CRIFReachEnvCfg = CRIFReachEnvCfg
-UR10CRIFReachEnvCfg_PLAY = CRIFReachEnvCfg_PLAY

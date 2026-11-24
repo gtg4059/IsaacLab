@@ -151,8 +151,8 @@ def reset_robot_joints_by_name_offset(
     pose from the start of that attempt, so neither failure draws a new arm.
     Reach success draws a new pose, which is then the spawn restored by a
     later failure. The target is kept separately by ``keep_command_until_success``.
-    The early-training curriculum sets this flag false so every reset draws a
-    new arm.
+    The reach task keeps this flag on, so a timeout restores the attempt's
+    start pose. Reach success still draws a new arm.
 
     Args:
         position_range: Mapping from joint name to ``(min, max)`` position offset.
@@ -222,14 +222,17 @@ def _rewind_reach_spawn(env: ManagerBasedEnv, env_ids: torch.Tensor) -> None:
     env.sim.forward()
 
 
-def rewind_arm_on_cri_limit(env: ManagerBasedEnv, env_ids: torch.Tensor | None) -> None:
+def rewind_arm_on_cri_limit(
+    env: ManagerBasedEnv, env_ids: torch.Tensor | None, enabled: bool | float = True
+) -> None:
     """Rewind to the stored spawn when CRI crosses the OVF threshold.
 
-    The episode continues and the target stays. The threshold is
+    ``enabled`` is the curriculum toggle. After it becomes false the arm stays
+    and the OVF penalty is the only response. The threshold is
     ``terminations.OVF``. Envs that reset on this step are left as the reset
     wrote them. ``_ovf_rewind_count`` is what the reach metrics read.
     """
-    if not hasattr(env, "_reach_spawn_joint_pos"):
+    if not enabled or not hasattr(env, "_reach_spawn_joint_pos"):
         return
     term = getattr(env, "termination_manager", None)
     names = getattr(term, "active_terms", None)

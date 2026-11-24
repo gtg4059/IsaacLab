@@ -112,10 +112,22 @@ class ArticulationData:
         self._cri_filter_cri_out: torch.Tensor | None = None
         self._cri_filter_qd_cmd: torch.Tensor | None = None
         self._cri_filter_qd_rl: torch.Tensor | None = None
-        self._cri_filter_limit: float = 0.96
+        # Point line for the direction correction. The 0.96 hard exceed line
+        # stays with OVF and rewind. Speed scaling is off.
+        self._cri_filter_limit: float = 0.92
         self._cri_filter_cbf_alpha: float = 0.02
-        self._cri_filter_approach_limit: float = 0.96 * (1.0 - 0.02)
+        self._cri_filter_approach_limit: float = 0.92 * (1.0 - 0.02)
         self._cri_filter_enabled: bool = False
+        self._cri_filter_direction_gain: float = 0.8
+        self._cri_filter_speed_enabled: bool = False
+        self._cri_filter_strong_cri: float = 0.92
+        self._cri_filter_strong_target: float = 0.0095
+        # Last-dim of the policy CRI vector. Filter on and off must share it.
+        self._cri_point_count: int | None = None
+        # Policy sees this on the next observation. The trajectory filter does not change it.
+        self._cri_obs_hold: torch.Tensor | None = None
+        self._cri_obs_hold_step: int | None = None
+        self._cri_obs_hold_return: torch.Tensor | None = None
         self._cri_atmotion_warmed: bool = False
         self._cri_f_runtime_ready: bool = False
         self._cri_f_control_steps: int = 0
@@ -1155,7 +1167,10 @@ class ArticulationData:
         while ``qd`` was already 0.
 
         CRI-F: no solver on reset. Those rows become CRI=0, s=1 (spec t=0, qd≈0).
+        The value the policy reads stays one step behind, so a reset shows 0
+        on the observation that follows it.
         """
+        self._clear_cri_obs_hold(env_ids)
         if self._cri_f_obs:
             self._reset_cri_filter_rows(env_ids)
             if self._CRI.data is not None:
@@ -1256,6 +1271,9 @@ class ArticulationData:
     def _store_cri_output_buffers(self, cri_gpu: torch.Tensor | None) -> None:
         """Write solver output into preallocated CRI / float caches (no alloc on steady path)."""
         if cri_gpu is not None:
+            points = int(cri_gpu.shape[-1]) if cri_gpu.ndim > 1 else 1
+            if points > 1:
+                self._cri_point_count = points
             if self._CRI.data is None or self._CRI.data.shape != cri_gpu.shape:
                 self._CRI.data = torch.empty_like(cri_gpu)
             self._CRI.data.copy_(cri_gpu)
@@ -1446,13 +1464,25 @@ class ArticulationData:
         self._clear_cri_dirty()
 
     def enable_cri_filter_mode(
-        self, cri_limit: float = 0.96, filter_enabled: bool = True, cbf_alpha: float = 0.02
+        self,
+        cri_limit: float = 0.92,
+        filter_enabled: bool = True,
+        cbf_alpha: float = 0.02,
+        direction_gain: float = 0.8,
+        speed_enabled: bool = False,
+        strong_cri: float = 0.92,
+        strong_target: float = 0.0095,
     ) -> None:
-        """Prepare CRI-F: CRI and ``qd_cmd`` only from CBF ``run_cri_filter``.
+        """Prepare CRI-F: one ``run_cri_filter`` per tick, then change direction.
+
+        ``cri_limit`` is the 9-channel peak where the highest-CRI point starts
+        losing incoming ``dir · v_lin``. The joint change uses weight
+        ``min(1, direction_gain * peak / cri_limit)``. Tangential speed stays,
+        including a request already over 0.96. ``speed_enabled`` is the only
+        switch that also scales every joint. OVF and rewind still use 0.96.
 
         Existing AtMotionState envs must not call this.
         Reset / first obs: CRI=0, ``qd_cmd=0``, no solver.
-        Each later tick: one ``run_cri_filter(q, qd_RL)``; command is library ``qd_cmd``.
         Time-scale ``s`` is not applied on the Isaac side.
         """
         if not hasattr(self.solver, "run_cri_filter"):
@@ -1462,8 +1492,12 @@ class ArticulationData:
             )
         self._cri_f_obs = True
         self._cri_filter_mode = True
-        self._cri_filter_limit = float(cri_limit) if cri_limit > 0.0 else 0.96
+        self._cri_filter_limit = float(cri_limit) if cri_limit > 0.0 else 0.92
         self._cri_filter_cbf_alpha = float(cbf_alpha) if cbf_alpha > 0.0 else 0.02
+        self._cri_filter_direction_gain = float(direction_gain)
+        self._cri_filter_speed_enabled = bool(speed_enabled)
+        self._cri_filter_strong_cri = float(strong_cri)
+        self._cri_filter_strong_target = float(strong_target)
         n = self._root_physx_view.count
         j = int(self._root_physx_view.shared_metatype.dof_count)
         if self._cri_filter_qd_cmd is None:
@@ -1499,7 +1533,8 @@ class ArticulationData:
         print(
             f"[CRI] CBF-F (enabled={self._cri_filter_enabled}, limit={self._cri_filter_limit:g}, "
             f"alpha={self._cri_filter_cbf_alpha:g}, approach={self._cri_filter_approach_limit:g}): "
-            f"CRI and qd_cmd from run_cri_filter, one solve per env step, first obs=0",
+            f"one run_cri_filter per step; direction gain={self._cri_filter_direction_gain:g}, "
+            f"speed_scale={self._cri_filter_speed_enabled}, first obs=0",
             flush=True,
         )
 
@@ -1579,8 +1614,12 @@ class ArticulationData:
     def apply_cri_filter(self, qd_rl: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """One ``run_cri_filter(q, qd_RL)`` per env step; store CRI for the next observation.
 
-        Returns ``(cri_pre, delta, qd_cmd)`` where ``delta = ||qd_cmd - qd_RL||`` and
-        ``qd_cmd`` is the library CBF command. Never multiplies by a time-scale ``s``.
+        Returns ``(cri_pre, delta, qd_cmd)``. When the library exports ``J`` and
+        ``dir``, ``qd_cmd`` changes only the highest-CRI point's approach
+        direction, with weight ``min(1, direction_gain * peak / limit)``.
+        Joint speed is not scaled unless ``speed_enabled`` was set. A missing
+        geometry falls back to the library ``qd_cmd``. Never multiplies by a
+        time-scale ``s``.
         Opt-in only via :meth:`enable_cri_filter_mode`. Other envs stay on AtMotionState.
         """
         if not self._cri_f_obs:
@@ -1652,7 +1691,42 @@ class ArticulationData:
             self._cri_filter_delta = torch.zeros(qd_rl.shape[0], device=qd_rl.device, dtype=torch.float32)
 
         lib_qd = result.get("qd_cmd")
-        if lib_enabled and isinstance(lib_qd, torch.Tensor) and lib_qd.numel() > 0:
+        jac = result.get("impact_jacobian")
+        dire = result.get("impact_dir")
+        has_geometry = (
+            isinstance(jac, torch.Tensor)
+            and isinstance(dire, torch.Tensor)
+            and jac.numel() > 0
+            and dire.numel() > 0
+        )
+        if lib_enabled and has_geometry:
+            from isaaclab.assets.articulation.cri_approach import (
+                CRI_HARD_LIMIT,
+                subtract_approach_velocity,
+            )
+
+            qd_limit = None
+            limits = getattr(self, "joint_vel_limits", None)
+            if isinstance(limits, torch.Tensor) and limits.numel() >= qd_rl.shape[-1]:
+                lim = limits.reshape(-1, limits.shape[-1])[0].abs()
+                if int(lim.numel()) == int(qd_rl.shape[-1]):
+                    qd_limit = lim
+            qd_cmd = subtract_approach_velocity(
+                qd_rl,
+                jac,
+                dire,
+                cri_pre,
+                hard_limit=CRI_HARD_LIMIT,
+                point_limit=self._cri_filter_limit,
+                strong_cri=self._cri_filter_strong_cri,
+                strong_target=self._cri_filter_strong_target,
+                apply_speed_scale=self._cri_filter_speed_enabled,
+                direction_gain=self._cri_filter_direction_gain,
+                qd_limit=qd_limit,
+            ).to(dtype=qd_rl.dtype, device=qd_rl.device)
+            if qd_cmd.shape != qd_rl.shape:
+                qd_cmd = qd_cmd.reshape_as(qd_rl)
+        elif lib_enabled and isinstance(lib_qd, torch.Tensor) and lib_qd.numel() > 0:
             qd_cmd = lib_qd.to(dtype=qd_rl.dtype, device=qd_rl.device)
             if qd_cmd.shape != qd_rl.shape:
                 qd_cmd = qd_cmd.reshape_as(qd_rl)
@@ -1680,7 +1754,7 @@ class ArticulationData:
     def _verify_cri_filter_reforward(
         self, q_in: torch.Tensor, qd_cmd: torch.Tensor, cri_limit: float
     ) -> None:
-        """Offline re-forward: CRI(q, qd_cmd) should stay near the hard limit. Not on the hot path."""
+        """Offline re-forward: CRI(q, qd_cmd) should stay near the QP barrier. Not on the hot path."""
         cri_after = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_cmd)
         if cri_after is None:
             return
@@ -1707,10 +1781,85 @@ class ArticulationData:
 
     @property
     def cri_filter_out(self) -> torch.Tensor:
-        """Library post-filter CRI (hard-clamped at ``cri_limit``)."""
+        """Library post-filter CRI (clamped at the QP barrier)."""
         if self._cri_filter_cri_out is None:
             return torch.zeros(self._root_physx_view.count, 1, device=self.device)
         return self._cri_filter_cri_out
+
+    @property
+    def cri_filter_enabled(self) -> bool:
+        """Whether the CBF command filter is applied. False in the current reach env."""
+        return self._cri_filter_enabled
+
+    def _clear_cri_obs_hold(self, env_ids: torch.Tensor | slice | None) -> None:
+        """Drop the delayed CRI so the next observation after reset is empty."""
+        self._cri_obs_hold_step = None
+        self._cri_obs_hold_return = None
+        if self._cri_obs_hold is None:
+            return
+        if env_ids is None or env_ids == slice(None):
+            self._cri_obs_hold = None
+            return
+        if isinstance(env_ids, slice):
+            self._cri_obs_hold[env_ids] = 0
+            return
+        ids = env_ids.reshape(-1).to(device=self.device, dtype=torch.long)
+        if ids.numel() == 0:
+            return
+        self._cri_obs_hold[ids] = 0
+
+    def read_delayed_cri(self, step: int) -> torch.Tensor:
+        """CRI stored at the previous observation.
+
+        The trajectory filter does not choose this value. A control step may
+        compute a new CRI, but the policy reads the one already stored, then
+        that new CRI waits for the following observation. The first read is 0.
+        """
+        if self._cri_obs_hold_step == step and self._cri_obs_hold_return is not None:
+            return self._cri_obs_hold_return
+        current = self.align_cri_observation(self.cri_filter_pre)
+        if self._cri_obs_hold is None or self._cri_obs_hold.shape != current.shape:
+            held = torch.zeros_like(current)
+        else:
+            held = self._cri_obs_hold
+        self._cri_obs_hold = current.detach().clone()
+        self._cri_obs_hold_step = step
+        self._cri_obs_hold_return = held
+        return held
+
+    def align_cri_observation(self, cri: torch.Tensor) -> torch.Tensor:
+        """Force policy CRI to one value per collision point.
+
+        An empty cache is not a collision-point vector yet. It is widened so
+        the first observation and later ones use the same collision points.
+        """
+        if cri.ndim == 1:
+            cri = cri.unsqueeze(-1)
+        width = int(cri.shape[-1])
+        if self._cri_point_count is None:
+            if width > 1:
+                self._cri_point_count = width
+                return cri
+            self._cri_point_count = self._measure_cri_point_count()
+        points = self._cri_point_count
+        if width == points:
+            return cri
+        if width == 1:
+            if torch.any(cri):
+                return cri.expand(cri.shape[0], points).clone()
+            return cri.new_zeros(cri.shape[0], points)
+        out = cri.new_zeros(cri.shape[0], points)
+        cols = min(width, points)
+        out[:, :cols] = cri[:, :cols]
+        return out
+
+    def _measure_cri_point_count(self) -> int:
+        """Collision-point count. Does not replace the filter cache."""
+        q_in, qd_in = self._cri_input_tensors()
+        cri = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
+        if cri is None or cri.ndim < 2:
+            return 1
+        return int(cri.shape[-1])
 
     @property
     def cri_filter_cbf_alpha(self) -> float:
@@ -1740,10 +1889,11 @@ class ArticulationData:
 
     @property
     def cri_filter_pre(self) -> torch.Tensor:
-        """Previous-step CRI from ``run_cri_filter`` only. Never AtMotionState.
+        """Shared CRI cache. Does not solve.
 
-        Reset / first obs is zeros. After each control tick the cache is that tick's cri_pre,
-        which the next policy observation reads.
+        The CBF filter option is :attr:`cri_filter_enabled`. It is False unless a
+        filter action turns it on. False: the last writer is AtMotionState.
+        True: the last writer is ``run_cri_filter``. Reset / unread cache is zeros.
         """
         if self._CRI_float.data is None:
             n = self._root_physx_view.count

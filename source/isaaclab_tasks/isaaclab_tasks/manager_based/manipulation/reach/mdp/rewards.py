@@ -906,55 +906,57 @@ def CRI_OVF_lin(
     return (excess / span).clamp(max=1.0)
 
 
-def ovf_rewind_bonus(env: ManagerBasedRLEnv) -> torch.Tensor:
-    """1 on a step ``rewind_arm_on_cri_limit`` will rewind, otherwise 0.
+def ovf_rewind_bonus(env: ManagerBasedRLEnv, threshold: float = 0.96) -> torch.Tensor:
+    """Excess over the soft CRI line, plus a step of 0.1.
 
-    Reward runs before the interval event, so this repeats that event's test:
-    stored spawn exists, max CRI is above ``terminations.OVF``, and the env is
-    not already resetting. Weight 15 pays +1 on the return, one step of the clock.
+    ``y = 0`` at or below ``threshold``. Above it,
+    ``y = (max CRI - threshold) + 0.1``. Does not move the arm and does not
+    read the hard-reset line on ``terminations.OVF``. A step that already
+    ended pays 0. The return is ``weight * y * dt``. Weight 0 pays nothing.
     """
     n = env.num_envs
     if not hasattr(env, "_reach_spawn_joint_pos"):
         return torch.zeros(n, device=env.scene["robot"].device)
-    term = getattr(env, "termination_manager", None)
-    names = getattr(term, "active_terms", None)
-    if term is None or names is None or "OVF" not in names:
-        return torch.zeros(n, device=env.scene["robot"].device)
     asset: Articulation = env.scene["robot"]
     cri, _ = torch.max(asset.data.CRI, dim=1)
-    threshold = float(term.get_term_cfg("OVF").params["threshold"])
-    crossed = cri > threshold
+    excess = cri - float(threshold)
+    crossed = excess > 0
     reset_buf = getattr(env, "reset_buf", None)
     if reset_buf is not None:
         crossed = crossed & ~reset_buf
-    return crossed.float()
+    return torch.where(crossed, excess + 0.1, torch.zeros_like(cri))
 
 
 class clean_attempt_time_bonus(ManagerTermBase):
-    """Pay back the attempt's ``is_alive`` clock on the rewind step.
+    """Pay back rewound attempts' ``is_alive`` only when the episode reaches.
 
-    Other steps return 0. The bank stores the raw ``is_alive`` value of each
-    step in the current attempt, including the rewind step. The reward manager
-    multiplies by ``weight * dt``. Weight +5 therefore returns +5 per second of
-    that attempt when ``is_alive`` weight is -5, and the two sums cancel.
-    Each rewind pays back only the attempt that just ended.
+    A rewind moves that attempt's raw ``is_alive`` sum into an unpaid bank and
+    returns 0. The bank is paid on the reach-success step, so a later success
+    cancels the clock of the attempts rewound before it. The successful
+    attempt's own clock stays. A horizon timeout pays 0, and ``reset`` drops
+    the bank, so an episode that never reaches keeps every ``is_alive`` penalty.
 
-    Rewind is predicted the same way as :func:`ovf_rewind_bonus`, before the
-    interval event runs. Success and timeout do not pay back: the bank is
-    cleared on episode reset after those rewards have already been applied.
+    The reward manager multiplies by ``weight * dt``. Matching ``is_alive``'s
+    weight with the opposite sign cancels those rewound seconds. Rewind is
+    predicted before the interval event runs, and only when ``rewind_on_cri``
+    is active. A CRI crossing that only pays the OVF penalty does not enter
+    the bank.
     """
 
     def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRLEnv):
         super().__init__(cfg, env)
-        self._bank = torch.zeros(env.num_envs, device=env.device)
+        self._attempt = torch.zeros(env.num_envs, device=env.device)
+        self._pending = torch.zeros(env.num_envs, device=env.device)
         self._last = torch.zeros(env.num_envs, device=env.device)
         self._step = -1
 
     def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, float]:
         if env_ids is None or isinstance(env_ids, slice):
-            self._bank.zero_()
+            self._attempt.zero_()
+            self._pending.zero_()
         else:
-            self._bank[env_ids] = 0.0
+            self._attempt[env_ids] = 0.0
+            self._pending[env_ids] = 0.0
         return {}
 
     def __call__(self, env: ManagerBasedRLEnv) -> torch.Tensor:
@@ -963,9 +965,12 @@ class clean_attempt_time_bonus(ManagerTermBase):
         self._step = env.common_step_counter
         alive = _is_alive_raw(env)
         rewind = _rewind_this_step(env)
-        refund = self._bank + alive
-        self._last = torch.where(rewind, refund, torch.zeros_like(refund))
-        self._bank = torch.where(rewind, torch.zeros_like(self._bank), self._bank + alive)
+        success = _reach_success_this_step(env)
+        rolled = self._attempt + alive
+        self._pending = torch.where(rewind, self._pending + rolled, self._pending)
+        self._attempt = torch.where(rewind, torch.zeros_like(self._attempt), rolled)
+        self._last = torch.where(success, self._pending, torch.zeros_like(self._pending))
+        self._pending = torch.where(success, torch.zeros_like(self._pending), self._pending)
         return self._last
 
 
@@ -978,10 +983,37 @@ def _is_alive_raw(env: ManagerBasedRLEnv) -> torch.Tensor:
     return is_alive_time_ramp(env, **params)
 
 
-def _rewind_this_step(env: ManagerBasedRLEnv) -> torch.Tensor:
-    """True where ``rewind_arm_on_cri_limit`` will rewind after this reward."""
+def _reach_success_this_step(env: ManagerBasedRLEnv) -> torch.Tensor:
+    """True where this step's termination is a reach. Already computed before rewards."""
     n = env.num_envs
     device = env.scene["robot"].device
+    term = getattr(env, "termination_manager", None)
+    names = getattr(term, "active_terms", None)
+    if term is None or names is None or "reach_success" not in names:
+        return torch.zeros(n, dtype=torch.bool, device=device)
+    return term.get_term("reach_success").to(device=device)
+
+
+def _rewind_this_step(env: ManagerBasedRLEnv) -> torch.Tensor:
+    """True where ``rewind_arm_on_cri_limit`` will rewind after this reward.
+
+    False when the ``rewind_on_cri`` interval event is not active, so a CRI
+    crossing that only pays the OVF penalty does not refund the attempt clock.
+    """
+    n = env.num_envs
+    device = env.scene["robot"].device
+    event_mgr = getattr(env, "event_manager", None)
+    interval_terms = []
+    if event_mgr is not None:
+        interval_terms = getattr(event_mgr, "active_terms", {}).get("interval", [])
+    if "rewind_on_cri" not in interval_terms:
+        return torch.zeros(n, dtype=torch.bool, device=device)
+    try:
+        enabled = event_mgr.get_term_cfg("rewind_on_cri").params.get("enabled", True)
+    except (ValueError, KeyError, AttributeError):
+        enabled = False
+    if not enabled:
+        return torch.zeros(n, dtype=torch.bool, device=device)
     if not hasattr(env, "_reach_spawn_joint_pos"):
         return torch.zeros(n, dtype=torch.bool, device=device)
     term = getattr(env, "termination_manager", None)

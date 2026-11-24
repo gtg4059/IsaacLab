@@ -147,10 +147,11 @@ def main():
         failures.append(f"reset CRI={cri0} expected 0")
     if abs(last_alpha - 0.02) > 1e-6:
         failures.append(f"cbf_alpha={last_alpha} expected 0.02")
-    if abs(last_approach - 0.96 * (1.0 - 0.02)) > 1e-4:
-        failures.append(f"approach_limit={last_approach} expected {0.96 * 0.98}")
+    barrier = float(getattr(arm.cfg, "cri_limit", 0.9))
+    if abs(last_approach - barrier * (1.0 - 0.02)) > 1e-4:
+        failures.append(f"approach_limit={last_approach} expected {barrier * 0.98}")
     if max_cri_out > 0.96 + 1e-6:
-        failures.append(f"max_cri_out={max_cri_out} exceeded hard clamp 0.96")
+        failures.append(f"max_cri_out={max_cri_out} exceeded hard line 0.96")
     if solves < 0.99:
         failures.append(f"solves_per_step={solves} expected ~1")
     if failures:

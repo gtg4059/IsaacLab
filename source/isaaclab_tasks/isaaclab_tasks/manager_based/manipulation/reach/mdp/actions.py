@@ -49,10 +49,13 @@ class JointVelocitySplineOffsetActionCfg(JointVelocityActionCfg):
 
 
 class JointVelocityCriFilterAction(JointVelocityAction):
-    """Joint velocity action that evaluates CRI with CBF ``run_cri_filter`` only.
+    """Joint velocity action that changes approach direction, not joint speed.
 
-    Each tick: one ``run_cri_filter(q, qd_RL)``. Command is library ``qd_cmd``.
-    Next obs is that CRI. First obs is 0. Time-scale ``s`` is not applied.
+    Each tick: one ``run_cri_filter(q, qd_RL)``. The highest-CRI point supplies
+    ``J`` and ``dir``. At or above ``cri_limit`` the command applies
+    ``min(1, direction_gain * peak / cri_limit)`` of the cut that removes
+    incoming ``dir · v_lin``. Tangential speed stays. ``speed_enabled`` is off.
+    Next obs is that CRI. First obs is 0.
     """
 
     cfg: "JointVelocityCriFilterActionCfg"
@@ -60,7 +63,13 @@ class JointVelocityCriFilterAction(JointVelocityAction):
     def __init__(self, cfg: "JointVelocityCriFilterActionCfg", env: ManagerBasedEnv):
         super().__init__(cfg, env)
         self._asset.data.enable_cri_filter_mode(
-            cri_limit=cfg.cri_limit, filter_enabled=cfg.filter_enabled, cbf_alpha=cfg.cbf_alpha
+            cri_limit=cfg.cri_limit,
+            filter_enabled=cfg.filter_enabled,
+            cbf_alpha=cfg.cbf_alpha,
+            direction_gain=cfg.direction_gain,
+            speed_enabled=cfg.speed_enabled,
+            strong_cri=cfg.strong_cri,
+            strong_target=cfg.strong_target,
         )
         n = self.num_envs
         device = self.device
@@ -132,26 +141,40 @@ class JointVelocityCriFilterActionCfg(JointVelocityActionCfg):
 
     class_type: type[ActionTerm] = JointVelocityCriFilterAction
 
-    cri_limit: float = 0.96
-    """Hard CRI cap passed to ``set_cri_filter_limit``."""
+    cri_limit: float = 0.92
+    """9-channel peak where the highest point starts losing incoming approach."""
 
     cbf_alpha: float = 0.02
-    """CBF boundary coefficient α. Approach limit is ``cri_limit * (1 - α)``."""
+    """Passed through to the library. The plant command changes direction."""
+
+    direction_gain: float = 0.8
+    """Weight of the approach-removal vector at ``cri_limit``. Higher peaks use more, up to 1."""
+
+    speed_enabled: bool = False
+    """When false, joint speed is not scaled. Only the approach direction changes."""
+
+    strong_cri: float = 0.92
+    """Peak at which ``speed_enabled`` also scales every joint."""
+
+    strong_target: float = 0.0095
+    """CRI the speed scale aims at. Unused while ``speed_enabled`` is false."""
 
     filter_enabled: bool = True
-    """If True, apply library ``qd_cmd``. If False, command ``qd_RL`` and still log CRI."""
+    """If True, change approach direction. If False, command ``qd_RL`` and still log CRI."""
 
 
 class JointPositionCriFilterAction(RelativeJointPositionAction):
-    """Delta-position action filtered in velocity space by CBF ``run_cri_filter``.
+    """Delta-position action whose velocity filter changes approach direction.
 
     Policy output is a joint delta ``Δq`` (OpenPI π0.5-DROID style). Each tick:
 
     1. ``qd_nom = Δq / dt``
-    2. one ``run_cri_filter(q, qd_nom)`` → ``qd_cmd``
-    3. ``q_cmd = q + qd_cmd * dt`` sent as a position target
+    2. one ``run_cri_filter(q, qd_nom)`` exports ``J`` and ``dir``
+    3. the highest-CRI point loses a fraction of incoming ``dir · v_lin``
+    4. ``q_cmd = q + qd_cmd * dt`` sent as a position target
 
-    The library QP stays relative-degree 1 (velocity). Time-scale ``s`` is not applied.
+    The fraction is ``min(1, direction_gain * peak / cri_limit)``. Joint speed
+    is not scaled. Time-scale ``s`` is not applied.
     """
 
     cfg: "JointPositionCriFilterActionCfg"
@@ -159,7 +182,13 @@ class JointPositionCriFilterAction(RelativeJointPositionAction):
     def __init__(self, cfg: "JointPositionCriFilterActionCfg", env: ManagerBasedEnv):
         super().__init__(cfg, env)
         self._asset.data.enable_cri_filter_mode(
-            cri_limit=cfg.cri_limit, filter_enabled=cfg.filter_enabled, cbf_alpha=cfg.cbf_alpha
+            cri_limit=cfg.cri_limit,
+            filter_enabled=cfg.filter_enabled,
+            cbf_alpha=cfg.cbf_alpha,
+            direction_gain=cfg.direction_gain,
+            speed_enabled=cfg.speed_enabled,
+            strong_cri=cfg.strong_cri,
+            strong_target=cfg.strong_target,
         )
         n = self.num_envs
         device = self.device
@@ -235,11 +264,23 @@ class JointPositionCriFilterActionCfg(RelativeJointPositionActionCfg):
 
     class_type: type[ActionTerm] = JointPositionCriFilterAction
 
-    cri_limit: float = 0.96
-    """Hard CRI cap passed to ``set_cri_filter_limit``."""
+    cri_limit: float = 0.92
+    """9-channel peak where the highest point starts losing incoming approach."""
 
     cbf_alpha: float = 0.02
-    """CBF boundary coefficient α. Approach limit is ``cri_limit * (1 - α)``."""
+    """Passed through to the library. The plant command changes direction."""
+
+    direction_gain: float = 0.8
+    """Weight of the approach-removal vector at ``cri_limit``. Higher peaks use more, up to 1."""
+
+    speed_enabled: bool = False
+    """When false, joint speed is not scaled. Only the approach direction changes."""
+
+    strong_cri: float = 0.92
+    """Peak at which ``speed_enabled`` also scales every joint."""
+
+    strong_target: float = 0.0095
+    """CRI the speed scale aims at. Unused while ``speed_enabled`` is false."""
 
     filter_enabled: bool = True
-    """If True, apply library ``qd_cmd`` then integrate to ``q_cmd``. If False, ``q + Δq``."""
+    """If True, change approach direction then integrate to ``q_cmd``. If False, ``q + Δq``."""

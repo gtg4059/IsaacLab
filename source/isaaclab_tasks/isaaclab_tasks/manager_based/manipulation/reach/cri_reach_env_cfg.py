@@ -5,9 +5,11 @@
 
 """CRI-aware reach environment (UR_CRI_recurr style).
 
-Episodes end on reach or the horizon. Crossing the CRI limit does not end the
-episode: the arm rewinds inside the episode and the return continues. A horizon
-timeout keeps the target and draws a new arm. Reach success draws both.
+Episodes end on reach or the horizon. Max CRI above 1.99 rewinds the arm to
+the attempt's start pose and does not end the episode. From 0.96 up to that
+line the arm stays and the step pays the soft penalty. A horizon timeout keeps
+the target and restores that attempt's start pose. Reach success draws a new
+arm and a new target.
 """
 
 from dataclasses import MISSING
@@ -164,14 +166,14 @@ class CRIObservationsCfg:
         ee_pose_error = ObsTerm(
             func=mdp.ee_pose_error_to_command,
             params={"command_name": "ee_pose", "asset_cfg": SceneEntityCfg("robot", body_names="ee_link")},
-            noise=Unoise(n_min=-0.002, n_max=0.002),  # ±2 mm, ±0.002 rad
+            noise=Unoise(n_min=-0.01, n_max=0.01),  # ±2 mm, ±0.002 rad
         )
         CRI = ObsTerm(
             func=mdp.collision_risk_index,
-            noise=Unoise(n_min=-0.001, n_max=0.001),
         )
-        joint_pos = ObsTerm(func=mdp.joint_pos)
-        joint_vel = ObsTerm(func=mdp.joint_vel)
+        # Isaac Lab reach 기본. ±0.01 rad, ±0.01 rad/s.
+        joint_pos = ObsTerm(func=mdp.joint_pos, noise=Unoise(n_min=-0.001, n_max=0.001))
+        joint_vel = ObsTerm(func=mdp.joint_vel, noise=Unoise(n_min=-0.01, n_max=0.01))
         pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "ee_pose"})
         actions = ObsTerm(func=mdp.last_action)
         # Seconds since this target was sampled. Actor and critic share this group.
@@ -208,17 +210,18 @@ class CRIEventCfg:
                 "wrist_2_joint": (0.0, 0.0),
                 "wrist_3_joint": (0.0, 0.0),
             },
-            # Timeout and reach success draw a new arm. The target is kept
-            # separately by keep_command_until_success.
-            "keep_failed_spawn": False,
+            # A timeout restores this attempt's start pose. Reach success draws
+            # a new arm. The target is kept by keep_command_until_success.
+            "keep_failed_spawn": True,
         },
     )
-    # Every control step. Crossing the OVF threshold rewinds to the spawn.
-    # The episode and the target stay. ovf_rewind_bonus pays on that step.
+    # Max CRI above terminations.OVF (1.99) puts the arm back at the spawn.
+    # The episode keeps running.
     rewind_on_cri = EventTerm(
         func=mdp.rewind_arm_on_cri_limit,
         mode="interval",
         interval_range_s=(0.0, 0.0),
+        params={"enabled": True},
     )
 
 
@@ -226,73 +229,35 @@ class CRIEventCfg:
 class CRIRewardsCfg:
     end_effector_position_tracking = RewTerm(
         func=mdp.position_command_error,
-        weight=-0.4,
+        weight=-0.2,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
 
     end_effector_orientation_tracking = RewTerm(
         func=mdp.orientation_command_error,
-        weight=-0.2,
+        weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
     )
 
-    # end_effector_pos_orientation_tracking = RewTerm(
-    #     func=mdp.position_orientation_command_error,
-    #     weight=0.5,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
-    # )
-
-    # Position + angle only. Peak is the weight, including while the hand is still moving.
-    # end_effector_pos_orientation_tracking_fine_grained = RewTerm(
-    #     func=mdp.position_orientation_command_error_fine_grained,
-    #     weight=0.5,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names="ee_link"), "command_name": "ee_pose"},
-    # )
-
-    # CRI_OVF = RewTerm(
-    #     func=mdp.CRI_OVF_lin,
-    #     weight=-2.0,
-    #     params={"limit": 0.96},
-    # )
-    # +1 on the return for each OVF rewind (weight * dt, dt = 1/15).
-    # ovf_rewind_bonus_weight holds this at 0 until iter 18000.
-    ovf_rewind_bonus = RewTerm(func=mdp.ovf_rewind_bonus, weight=0.0)
-    # Same pose sum, times exp(-||(v,ω)|| / 0.10). Peak is the weight only when stopped.
-    # end_effector_pos_orientation_twist_tracking_fine_grained = RewTerm(
-    #     func=mdp.position_orientation_twist_command_error_fine_grained,
-    #     weight=2.0,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
-    #         "command_name": "ee_pose",
-    #         "max_lin_vel": 0.10,
-    #     },
-    # )
-    # Pay iff d <= support_distance (8 cm). Mean of d / θ / combined-twist
-    # slacks toward 0. Twist is ||(v, ω)||_2 vs 0.08 (8× of Jawale 0.02).
-    # Slack widths stay at 8×; they do not cool.
-    # Weight 0 until pose_twist_linear_weight (48 * 7000) sets 2.0.
-    # end_effector_pose_twist_linear = RewTerm(
-    #     func=mdp.distance_linear_approach_reward,
-    #     weight=0.0,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
-    #         "command_name": "ee_pose",
-    #         "support_distance": 0.01 * 8.0,
-    #         "max_angle_rad": 0.05 * 8.0,
-    #         "max_lin_vel": 0.01 * 8.0,  # ||(v, ω)||_2, 8× of Jawale 0.02
-    #     },
-    # )
+    # Soft line at 0.96. y = 0 at or below it. Above it, y = (max CRI - 0.96) + 0.1.
+    # Crossing 1.99 rewinds the arm and does not end the episode. Weight steps
+    # from −0.5 to −15 at 48 * 2000. Return is weight * y * dt.
+    ovf_rewind_bonus = RewTerm(
+        func=mdp.ovf_rewind_bonus,
+        weight=-0.5,
+        params={"threshold": 0.96},
+    )
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=0.0)
     action_rate = RewTerm(func=mdp.action_rate_l2_clamped, weight=-0.1)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-1.0e-7)
-    # −1 per step from the start (weight −15, step_dt = 1/15).
+    # 0 until is_alive_weight sets −5 at 48 * 120000.
     is_alive = RewTerm(
         func=mdp.is_alive_time_ramp,
         weight=-0.0,
         params={"ramp_start_s": 8.0, "ramp_end_s": 16.0, "initial": 1.0, "final": 1.0},
     )
-    # 0 until a rewind. Weight +5 pays back is_alive's −5/s on that attempt.
-    # A clean arrival keeps the clock. clean_attempt_time_weight sets +5.
+    # 0 until clean_attempt_time_weight. Paid on a reach, for attempts rewound
+    # earlier in that episode. A horizon timeout pays nothing.
     clean_attempt_time = RewTerm(func=mdp.clean_attempt_time_bonus, weight=0.0)
     # One-shot +1 on the arrival step. weight * dt ≈ +40.
     # Staying in-gate does not keep paying.
@@ -303,216 +268,102 @@ class CRIRewardsCfg:
         params={
             "command_name": "ee_pose",
             "asset_cfg": SceneEntityCfg("robot", body_names="ee_link"),
-            "max_distance": 0.25,
-            "max_angle_rad": 0.25,
-            "max_lin_vel": 0.20,  # ||(v, ω)||_2
+            "max_distance": 0.05,
+            "max_angle_rad": 0.05,
+            # ||(v, ω)||_2. Ignored until vel_switch_step, then this bound.
+            "max_lin_vel": 0.10,
+            "vel_switch_step": 48 * 120000,
             "hold_square_max": 1,
         },
     )
 
-
 @configclass
 class CRICurriculumCfg:
-    # Off. That term kept the failed attempt's spawn as well as the target.
-    # Timeout now keeps only the target and draws a new arm.
-    # resample_on_reset = CurrTerm(
-    #     func=mdp.resample_on_reset_curriculum,
-    #     params={
-    #         "switch_step": 48 * 20000,
-    #         "command_name": "ee_pose",
-    #         "event_term_name": "reset_robot_joints",
-    #     },
-    # )
-    # After the 16-45-34 reach phase and the OVF cool (iter 6000), ramp to −1 per step.
-    # is_alive_weight = CurrTerm(
-    #     func=mdp.modify_term_cfg,
-    #     params={
-    #         "address": "rewards.is_alive.weight",
-    #         "modify_fn": mdp.linear_interpolate_by_step,
-    #         "modify_params": {
-    #             "start_step": 48 * 18000,
-    #             "num_steps": 48 * 1000,
-    #             "initial_value": 0.0,
-    #             "final_value": -5.0,
-    #         },
-    #     },
-    # )
+    # # Penalty magnitude grows from 0 to −0.5. 48 steps is one iteration.
     # ovf_rewind_bonus_weight = CurrTerm(
-    #     func=mdp.modify_term_cfg,
+    #     func=mdp.modify_reward_weight_linear,
     #     params={
-    #         "address": "rewards.ovf_rewind_bonus.weight",
-    #         "modify_fn": mdp.linear_interpolate_by_step,
-    #         "modify_params": {
-    #             "start_step": 48 * 18000,
-    #             "num_steps": 48 * 1000,
-    #             "initial_value": 0.0,
-    #             "final_value": 2.0,
-    #         },
+    #         "term_name": "ovf_rewind_bonus",
+    #         "initial_weight": -15.0,
+    #         "final_weight": -15.0,
+    #         "start_step": 48 * 8000,
+    #         "num_steps": 48 * 8000,
     #     },
     # )
 
-    is_alive_weight = CurrTerm(
+    ovf_rewind_bonus_weight = CurrTerm(
         func=mdp.modify_term_cfg,
         params={
-            "address": "rewards.is_alive.weight",
+            "address": "rewards.ovf_rewind_bonus.weight",
             "modify_fn": mdp.reward_weight_step_by_step,
             "modify_params": {
-                "switch_step": 48 * 18000,
-                "initial_weight": -0.0,
-                "final_weight": -5.0,
+                "switch_step": 48 * 2000,
+                "initial_weight": -0.5,
+                "final_weight": -15.0,
             },
         },
     )
 
-    # # No rewind bonus until iter 18000, then +2/15 on the rewind step.
-    # ovf_rewind_bonus_weight = CurrTerm(
+    # # Soft until this step, then rewind to the spawn on a crossing.
+    # rewind_on_cri = CurrTerm(
     #     func=mdp.modify_term_cfg,
     #     params={
-    #         "address": "rewards.ovf_rewind_bonus.weight",
+    #         "address": "events.rewind_on_cri.params.enabled",
     #         "modify_fn": mdp.reward_weight_step_by_step,
     #         "modify_params": {
-    #             "switch_step": 48 * 18000,
-    #             "initial_weight": 0.0,
-    #             "final_weight": 0.0,
-    #         },
-    #     },
-    # )
-    # After iter 120000, a rewind pays back is_alive (−5/s) for that attempt.
-    clean_attempt_time_weight = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "rewards.clean_attempt_time.weight",
-            "modify_fn": mdp.reward_weight_step_by_step,
-            "modify_params": {
-                "switch_step": 48 * 120000,
-                "initial_weight": 0.0,
-                "final_weight": 5.0,
-            },
-        },
-    )
-    # Hold action-rate at -0.1 until the same step, then drop it to -0.001.
-    action_rate_weight = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "rewards.action_rate.weight",
-            "modify_fn": mdp.reward_weight_step_by_step,
-            "modify_params": {
-                "switch_step": 48 * 120000,
-                "initial_weight": -0.1,
-                "final_weight": -0.001,
-            },
-        },
-    )
-    # Hold the travel penalties until iter 19000, then drop them.
-    # Orientation matching and action-rate both lengthen the path.
-    # orientation_tracking_weight = CurrTerm(
-    #     func=mdp.modify_term_cfg,
-    #     params={
-    #         "address": "rewards.end_effector_orientation_tracking.weight",
-    #         "modify_fn": mdp.reward_weight_step_by_step,
-    #         "modify_params": {
-    #             "switch_step": 48 * 18000,
-    #             "initial_weight": -0.2,
-    #             "final_weight": 0.0,
-    #         },
-    #     },
-    # )
-    # # At iter 19000, strengthen the distance term so the path shortens.
-    # position_tracking_weight = CurrTerm(
-    #     func=mdp.modify_term_cfg,
-    #     params={
-    #         "address": "rewards.end_effector_position_tracking.weight",
-    #         "modify_fn": mdp.reward_weight_step_by_step,
-    #         "modify_params": {
-    #             "switch_step": 48 * 18000,
-    #             "initial_weight": -0.4,
-    #             "final_weight": -4.0,
-    #         },
-    #     },
-    # )
-
-    # vasan_reset_cost_weight = CurrTerm(
-    #     func=mdp.modify_term_cfg,
-    #     params={
-    #         "address": "rewards.vasan_reset_cost.weight",
-    #         "modify_fn": mdp.linear_interpolate_by_step,
-    #         "modify_params": {
-    #             "start_step": 48 * 18000,
-    #             "num_steps": 48 * 1000,
-    #             "initial_value": -0.15,
-    #             "final_value": -5.0,
-    #         },
-    #     },
-    # )
-    # Quiet until iter 800, so the reach bonus can turn on before paths are bent.
-    # Hold 0.05 rad/s through iter 3500 (arrival time was still falling in that
-    # stretch). Cool to 0 by iter 4000, before the OVF line starts moving.
-    # The sample is once per episode; sin(pi t / T) makes it 0 at arrival.
-    # early_spline_velocity_offset = CurrTerm(
-    #     func=mdp.modify_term_cfg,
-    #     params={
-    #         "address": "events.early_spline_velocity_offset.params.std",
-    #         "modify_fn": mdp.spline_offset_std_by_step,
-    #         "modify_params": {
-    #             "hold_start": 48 * 500,
-    #             "hold_end": 48 * 1000,
-    #             "cool_steps": 48 * 500,
-    #             "amplitude": 0.05,
-    #         },
-    #     },
-    # )
-    # cri_ovf_term_threshold = CurrTerm(
-    #     func=mdp.modify_term_cfg,
-    #     params={
-    #         "address": "terminations.OVF.params.threshold",
-    #         "modify_fn": mdp.cri_ovf_threshold_by_step,
-    #         "modify_params": {
-    #             "crossfade_start": 48 * 1000,
-    #             "num_steps": 48 * 1000,
-    #             "decay_alpha": 2.0,
-    #             "threshold_initial": 1.3,
-    #             "threshold_final": 0.96,
-    #         },
-    #     },
-    # )
-    
-    # 4× until iter 2000 (0.40 m, 0.80 rad, twist 0.40), then to 1× by iter 3000.
-    # reach_success_criteria = CurrTerm(
-    #     func=mdp.reach_success_criteria_curriculum,
-    #     params={
-    #         "ease_factor": 2.0,
-    #         "decay_alpha": 2.0,
-    #         "start_step": 48 * 2000,
-    #         "num_steps": 48 * 1000,
-    #         "reward_term_names": ["reach_success_bonus"],
-    #         "event_term_name": None,
-    #         "mix_half_and_one_after": False,
-    #     },
-    # )
-
-    # Off. Decay on the reach bonus is the time pressure.
-    # is_alive_weight = CurrTerm(
-    #     func=mdp.modify_term_cfg,
-    #     params={
-    #         "address": "rewards.is_alive.weight",
-    #         "modify_fn": mdp.linear_interpolate_by_step,
-    #         "modify_params": {
-    #             "start_step": 48 * 12000,
-    #             "num_steps": 48 * 8000,
-    #             "initial_value": 0.0,
-    #             "final_value": -4.0,
-    #         },
-    #     },
-    # )
-    # pose_twist_linear_weight = CurrTerm(
-    #     func=mdp.modify_term_cfg,
-    #     params={
-    #         "address": "rewards.end_effector_pose_twist_linear.weight",
-    #         "modify_fn": mdp.reward_weight_step_by_step,
-    #         "modify_params": {
-    #             "switch_step": 48 * 7000,
+    #             "switch_step": 48 * 10000,
     #             "initial_weight": 0.0,
     #             "final_weight": 1.0,
+    #         },
+    #     },
+    # )
+    # # Penalty while the rewind is off. Weight 0 once the rewind turns on.
+    # ovf_rewind_bonus_weight = CurrTerm(
+    #     func=mdp.modify_term_cfg,
+    #     params={
+    #         "address": "rewards.ovf_rewind_bonus.weight",
+    #         "modify_fn": mdp.reward_weight_step_by_step,
+    #         "modify_params": {
+    #             "switch_step": 48 * 10000,
+    #             "initial_weight": -15.0,
+    #             "final_weight": 0.0,
+    #         },
+    #     },
+    # )
+    # is_alive_weight = CurrTerm(
+    #     func=mdp.modify_term_cfg,
+    #     params={
+    #         "address": "rewards.is_alive.weight",
+    #         "modify_fn": mdp.reward_weight_step_by_step,
+    #         "modify_params": {
+    #             "switch_step": 48 * 72000,
+    #             "initial_weight": -0.1,
+    #             "final_weight": -2.0,
+    #         },
+    #     },
+    # )
+    # clean_attempt_time_weight = CurrTerm(
+    #     func=mdp.modify_term_cfg,
+    #     params={
+    #         "address": "rewards.clean_attempt_time.weight",
+    #         "modify_fn": mdp.reward_weight_step_by_step,
+    #         "modify_params": {
+    #             "switch_step": 48 * 72000,
+    #             "initial_weight": 0.0,
+    #             "final_weight": 2.0,
+    #         },
+    #     },
+    # )
+    # Hold action-rate at -0.1 until 48 * 120000, then drop it to -0.001.
+    # action_rate_weight = CurrTerm(
+    #     func=mdp.modify_term_cfg,
+    #     params={
+    #         "address": "rewards.action_rate.weight",
+    #         "modify_fn": mdp.reward_weight_step_by_step,
+    #         "modify_params": {
+    #             "switch_step": 48 * 120000,
+    #             "initial_weight": -0.1,
+    #             "final_weight": -0.001,
     #         },
     #     },
     # )
@@ -526,16 +377,17 @@ class CRITerminationsCfg:
         params={"reward_term_name": "reach_success_bonus"},
         time_out=False,
     )
-    # Not an episode end. rewind_on_cri reads this threshold and rewinds.
+    # Not an episode end. rewind_on_cri reads this threshold and returns the
+    # arm to the spawn. The soft penalty is rewards.ovf_rewind_bonus at 0.96.
     OVF = DoneTerm(
         func=mdp.cri_boundary_continue,
-        params={"threshold": 0.96},
+        params={"threshold": 1.99},
     )
 
 
 @configclass
 class CRIReachEnvCfg(ManagerBasedRLEnvCfg):
-    """Reach environment with CRI observation. Episodes end on reach, timeout, or OVF."""
+    """Reach environment with CRI observation. Episodes end on reach or timeout."""
     # 8192 is the training width. The base cylinder kept in
     # _spawn_ur10_base_collider_only is what stops PhysX from hanging here.
     scene: CRIReachSceneCfg = CRIReachSceneCfg(num_envs=8192, env_spacing=2.5)

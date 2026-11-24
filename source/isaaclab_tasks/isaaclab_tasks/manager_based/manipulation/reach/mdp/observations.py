@@ -60,10 +60,26 @@ def collision_risk_index(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = Scene
     return asset.data.CRI
 
 
-def cri_filter_pre(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
-    """Previous-step CRI from ``run_cri_filter``. Does not call AtMotionState."""
+def cri_filter_pre(
+    env: ManagerBasedEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """CRI from the previous control step, one value per collision point.
+
+    The CBF filter only changes the commanded trajectory. The arm starts at
+    rest, so the first observation of an episode is 0 at every collision point.
+    """
     asset: Articulation = env.scene[asset_cfg.name]
-    return asset.data.cri_filter_pre
+    step = int(getattr(env, "common_step_counter", 0))
+    cri = asset.data.read_delayed_cri(step)
+    length = getattr(env, "episode_length_buf", None)
+    if length is None:
+        return torch.zeros_like(cri)
+    first = length == 0
+    if torch.any(first):
+        cri = cri.clone()
+        cri[first] = 0
+    return cri
 
 
 def cri_filter_delta(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
