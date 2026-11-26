@@ -299,10 +299,23 @@ class CRICurriculumCfg:
             "modify_params": {
                 "switch_step": 48 * 2000,
                 "initial_weight": -0.5,
-                "final_weight": -15.0,
+                "final_weight": -25.0,
             },
         },
     )
+
+    # ovf_rewind_bonus_weight = CurrTerm(
+    #     func=mdp.modify_term_cfg,
+    #     params={
+    #         "address": "rewards.ovf_rewind_bonus.weight",
+    #         "modify_fn": mdp.reward_weight_step_by_step,
+    #         "modify_params": {
+    #             "switch_step": 48 * 12000,
+    #             "initial_weight": -0.5,
+    #             "final_weight": -0.0,
+    #         },
+    #     },
+    # )
 
     # # Soft until this step, then rewind to the spawn on a crossing.
     # rewind_on_cri = CurrTerm(
@@ -330,18 +343,18 @@ class CRICurriculumCfg:
     #         },
     #     },
     # )
-    # is_alive_weight = CurrTerm(
-    #     func=mdp.modify_term_cfg,
-    #     params={
-    #         "address": "rewards.is_alive.weight",
-    #         "modify_fn": mdp.reward_weight_step_by_step,
-    #         "modify_params": {
-    #             "switch_step": 48 * 72000,
-    #             "initial_weight": -0.1,
-    #             "final_weight": -2.0,
-    #         },
-    #     },
-    # )
+    is_alive_weight = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "rewards.is_alive.weight",
+            "modify_fn": mdp.reward_weight_step_by_step,
+            "modify_params": {
+                "switch_step": 48 * 8000,
+                "initial_weight": -0.0,
+                "final_weight": -0.5,
+            },
+        },
+    )
     # clean_attempt_time_weight = CurrTerm(
     #     func=mdp.modify_term_cfg,
     #     params={

@@ -49,13 +49,13 @@ class JointVelocitySplineOffsetActionCfg(JointVelocityActionCfg):
 
 
 class JointVelocityCriFilterAction(JointVelocityAction):
-    """Joint velocity action that changes approach direction, not joint speed.
+    """Joint velocity action that slides on the force and pressure boundaries.
 
-    Each tick: one ``run_cri_filter(q, qd_RL)``. The highest-CRI point supplies
-    ``J`` and ``dir``. At or above ``cri_limit`` the command applies
-    ``min(1, direction_gain * peak / cri_limit)`` of the cut that removes
-    incoming ``dir · v_lin``. Tangential speed stays. ``speed_enabled`` is off.
-    Next obs is that CRI. First obs is 0.
+    Each tick: one ``run_cri_filter(q, qd_RL)``. The filter is on every control
+    cycle. ``cri_limit`` is where ``h`` is zero. The sent command is the
+    level QP: every force and pressure row keeps
+    ``h(u^k) + g·(u - u^k) >= 0``.
+    Next obs is the CRI of the sent command. First obs is 0.
     """
 
     cfg: "JointVelocityCriFilterActionCfg"
@@ -110,6 +110,7 @@ class JointVelocityCriFilterAction(JointVelocityAction):
         extras = {
             "Episode_CRI_Filter/delta_mean": torch.mean(self._ep_delta_sum[env_ids] / denom),
             "Episode_CRI_Filter/delta_max": torch.mean(self._ep_delta_max[env_ids]),
+            # CRI of the command that was sent. Filter off: the raw forward.
             "Episode_CRI_Filter/max_cri_pre": torch.mean(self._ep_max_cri_pre[env_ids]),
             "Episode_CRI_Filter/cbf_alpha": torch.tensor(
                 self._last_cbf_alpha, device=self.device, dtype=torch.float32
@@ -141,17 +142,17 @@ class JointVelocityCriFilterActionCfg(JointVelocityActionCfg):
 
     class_type: type[ActionTerm] = JointVelocityCriFilterAction
 
-    cri_limit: float = 0.92
-    """9-channel peak where the highest point starts losing incoming approach."""
+    cri_limit: float = 0.96
+    """CRI where ``h(x)`` is zero. A raw peak above this is projected back onto the barrier."""
 
     cbf_alpha: float = 0.02
-    """Passed through to the library. The plant command changes direction."""
+    """Passed through to the library. The halfspace does not use this decay."""
 
-    direction_gain: float = 0.8
-    """Weight of the approach-removal vector at ``cri_limit``. Higher peaks use more, up to 1."""
+    direction_gain: float = 0.9
+    """Unused. The sent command is the library h(x) projection."""
 
     speed_enabled: bool = False
-    """When false, joint speed is not scaled. Only the approach direction changes."""
+    """Unused. The sent command is the library h(x) projection."""
 
     strong_cri: float = 0.92
     """Peak at which ``speed_enabled`` also scales every joint."""
@@ -160,21 +161,20 @@ class JointVelocityCriFilterActionCfg(JointVelocityActionCfg):
     """CRI the speed scale aims at. Unused while ``speed_enabled`` is false."""
 
     filter_enabled: bool = True
-    """If True, change approach direction. If False, command ``qd_RL`` and still log CRI."""
+    """If True, slide on the force/pressure intersection every tick. If False, command ``qd_RL``."""
 
 
 class JointPositionCriFilterAction(RelativeJointPositionAction):
-    """Delta-position action whose velocity filter changes approach direction.
+    """Delta-position action whose velocity command is the h(x) projection.
 
     Policy output is a joint delta ``Δq`` (OpenPI π0.5-DROID style). Each tick:
 
     1. ``qd_nom = Δq / dt``
-    2. one ``run_cri_filter(q, qd_nom)`` exports ``J`` and ``dir``
-    3. the highest-CRI point loses a fraction of incoming ``dir · v_lin``
+    2. one ``run_cri_filter(q, qd_nom)``
+    3. a raw peak above ``cri_limit`` is projected onto ``h(u^k) + g·(u - u^k) >= 0``
     4. ``q_cmd = q + qd_cmd * dt`` sent as a position target
 
-    The fraction is ``min(1, direction_gain * peak / cri_limit)``. Joint speed
-    is not scaled. Time-scale ``s`` is not applied.
+    Time-scale ``s`` is not applied.
     """
 
     cfg: "JointPositionCriFilterActionCfg"
@@ -233,6 +233,7 @@ class JointPositionCriFilterAction(RelativeJointPositionAction):
         extras = {
             "Episode_CRI_Filter/delta_mean": torch.mean(self._ep_delta_sum[env_ids] / denom),
             "Episode_CRI_Filter/delta_max": torch.mean(self._ep_delta_max[env_ids]),
+            # CRI of the command that was sent. Filter off: the raw forward.
             "Episode_CRI_Filter/max_cri_pre": torch.mean(self._ep_max_cri_pre[env_ids]),
             "Episode_CRI_Filter/cbf_alpha": torch.tensor(
                 self._last_cbf_alpha, device=self.device, dtype=torch.float32
@@ -264,17 +265,17 @@ class JointPositionCriFilterActionCfg(RelativeJointPositionActionCfg):
 
     class_type: type[ActionTerm] = JointPositionCriFilterAction
 
-    cri_limit: float = 0.92
-    """9-channel peak where the highest point starts losing incoming approach."""
+    cri_limit: float = 0.96
+    """CRI where ``h(x)`` is zero. A raw peak above this is projected back onto the barrier."""
 
     cbf_alpha: float = 0.02
-    """Passed through to the library. The plant command changes direction."""
+    """Passed through to the library. The halfspace does not use this decay."""
 
-    direction_gain: float = 0.8
-    """Weight of the approach-removal vector at ``cri_limit``. Higher peaks use more, up to 1."""
+    direction_gain: float = 0.9
+    """Unused. The sent command is the library h(x) projection."""
 
     speed_enabled: bool = False
-    """When false, joint speed is not scaled. Only the approach direction changes."""
+    """Unused. The sent command is the library h(x) projection."""
 
     strong_cri: float = 0.92
     """Peak at which ``speed_enabled`` also scales every joint."""
@@ -283,4 +284,4 @@ class JointPositionCriFilterActionCfg(RelativeJointPositionActionCfg):
     """CRI the speed scale aims at. Unused while ``speed_enabled`` is false."""
 
     filter_enabled: bool = True
-    """If True, change approach direction then integrate to ``q_cmd``. If False, ``q + Δq``."""
+    """If True, send the h(x) projection. If False, integrate ``q + Δq``."""

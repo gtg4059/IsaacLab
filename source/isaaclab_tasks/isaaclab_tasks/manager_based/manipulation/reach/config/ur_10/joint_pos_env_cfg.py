@@ -35,7 +35,7 @@ class UR10ReachEnvCfg(CRIReachEnvCfg):
         )
         self.commands.ee_pose.body_name = "ee_link"
         self.actions.arm_action = mdp.JointVelocitySplineOffsetActionCfg(
-            asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True
+            asset_name="robot", joint_names=[".*"], scale=0.25, use_default_offset=True
         )
 
         # Every reset draws a new arm. A horizon timeout keeps the target.

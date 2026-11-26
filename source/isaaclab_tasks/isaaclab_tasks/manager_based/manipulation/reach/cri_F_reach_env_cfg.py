@@ -8,8 +8,8 @@
 Scene, robot, commands, rewards, events, terminations, and curriculum are
 :class:`UR10ReachEnvCfg`. The arm action still calls ``run_cri_filter`` so the
 CRI observation stays :func:`mdp.cri_filter_pre`. ``filter_enabled`` is False,
-so the joint command is the policy velocity. Set it True to remove a fraction
-of incoming ``dir · v_lin`` at the highest-CRI point.
+so the joint command is the policy velocity. Set it True to slow the whole
+linear velocity at every collision point over the limit.
 
 Launch from the IsaacLab repo root:
 
@@ -41,7 +41,7 @@ class CRIFObservationsCfg:
             params={"command_name": "ee_pose", "asset_cfg": SceneEntityCfg("robot", body_names="ee_link")},
             noise=Unoise(n_min=-0.002, n_max=0.002),
         )
-        # Previous control step's CRI. The trajectory filter is not part of this term.
+        # Previous step's CRI of the sent command. Filter off: that is the raw forward.
         CRI = ObsTerm(func=mdp.cri_filter_pre)
         joint_pos = ObsTerm(func=mdp.joint_pos, noise=Unoise(n_min=-0.001, n_max=0.001))
         joint_vel = ObsTerm(func=mdp.joint_vel, noise=Unoise(n_min=-0.001, n_max=0.001))
@@ -57,18 +57,14 @@ class CRIFObservationsCfg:
 
 
 def _use_direction_filter(cfg) -> None:
-    """Keep the direction-filter action, but send the policy velocity.
-
-    ``filter_enabled=False`` leaves ``dir · v_lin`` unchanged. Flip it to True
-    to cut the approach at the highest-CRI point. Speed scale stays off.
-    """
+    """Solve the CRI-level QP on every force and pressure row."""
     cfg.actions.arm_action = mdp.JointVelocityCriFilterActionCfg(
         asset_name="robot",
         joint_names=[".*"],
         scale=0.5,
         use_default_offset=True,
-        cri_limit=0.92,
-        direction_gain=0.8,
+        cri_limit=0.96,
+        direction_gain=0.9,
         speed_enabled=False,
         strong_cri=0.92,
         strong_target=0.0095,

@@ -66,8 +66,9 @@ def cri_filter_pre(
 ) -> torch.Tensor:
     """CRI from the previous control step, one value per collision point.
 
-    The CBF filter only changes the commanded trajectory. The arm starts at
-    rest, so the first observation of an episode is 0 at every collision point.
+    The value is the CRI of the command that was sent. Filter off: that command
+    is the policy velocity, so this is the raw forward. The arm starts at rest,
+    so the first observation of an episode is 0 at every collision point.
     """
     asset: Articulation = env.scene[asset_cfg.name]
     step = int(getattr(env, "common_step_counter", 0))

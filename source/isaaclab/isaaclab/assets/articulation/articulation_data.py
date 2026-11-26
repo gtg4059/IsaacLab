@@ -112,13 +112,12 @@ class ArticulationData:
         self._cri_filter_cri_out: torch.Tensor | None = None
         self._cri_filter_qd_cmd: torch.Tensor | None = None
         self._cri_filter_qd_rl: torch.Tensor | None = None
-        # Point line for the direction correction. The 0.96 hard exceed line
-        # stays with OVF and rewind. Speed scaling is off.
-        self._cri_filter_limit: float = 0.92
+        # h(x) = 0 at this CRI. The sent command is the library projection.
+        self._cri_filter_limit: float = 0.96
         self._cri_filter_cbf_alpha: float = 0.02
-        self._cri_filter_approach_limit: float = 0.92 * (1.0 - 0.02)
+        self._cri_filter_approach_limit: float = 0.96 * (1.0 - 0.02)
         self._cri_filter_enabled: bool = False
-        self._cri_filter_direction_gain: float = 0.8
+        self._cri_filter_direction_gain: float = 0.9
         self._cri_filter_speed_enabled: bool = False
         self._cri_filter_strong_cri: float = 0.92
         self._cri_filter_strong_target: float = 0.0095
@@ -853,6 +852,16 @@ class ArticulationData:
             self._cri_qd_f64 = torch.empty(qd.shape, device=qd.device, dtype=torch.float64)
         self._cri_qd_f64.copy_(qd)
 
+    @staticmethod
+    def _cri_dll_qd(qd: torch.Tensor) -> torch.Tensor:
+        """Joint velocity handed to the CRI DLL.
+
+        Each element keeps its sign. Absolute values below 1e-10 become 1e-10.
+        The tensor that drives the robot is left unchanged.
+        """
+        floor = qd.new_tensor(1.0e-10)
+        return torch.where(qd.abs() < floor, torch.copysign(floor, qd), qd)
+
     def _cri_input_tensors(self) -> tuple[torch.Tensor, torch.Tensor]:
         if self._joint_pos.timestamp < self._sim_timestamp:
             self._refresh_joint_kinematics()
@@ -1123,7 +1132,7 @@ class ArticulationData:
             return
         q_in, qd_in = self._cri_input_tensors()
         for _ in range(rounds):
-            self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
+            self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, self._cri_dll_qd(qd_in))
         if self.device.startswith("cuda"):
             torch.cuda.synchronize()
         print(f"[CRI] warm-up complete: {rounds} rounds", flush=True)
@@ -1151,7 +1160,7 @@ class ArticulationData:
         self._cri_q_f64 = q
         self._cri_qd_f64 = qd
         for _ in range(rounds):
-            self.solver.RunSolver_CUDA_CRI_AtMotionState(q, qd)
+            self.solver.RunSolver_CUDA_CRI_AtMotionState(q, self._cri_dll_qd(qd))
         if self.device.startswith("cuda"):
             torch.cuda.synchronize()
         print(f"[CRI] init warm-up: {rounds} rounds (SFD_ALLOC_WARMUP_ROUNDS)", flush=True)
@@ -1319,7 +1328,7 @@ class ArticulationData:
             self._ensure_cri_cuda_events()
             assert self._cri_cuda_start_evt is not None and self._cri_cuda_end_evt is not None
             self._cri_cuda_start_evt.record()
-            cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
+            cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, self._cri_dll_qd(qd_in))
             self._cri_cuda_end_evt.record()
             self._cri_cuda_end_evt.synchronize()
             self._record_cri_inference_time(self._cri_cuda_start_evt.elapsed_time(self._cri_cuda_end_evt) * 1e-3)
@@ -1327,7 +1336,7 @@ class ArticulationData:
                 self._cri_solved_timestamp = self._sim_timestamp
             return cri_gpu
         wall0 = time.perf_counter() if track_timing else 0.0
-        cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
+        cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, self._cri_dll_qd(qd_in))
         if use_cuda:
             torch.cuda.synchronize()
         if track_timing:
@@ -1446,7 +1455,7 @@ class ArticulationData:
             return self._CRI_float.data
         q_in, qd_in = self._cri_input_tensors()
         wall0 = time.perf_counter() if record_timing else 0.0
-        cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
+        cri_gpu = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, self._cri_dll_qd(qd_in))
         if self.device.startswith("cuda"):
             torch.cuda.synchronize()
         if record_timing:
@@ -1465,21 +1474,22 @@ class ArticulationData:
 
     def enable_cri_filter_mode(
         self,
-        cri_limit: float = 0.92,
+        cri_limit: float = 0.96,
         filter_enabled: bool = True,
         cbf_alpha: float = 0.02,
-        direction_gain: float = 0.8,
+        direction_gain: float = 0.9,
         speed_enabled: bool = False,
         strong_cri: float = 0.92,
         strong_target: float = 0.0095,
     ) -> None:
-        """Prepare CRI-F: one ``run_cri_filter`` per tick, then change direction.
+        """Prepare CRI-F: one ``run_cri_filter`` per tick, then send its ``qd_cmd``.
 
-        ``cri_limit`` is the 9-channel peak where the highest-CRI point starts
-        losing incoming ``dir · v_lin``. The joint change uses weight
-        ``min(1, direction_gain * peak / cri_limit)``. Tangential speed stays,
-        including a request already over 0.96. ``speed_enabled`` is the only
-        switch that also scales every joint. OVF and rewind still use 0.96.
+        ``cri_limit`` is where ``h(u)`` is zero: ``h = limit - F/F_iso``.
+        Every control tick solves the level QP. Joint velocity is the input.
+        Force and pressure rows each keep ``h(u^k) + g·(u - u^k) >= 0``.
+        Rewards, rewind, and the CRI observation read
+        the forward of that sent command. With the filter off they read the raw
+        forward.
 
         Existing AtMotionState envs must not call this.
         Reset / first obs: CRI=0, ``qd_cmd=0``, no solver.
@@ -1492,7 +1502,7 @@ class ArticulationData:
             )
         self._cri_f_obs = True
         self._cri_filter_mode = True
-        self._cri_filter_limit = float(cri_limit) if cri_limit > 0.0 else 0.92
+        self._cri_filter_limit = float(cri_limit) if cri_limit > 0.0 else 0.96
         self._cri_filter_cbf_alpha = float(cbf_alpha) if cbf_alpha > 0.0 else 0.02
         self._cri_filter_direction_gain = float(direction_gain)
         self._cri_filter_speed_enabled = bool(speed_enabled)
@@ -1533,8 +1543,7 @@ class ArticulationData:
         print(
             f"[CRI] CBF-F (enabled={self._cri_filter_enabled}, limit={self._cri_filter_limit:g}, "
             f"alpha={self._cri_filter_cbf_alpha:g}, approach={self._cri_filter_approach_limit:g}): "
-            f"one run_cri_filter per step; direction gain={self._cri_filter_direction_gain:g}, "
-            f"speed_scale={self._cri_filter_speed_enabled}, first obs=0",
+            f"one run_cri_filter per step; level QP h + g·(u-u^k) >= 0, first obs=0",
             flush=True,
         )
 
@@ -1561,7 +1570,7 @@ class ArticulationData:
         q_in, qd_in = self._cri_input_tensors()
         last = None
         for _ in range(rounds):
-            last = self.solver.run_cri_filter(q_in, qd_in)
+            last = self.solver.run_cri_filter(q_in, self._cri_dll_qd(qd_in))
         if self.device.startswith("cuda"):
             torch.cuda.synchronize()
         if last is not None and last.get("cri_pre") is not None:
@@ -1611,15 +1620,188 @@ class ArticulationData:
         if self._CRI_float.data is not None:
             self._CRI_float.data.index_fill_(0, ids, 0.0)
 
+    def _log_cri_filter_eval(self, cri_pre, judged, qd_rl, qd_cmd, enabled: bool, jac=None, dire=None, q_in=None) -> None:
+        """One line per step, plus one line per env whose sent CRI rose."""
+        raw_pts = cri_pre.reshape(cri_pre.shape[0], -1)
+        sent_pts = judged.reshape(judged.shape[0], -1)
+        raw = raw_pts.amax(dim=-1)
+        sent = sent_pts.amax(dim=-1)
+        qd_rl_r = qd_rl.reshape(qd_rl.shape[0], -1)
+        qd_cmd_r = qd_cmd.reshape(qd_cmd.shape[0], -1)
+        spd_rl = torch.linalg.norm(qd_rl_r, dim=-1)
+        spd_cmd = torch.linalg.norm(qd_cmd_r, dim=-1)
+        limit = 0.96
+        n = int(raw.shape[0])
+        step = int(getattr(self, "_cri_eval_steps", 0)) + 1
+        self._cri_eval_steps = step
+        delta = torch.linalg.norm(qd_cmd_r - qd_rl_r, dim=-1)
+        self._cri_eval_raw_peak = raw.detach()
+        self._cri_eval_sent_peak = sent.detach()
+        self._cri_eval_spd_rl = spd_rl.detach()
+        self._cri_eval_spd_cmd = spd_cmd.detach()
+        print(
+            "[CRI-EVAL]"
+            f" step={step}"
+            f" enabled={int(bool(enabled))}"
+            f" n={n}"
+            f" raw_max={float(raw.max()):.4f}"
+            f" sent_max={float(sent.max()):.4f}"
+            f" raw_ge96={float((raw >= limit).float().mean()):.3f}"
+            f" sent_ge96={float((sent >= limit).float().mean()):.3f}"
+            f" delta_mean={float(delta.mean()):.4f}",
+            flush=True,
+        )
+        raised = torch.nonzero(sent > raw + 0.02, as_tuple=False).flatten()
+        points = min(int(raw_pts.shape[-1]), int(sent_pts.shape[-1]))
+        for i in raised.tolist():
+            raw_i = raw_pts[i, :points]
+            sent_i = sent_pts[i, :points]
+            grown = int((sent_i - raw_i).argmax())
+            joint_up = qd_cmd_r[i].abs() - qd_rl_r[i].abs()
+            motion = ""
+            if isinstance(jac, torch.Tensor) and jac.ndim == 4 and isinstance(dire, torch.Tensor):
+                joints = min(int(qd_rl_r.shape[-1]), int(jac.shape[-1]))
+                n_pt = min(points, int(jac.shape[1]), int(dire.shape[1]), int(raw_i.shape[0]))
+                row = min(i, int(jac.shape[0]) - 1)
+                J = jac[row, :n_pt, :3, :joints].float()
+                v0 = torch.matmul(J, qd_rl_r[i, :joints].float().unsqueeze(-1)).squeeze(-1)
+                v1 = torch.matmul(J, qd_cmd_r[i, :joints].float().unsqueeze(-1)).squeeze(-1)
+                pk = int(raw_i[:n_pt].argmax())
+                n0 = float(v0[pk].norm())
+                n1 = float(v1[pk].norm())
+                cos = float((v0[pk] * v1[pk]).sum() / max(n0 * n1, 1.0e-8))
+                hot = torch.nonzero(raw_i[:n_pt] >= 0.92, as_tuple=False).flatten().tolist()
+                raw_s = ",".join(f"{float(x):.3f}" for x in raw_i[:n_pt])
+                sent_s = ",".join(f"{float(x):.3f}" for x in sent_i[:n_pt])
+                motion = (
+                    f" hot={hot}"
+                    f" v_rl={n0:.4f}"
+                    f" v_cmd={n1:.4f}"
+                    f" cos={cos:.3f}"
+                    f" raw_pts={raw_s}"
+                    f" sent_pts={sent_s}"
+                )
+                if n1 < 1.0e-3 and q_in is not None:
+                    q_row = q_in.reshape(q_in.shape[0], -1)[i, :joints].detach().float()
+                    qd_row = qd_cmd_r[i, :joints].detach().float()
+                    qd_dll = self._cri_dll_qd(qd_row)
+                    v_dll = torch.matmul(J, qd_dll.unsqueeze(-1)).squeeze(-1)
+                    names = list(getattr(self, "joint_names", []) or [])
+                    name = lambda j: names[j] if j < len(names) else str(j)
+                    live = [
+                        f"{name(j)}:{float(qd_dll[j]):.4f}"
+                        for j in range(joints)
+                        if float(qd_row[j].abs()) >= 1.0e-8
+                    ]
+                    floor = [name(j) for j in range(joints) if float(qd_row[j].abs()) < 1.0e-8]
+                    pt_j = []
+                    for j in range(joints):
+                        contrib = float((J[pk, :, j] * qd_dll[j]).norm())
+                        pt_j.append(f"{name(j)}:{contrib:.3e}")
+                    q_s = ",".join(f"{float(x):.4f}" for x in q_row)
+                    dll_s = ",".join(f"{float(x):.6g}" for x in qd_dll)
+                    print(
+                        "[CRI-DLL]"
+                        f" step={step}"
+                        f" env={i}"
+                        f" pt={pk}"
+                        f" q=[{q_s}]"
+                        f" qd_dll=[{dll_s}]"
+                        f" live=[{','.join(live)}]"
+                        f" floor=[{','.join(floor)}]"
+                        f" v_dll={float(v_dll[pk].norm()):.6e}"
+                        f" pt_j=[{','.join(pt_j)}]",
+                        flush=True,
+                    )
+            print(
+                "[CRI-RAISE]"
+                f" step={step}"
+                f" env={i}"
+                f" raw={float(raw[i]):.4f}"
+                f" sent={float(sent[i]):.4f}"
+                f" spd_rl={float(spd_rl[i]):.4f}"
+                f" spd_cmd={float(spd_cmd[i]):.4f}"
+                f" raw_pt={int(raw_i.argmax())}"
+                f" sent_pt={int(sent_i.argmax())}"
+                f" grown_pt={grown}"
+                f" grown={float(raw_i[grown]):.4f}->{float(sent_i[grown]):.4f}"
+                f" joint_up={float(joint_up.max()):.4f}"
+                f"{motion}",
+                flush=True,
+            )
+
+    def _forward_command_cri(self, q_in: torch.Tensor, qd_cmd: torch.Tensor) -> torch.Tensor | None:
+        """CRI of one joint-velocity command. Does not run the CBF QP.
+
+        A second ``run_cri_filter`` would repeat the library QP. This forward is
+        the same reading as ``cri_pre`` of that command.
+        """
+        qd = qd_cmd if qd_cmd.is_contiguous() else qd_cmd.contiguous()
+        if qd.dtype != q_in.dtype:
+            qd = qd.to(dtype=q_in.dtype)
+        if qd.shape != q_in.shape:
+            qd = qd.reshape_as(q_in)
+        return self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, self._cri_dll_qd(qd))
+
+    def _cri_row_peak(self, cri: torch.Tensor, n_rows: int) -> torch.Tensor:
+        flat = cri.reshape(n_rows, -1) if cri.shape[0] == n_rows else cri.reshape(-1, cri.shape[-1])
+        if flat.shape[0] != n_rows:
+            flat = cri.reshape(n_rows, -1)
+        return flat.amax(dim=-1)
+
+    def _read_changed_command(
+        self, q_in: torch.Tensor, qd_cmd: torch.Tensor, qd_new: torch.Tensor, judged: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Store one forward of ``qd_new`` when it differs from ``qd_cmd``."""
+        qd_new = qd_new.to(dtype=qd_cmd.dtype, device=qd_cmd.device)
+        if qd_new.shape != qd_cmd.shape:
+            qd_new = qd_new.reshape_as(qd_cmd)
+        if torch.allclose(qd_new, qd_cmd, rtol=1.0e-4, atol=1.0e-5):
+            return qd_cmd, judged
+        sent = self._forward_command_cri(q_in, qd_new)
+        if sent is None:
+            return qd_new, judged
+        return qd_new, sent
+
+    def _zero_command_if_over(
+        self, qd_cmd: torch.Tensor, judged: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Stop a row whose CRI is at or above the limit. Zero speed has CRI 0.
+
+        Does not call the solver. ``judged`` is already the forward of the
+        command that will be sent, or the raw forward when that command did not
+        change.
+        """
+        n_rows = int(qd_cmd.shape[0])
+        over = self._cri_row_peak(judged, n_rows) >= float(self._cri_filter_limit)
+        if not bool(over.any()):
+            return qd_cmd, judged
+        qd_new = qd_cmd.clone()
+        qd_new[over] = 0
+        judged_new = judged.clone()
+        if judged_new.shape[0] == n_rows:
+            judged_new[over] = 0
+        else:
+            flat = judged_new.reshape(n_rows, -1)
+            flat[over] = 0
+            judged_new = flat.reshape(judged.shape)
+        return qd_new, judged_new
+
     def apply_cri_filter(self, qd_rl: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """One ``run_cri_filter(q, qd_RL)`` per env step; store CRI for the next observation.
 
-        Returns ``(cri_pre, delta, qd_cmd)``. When the library exports ``J`` and
-        ``dir``, ``qd_cmd`` changes only the highest-CRI point's approach
-        direction, with weight ``min(1, direction_gain * peak / limit)``.
-        Joint speed is not scaled unless ``speed_enabled`` was set. A missing
-        geometry falls back to the library ``qd_cmd``. Never multiplies by a
-        time-scale ``s``.
+        Returns ``(cri_sent, delta, qd_cmd)``. With the filter on, every tick
+        ``qd_cmd`` is the CBF-QP solution closest to the policy under
+        ``h(u^k) + g·(u - u^k) >= 0`` on every force and pressure row.
+        ``h = cri_limit - F/F_iso`` and the same for pressure. The QP takes
+        one trust-region step on the whole joint-velocity vector. The library
+        repeats that step until a fresh forward is at or under the limit, and
+        otherwise sends zero joint velocity. A forward that is still over the
+        limit is replaced by zero here as well. A zero command is stored as
+        CRI 0. Each changed non-zero command is read with ``AtMotionState``.
+        An unchanged command under the limit keeps ``cri_pre``.
+        With the filter off the sent command is ``qd_RL``.
+        Never multiplies by a time-scale ``s``.
         Opt-in only via :meth:`enable_cri_filter_mode`. Other envs stay on AtMotionState.
         """
         if not self._cri_f_obs:
@@ -1644,7 +1826,7 @@ class ArticulationData:
         track_timing = os.environ.get("SFD_CRI_TIMING", "0") == "1"
         wall0 = time.perf_counter() if track_timing else 0.0
         try:
-            result = self.solver.run_cri_filter(q_in, qd_in)
+            result = self.solver.run_cri_filter(q_in, self._cri_dll_qd(qd_in))
         except Exception as exc:
             logger.warning("CRI filter failed; passthrough qd_RL. %s", exc)
             if (
@@ -1693,47 +1875,49 @@ class ArticulationData:
         lib_qd = result.get("qd_cmd")
         jac = result.get("impact_jacobian")
         dire = result.get("impact_dir")
-        has_geometry = (
-            isinstance(jac, torch.Tensor)
-            and isinstance(dire, torch.Tensor)
-            and jac.numel() > 0
-            and dire.numel() > 0
-        )
-        if lib_enabled and has_geometry:
-            from isaaclab.assets.articulation.cri_approach import (
-                CRI_HARD_LIMIT,
-                subtract_approach_velocity,
-            )
-
-            qd_limit = None
-            limits = getattr(self, "joint_vel_limits", None)
-            if isinstance(limits, torch.Tensor) and limits.numel() >= qd_rl.shape[-1]:
-                lim = limits.reshape(-1, limits.shape[-1])[0].abs()
-                if int(lim.numel()) == int(qd_rl.shape[-1]):
-                    qd_limit = lim
-            qd_cmd = subtract_approach_velocity(
-                qd_rl,
-                jac,
-                dire,
-                cri_pre,
-                hard_limit=CRI_HARD_LIMIT,
-                point_limit=self._cri_filter_limit,
-                strong_cri=self._cri_filter_strong_cri,
-                strong_target=self._cri_filter_strong_target,
-                apply_speed_scale=self._cri_filter_speed_enabled,
-                direction_gain=self._cri_filter_direction_gain,
-                qd_limit=qd_limit,
-            ).to(dtype=qd_rl.dtype, device=qd_rl.device)
-            if qd_cmd.shape != qd_rl.shape:
-                qd_cmd = qd_cmd.reshape_as(qd_rl)
-        elif lib_enabled and isinstance(lib_qd, torch.Tensor) and lib_qd.numel() > 0:
+        if lib_enabled and isinstance(lib_qd, torch.Tensor) and lib_qd.numel() > 0:
             qd_cmd = lib_qd.to(dtype=qd_rl.dtype, device=qd_rl.device)
             if qd_cmd.shape != qd_rl.shape:
                 qd_cmd = qd_cmd.reshape_as(qd_rl)
         else:
             qd_cmd = qd_rl
+        judged = cri_pre
+        if lib_enabled:
+            qd_cmd = qd_cmd.to(dtype=qd_rl.dtype, device=qd_rl.device)
+            if qd_cmd.shape != qd_rl.shape:
+                qd_cmd = qd_cmd.reshape_as(qd_rl)
+            qd_ref = qd_rl.to(dtype=qd_cmd.dtype, device=qd_cmd.device)
+            filter_changed = ~torch.isclose(qd_cmd, qd_ref, rtol=1.0e-4, atol=1.0e-5).all(dim=-1)
+            if bool(filter_changed.any()):
+                sent = self._forward_command_cri(q_in, qd_cmd)
+                if sent is not None:
+                    judged = sent
+            stopped = torch.isclose(qd_cmd, torch.zeros_like(qd_cmd), atol=1.0e-8).all(dim=-1)
+            n_rows = int(qd_cmd.shape[0])
+            judged = judged.clone()
+            if bool(stopped.any()):
+                if judged.shape[0] == n_rows:
+                    judged[stopped] = 0
+                else:
+                    flat = judged.reshape(n_rows, -1)
+                    flat[stopped] = 0
+                    judged = flat.reshape_as(cri_pre)
+            # 재계산한 F/F_iso, P/P_iso가 한계를 넘으면 그 로봇의 관절 속도를 0으로 둔다.
+            peak = judged.reshape(n_rows, -1).amax(dim=-1)
+            reject = peak > (self._cri_filter_limit + 1.0e-4)
+            if bool(reject.any()):
+                qd_cmd = qd_cmd.clone()
+                qd_cmd[reject] = 0
+                if judged.shape[0] == n_rows:
+                    judged[reject] = 0
+                else:
+                    flat = judged.reshape(n_rows, -1)
+                    flat[reject] = 0
+                    judged = flat.reshape_as(cri_pre)
         delta = torch.linalg.norm((qd_cmd - qd_rl).reshape(qd_rl.shape[0], -1), dim=-1)
         self._cri_filter_delta.copy_(delta.to(dtype=self._cri_filter_delta.dtype))
+        if os.environ.get("SFD_CRI_FILTER_EVAL") == "1":
+            self._log_cri_filter_eval(cri_pre, judged, qd_rl, qd_cmd, lib_enabled, jac, dire, q_in)
         cri_out = result.get("cri")
         if isinstance(cri_out, torch.Tensor) and cri_out.numel() > 0:
             cri_out = cri_out.to(dtype=torch.float32, device=qd_rl.device)
@@ -1743,7 +1927,7 @@ class ArticulationData:
                 self._cri_filter_cri_out.copy_(cri_out)
         self._cri_filter_qd_cmd.copy_(qd_cmd.to(dtype=self._cri_filter_qd_cmd.dtype))
         self._cri_filter_qd_rl.copy_(qd_rl)
-        self._store_cri_output_buffers(cri_pre)
+        self._store_cri_output_buffers(judged)
         self._CRI.timestamp = self._sim_timestamp
         self._clear_cri_dirty()
 
@@ -1755,7 +1939,7 @@ class ArticulationData:
         self, q_in: torch.Tensor, qd_cmd: torch.Tensor, cri_limit: float
     ) -> None:
         """Offline re-forward: CRI(q, qd_cmd) should stay near the QP barrier. Not on the hot path."""
-        cri_after = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_cmd)
+        cri_after = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, self._cri_dll_qd(qd_cmd))
         if cri_after is None:
             return
         max_after = float(cri_after.amax().item())
@@ -1856,7 +2040,7 @@ class ArticulationData:
     def _measure_cri_point_count(self) -> int:
         """Collision-point count. Does not replace the filter cache."""
         q_in, qd_in = self._cri_input_tensors()
-        cri = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, qd_in)
+        cri = self.solver.RunSolver_CUDA_CRI_AtMotionState(q_in, self._cri_dll_qd(qd_in))
         if cri is None or cri.ndim < 2:
             return 1
         return int(cri.shape[-1])
@@ -1891,9 +2075,10 @@ class ArticulationData:
     def cri_filter_pre(self) -> torch.Tensor:
         """Shared CRI cache. Does not solve.
 
-        The CBF filter option is :attr:`cri_filter_enabled`. It is False unless a
-        filter action turns it on. False: the last writer is AtMotionState.
-        True: the last writer is ``run_cri_filter``. Reset / unread cache is zeros.
+        The value is the CRI of the command that was sent. With the filter off
+        that command is the policy velocity, so this is the raw forward. With
+        the filter on it is the forward of the filtered velocity. Reset / unread
+        cache is zeros.
         """
         if self._CRI_float.data is None:
             n = self._root_physx_view.count

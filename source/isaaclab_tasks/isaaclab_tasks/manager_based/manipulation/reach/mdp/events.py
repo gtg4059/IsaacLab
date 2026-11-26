@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+import os
+
 import torch
 from typing import TYPE_CHECKING
 
@@ -251,6 +253,31 @@ def rewind_arm_on_cri_limit(
         crossed = crossed & ~reset_buf
     if not hasattr(env, "_ovf_rewind_count"):
         env._ovf_rewind_count = torch.zeros(env.num_envs, device=cri.device)
+    if os.environ.get("SFD_OVF_REWIND_LOG") == "1" and bool(crossed.any()):
+        ids = crossed.nonzero(as_tuple=False).flatten()
+        joint_spd = torch.linalg.norm(asset.data.joint_vel[ids], dim=-1)
+        cmd = getattr(asset.data, "_cri_filter_qd_cmd", None)
+        if isinstance(cmd, torch.Tensor) and cmd.shape[0] == cri.shape[0]:
+            cmd_spd = torch.linalg.norm(cmd[ids].reshape(ids.shape[0], -1), dim=-1)
+            cmd_min = float(cmd_spd.min())
+            cmd_max = float(cmd_spd.max())
+            n_zero = int((cmd_spd <= 1.0e-6).sum())
+        else:
+            cmd_min = float("nan")
+            cmd_max = float("nan")
+            n_zero = -1
+        print(
+            "[OVF-REWIND]"
+            f" step={int(getattr(env, 'common_step_counter', -1))}"
+            f" n={int(ids.numel())}"
+            f" cri={float(cri[ids].min()):.4f}..{float(cri[ids].max()):.4f}"
+            f" thr={threshold:.2f}"
+            f" joint_spd={float(joint_spd.min()):.4f}..{float(joint_spd.max()):.4f}"
+            f" cmd_spd={cmd_min:.4f}..{cmd_max:.4f}"
+            f" cmd_zero={n_zero}"
+            f" envs={ids[:8].tolist()}",
+            flush=True,
+        )
     env._ovf_rewind_count[crossed] += 1.0
     _rewind_reach_spawn(env, crossed.nonzero(as_tuple=False).flatten())
 
