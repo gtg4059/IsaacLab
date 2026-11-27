@@ -174,6 +174,19 @@ class CRIObservationsCfg:
         # Isaac Lab reach 기본. ±0.01 rad, ±0.01 rad/s.
         joint_pos = ObsTerm(func=mdp.joint_pos, noise=Unoise(n_min=-0.001, n_max=0.001))
         joint_vel = ObsTerm(func=mdp.joint_vel, noise=Unoise(n_min=-0.01, n_max=0.01))
+        # Base-frame linear velocity of each arm link and the EE. Shape (num_envs, 21).
+        link_lin_vel = ObsTerm(
+            func=mdp.link_lin_vel_b,
+            params={
+                "command_name": "ee_pose",
+                "asset_cfg": SceneEntityCfg(
+                    "robot",
+                    body_names=list(mdp.UR10_ARM_LINK_NAMES),
+                    preserve_order=True,
+                ),
+            },
+            noise=Unoise(n_min=-0.01, n_max=0.01),
+        )
         pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "ee_pose"})
         actions = ObsTerm(func=mdp.last_action)
         # Seconds since this target was sampled. Actor and critic share this group.
@@ -182,7 +195,7 @@ class CRIObservationsCfg:
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
-            self.history_length = 5
+            self.history_length = 3
 
     policy: PolicyCfg = PolicyCfg()
 

@@ -45,13 +45,26 @@ class CRIFObservationsCfg:
         CRI = ObsTerm(func=mdp.cri_filter_pre)
         joint_pos = ObsTerm(func=mdp.joint_pos, noise=Unoise(n_min=-0.001, n_max=0.001))
         joint_vel = ObsTerm(func=mdp.joint_vel, noise=Unoise(n_min=-0.001, n_max=0.001))
+        # Base-frame linear velocity of each arm link and the EE. Shape (num_envs, 21).
+        link_lin_vel = ObsTerm(
+            func=mdp.link_lin_vel_b,
+            params={
+                "command_name": "ee_pose",
+                "asset_cfg": SceneEntityCfg(
+                    "robot",
+                    body_names=list(mdp.UR10_ARM_LINK_NAMES),
+                    preserve_order=True,
+                ),
+            },
+            noise=Unoise(n_min=-0.001, n_max=0.001),
+        )
         pose_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "ee_pose"})
         actions = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
-            self.history_length = 5
+            self.history_length = 3
 
     policy: PolicyCfg = PolicyCfg()
 
@@ -85,13 +98,14 @@ class CRIFReachEnvCfg(UR10ReachEnvCfg):
 
 @configclass
 class CRIFReachEnvCfg_PLAY(UR10ReachEnvCfg_PLAY):
-    """Play variant. Filter off, and no spawn rewind. This checkpoint is still the soft trajectory."""
+    """Play variant. The hard CRI filter is applied. No spawn rewind."""
 
     observations: CRIFObservationsCfg = CRIFObservationsCfg()
 
     def __post_init__(self):
         super().__post_init__()
         _use_direction_filter(self)
+        self.actions.arm_action.filter_enabled = True
         # Soft regime: a CRI crossing does not pull the arm back to the spawn,
         # and a timeout does not restore that spawn.
         if hasattr(self.events, "rewind_on_cri"):

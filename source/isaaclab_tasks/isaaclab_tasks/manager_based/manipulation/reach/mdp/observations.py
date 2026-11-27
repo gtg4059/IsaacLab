@@ -54,6 +54,36 @@ def ee_pose_error_to_command(
     return torch.cat([pos_error, axis_angle_error], dim=-1)
 
 
+# Child link of each UR10 revolute joint, then the fixed EE frame.
+UR10_ARM_LINK_NAMES: tuple[str, ...] = (
+    "shoulder_link",
+    "upper_arm_link",
+    "forearm_link",
+    "wrist_1_link",
+    "wrist_2_link",
+    "wrist_3_link",
+    "ee_link",
+)
+
+
+def link_lin_vel_b(
+    env: ManagerBasedEnv,
+    command_name: str,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Linear velocity of each selected link in the command origin frame.
+
+    Shape is ``(num_envs, num_bodies * 3)``. Body order follows ``asset_cfg.body_names``.
+    """
+    asset: Articulation = env.scene[asset_cfg.name]
+    lin_vel_w = asset.data.body_link_lin_vel_w[:, asset_cfg.body_ids]
+    _, origin_quat_w = command_origin_pose_w(env, command_name, asset)
+    num_envs, num_bodies, _ = lin_vel_w.shape
+    origin_quat_w = origin_quat_w.unsqueeze(1).expand(num_envs, num_bodies, 4)
+    lin_vel_b = math_utils.quat_apply_inverse(origin_quat_w, lin_vel_w)
+    return lin_vel_b.reshape(num_envs, num_bodies * 3)
+
+
 def collision_risk_index(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Collision Risk Index from Safetics CRI solver (via sfd_coreservice)."""
     asset: Articulation = env.scene[asset_cfg.name]
